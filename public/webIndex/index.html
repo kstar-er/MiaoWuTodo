@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DoTask 桌面宠物 - 官方网站</title>
+  <meta name="description" content="任务管理 · 多人协作 · 萌宠陪伴 —— DoTask 桌面宠物官网" />
+  <link rel="icon" href="./app-icon.png" />
+  <style>
+    :root {
+      /* 贴合应用主题（全局 global.less） */
+      --bg: #f5f5f5;
+      --text: #7f3a12;
+      --text-muted: #8b6b4a;
+      --panel-bg: #ffffff;
+      --brown: #8b4513;
+      --sand: #d4b895;
+      --card-shadow: 2px 3px 3px #8b451330;
+      --border: #d4b895;
+      --radius: 12px;
+      --radius-lg: 16px;
+      --transition: all 0.3s ease;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+    }
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+
+    /* Header */
+    header {
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: saturate(120%) blur(6px);
+      background: rgba(245,245,245,0.8);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
+    .brand img { width: 28px; height: 28px; border-radius: 8px; }
+    .brand span { font-weight: 700; letter-spacing: .3px; color: var(--brown); }
+    .nav a { color: var(--text); text-decoration: none; margin-left: 18px; opacity: .8; transition: var(--transition); }
+    .nav a:hover { opacity: 1; color: var(--brown); }
+
+    /* Hero */
+    .hero { 
+      position: relative;
+      padding: 100px 0 60px; 
+      text-align: center; 
+      background-image: url('./ghibli-bg.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.35));
+      pointer-events: none;
+    }
+    .hero > * { position: relative; z-index: 1; }
+    .title {
+      font-size: 36px; font-weight: 800; line-height: 1.15; margin: 0 0 16px;
+      letter-spacing: .2px; color: #ffffff; text-shadow: 0 3px 12px rgba(0,0,0,.55), 0 0 2px rgba(0,0,0,.6);
+    }
+    .subtitle { color: #ffffff; font-size: 16px; margin: 0 auto 28px; max-width: 680px; text-shadow: 0 2px 8px rgba(0,0,0,.5); background: rgba(0,0,0,.22); padding: 6px 10px; border-radius: 8px; display: inline-block; }
+    .cta { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+
+    /* Button base (匹配 global.less 的按钮与光效) */
+    .btn {
+      position: relative;
+      display: inline-flex; align-items: center; gap: 10px; padding: 10px 16px;
+      border-radius: 10px; border: 1px solid var(--brown);
+      color: var(--brown); text-decoration: none; font-weight: 700; letter-spacing: .2px;
+      background: #fff; box-shadow: var(--card-shadow);
+      transition: var(--transition);
+      overflow: hidden;
+    }
+    .btn::before {
+      content: '';
+      position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: 0.5s;
+    }
+    .btn:hover::before { left: 100%; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(139,69,19,0.15); background: var(--brown); color: #fff; border-color: var(--sand); }
+    .btn small { opacity: .9; font-weight: 600; }
+
+    /* 主按钮（匹配 .btn-primary） */
+    .btn.primary {
+      background: var(--sand);
+      color: var(--brown);
+      border-color: var(--brown);
+    }
+    .btn.primary:hover {
+      background: var(--brown);
+      color: #f5f5f5;
+      box-shadow: 0 4px 12px rgba(139, 69, 19, 0.2);
+      border-color: var(--sand);
+      transform: translateY(-2px);
+    }
+
+    /* Feature cards */
+    .section { padding: 30px 0 60px; }
+    .section h2 { text-align: center; font-size: 24px; margin: 0 0 20px; letter-spacing: .2px; color: var(--brown); }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--card-shadow);
+      min-height: 150px;
+    }
+    .card h3 { margin: 6px 0 10px; font-size: 16px; color: var(--brown); }
+    .card p { margin: 0; color: var(--text); opacity: .9; }
+
+    /* Panel */
+    .panel {
+      margin: 22px auto 0; max-width: 920px;
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      box-shadow: var(--card-shadow);
+    }
+    .panel h3 { margin: 0 0 10px; font-size: 18px; color: var(--brown); }
+    .panel p { margin: 0 0 8px; color: var(--text); opacity: .9; }
+    .links { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* Footer */
+    footer { color: var(--text-muted); text-align: center; padding: 24px 0; border-top: 1px solid var(--border); margin-top: 36px; }
+
+    /* Responsive */
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+      .hero { padding: 64px 0 32px; }
+      .title { font-size: 30px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <a class="brand" href="#">
+        <img src="./app-icon.png" alt="DoTask" />
+        <span>DoTask 桌面宠物</span>
+      </a>
+      <nav>
+        <a href="#features">功能</a>
+        <a href="#download">下载</a>
+        <a href="#opensource">开源</a>
+        <a href="#contact">联系</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero container">
+      <h1 class="title">任务管理 · 多人协作 · 萌宠陪伴</h1>
+      <p class="subtitle">
+        让工作与生活更有温度。集任务管理、协作沟通与桌面萌宠为一体，
+        以轻盈可爱的方式，高效推进你的每一个目标。
+      </p>
+      <div class="cta" id="download">
+        <a class="btn primary" href="#" id="download-windows">
+          <span>下载 Windows 版</span>
+          <small>Win10/11</small>
+        </a>
+        <a class="btn" href="#" id="download-mac">
+          <span>下载 macOS 版</span>
+          <small>Intel / Apple Silicon</small>
+        </a>
+      </div>
+    </section>
+
+    <section class="section container" id="features">
+      <h2>核心功能亮点</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>任务管理</h3>
+          <p>多视图管理（列表/筛选）、优先级、截止时间、图片备注、轻量表单，一键查看任务进度。</p>
+        </div>
+        <div class="card">
+          <h3>多人协作</h3>
+          <p>项目/分组/成员管理，任务执行人与负责人明确，实时通知与讨论，团队协作更顺畅。</p>
+        </div>
+        <div class="card">
+          <h3>萌宠陪伴</h3>
+          <p>桌宠常驻桌面，支持可爱互动与右键菜单，未来将支持 Spine 动画呈现更自然的动作。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="container panel" id="opensource">
+      <h3>开源地址</h3>
+      <p>
+        项目源码开放，欢迎 Star 与参与贡献：
+        <a href="#" style="color: var(--brand-2); text-decoration: none;">GitHub 仓库地址（稍后补充）</a>
+      </p>
+      <div class="links">
+        <a class="btn" href="#">查看文档</a>
+        <a class="btn" href="#">参与开发</a>
+      </div>
+    </section>
+
+    <section class="container panel" id="contact">
+      <h3>联系我们</h3>
+      <p>邮箱：<a href="mailto:contact@example.com" style="color: var(--brand); text-decoration: none;">contact@example.com</a></p>
+      <p>QQ 群：<strong>123456789</strong></p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">© <span id="year"></span> DoTask. 用爱与专注打造你的效率与陪伴。</div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    // 占位：后续替换为真实下载链接
+    const winLink = '#'; // 例如 https://example.com/download/DoTask-Setup.exe
+    const macLink = '#'; // 例如 https://example.com/download/DoTask-mac.dmg
+    document.getElementById('download-windows').setAttribute('href', winLink);
+    document.getElementById('download-mac').setAttribute('href', macLink);
+  </script>
+</body>
+</html>

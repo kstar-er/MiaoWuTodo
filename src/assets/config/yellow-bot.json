@@ -1,0 +1,11 @@
+{
+    "name": "68",
+    "imageSrc": "media/68.png",
+    "frameSize": 128,
+    "states": {
+        "stand": {
+            "spriteLine": 1,
+            "frameMax": 3
+        }
+    }
+}

@@ -1,0 +1,244 @@
+::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  margin: 0;
+  overflow: -moz-scrollbars-none;
+  -ms-overflow-style: none;
+  background-color: #f5f5f5;
+  --el-border-color-light: #d4b895;
+  --el-color-primary: #8b4513;
+  --el-menu-icon-width: 20px;
+  --el-bg-color: #f5f5f5;
+  --el-color-info-light-9: #d4b8956b;
+  --el-menu-text-color: #8b4513;
+  --el-menu-hover-text-color: #f5f5f5;
+  --el-menu-active-color: #d4b895;
+  --el-tabs-header-height: 38px;
+
+  
+  .el-dialog__headerbtn {
+    height: 30px;
+    width: 30px;
+  }
+
+  .content-divider {
+    background-color: #d4b895;
+  }
+
+  .el-divider--horizontal {
+    margin: 0;
+    margin-top: 10px;
+  }
+
+  input {
+    box-shadow: none;
+  };
+
+  .el-tag {
+    padding: 0 3px;
+  }
+
+  .el-tabs__item {
+    padding: 0 18px;
+  }
+
+  .el-check-tag {
+    height: 15px;
+  }
+
+  .el-tag__content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .el-tree-node__content {
+    background-color: #f5f5f5;
+  }
+
+  .el-tree-node__content:hover {
+    background-color: #d4b895;
+  }
+
+  .el-tree-node:focus>.el-tree-node__content {
+    background-color: #d4b895;
+  }
+
+  .hover-animation {
+    width: 23px;
+    height: 23px;
+    cursor: pointer;
+  }
+
+  .hover-animation:hover{
+    filter: brightness(1.1);
+    cursor: pointer;
+  }
+
+  .upload-container{
+    display: flex;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .el-upload-list--picture-card {
+    height: 120px;
+  }
+}
+
+html {
+  background-color: #f5f5f5;
+}
+
+.el-card {
+  background-blend-mode: multiply;
+  box-shadow: 2px 3px 3px #8b451330;
+  border: 1px solid #d4b895;
+}
+
+/* 通用按钮基础样式 */
+.btn-base {
+  font-size: 13px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 1px;
+  padding: 0 12px;
+}
+
+/* 通用按钮悬停效果 */
+.btn-base::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: 0.5s;
+}
+
+.btn-base:hover::before {
+  left: 100%;
+}
+
+/* 主要按钮样式 */
+.btn-primary {
+  background-color: #d4b895;
+  color: #8b4513;
+  border: 1px solid #8b4513;
+}
+
+.btn-primary:hover {
+  background: #8b4513;
+  color: #f5f5f5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 69, 19, 0.2);
+  border-color: #d4b895;
+}
+
+/* 危险按钮样式 */
+.btn-danger {
+  background-color: #fff5f5;
+  color: #ff4d4f;
+  border: 1px solid #ffa39e;
+}
+
+.btn-danger:hover {
+  background: #a75657;
+  color: #f5f5f5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.15);
+  border-color: #a75657;
+}
+
+/* 普通按钮样式 */
+.btn-default {
+  background-color: #fff;
+  border: 1px solid #d9cbb8;
+  color: #7f3a12;
+}
+
+.btn-default:hover {
+  background: #8b4513;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 69, 19, 0.15);
+  border-color: #8b4513;
+}
+
+/* 关闭按钮样式 */
+.btn-close {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-close::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: 0.5s;
+}
+
+.btn-close:hover::before {
+  left: 100%;
+}
+
+.btn-close:hover {
+  transform: rotate(90deg) scale(1.1);
+  background-color: #ff4d4f;
+  box-shadow: 0 0 15px rgba(255, 77, 79, 0.3);
+}
+
+/* 最小化按钮样式 */
+.btn-minimize {
+  background-color: #f0f0f0;
+  color: #8b4513;
+  border: 1px solid #d4b895;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-minimize::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: 0.5s;
+}
+
+.btn-minimize:hover::before {
+  left: 100%;
+}
+
+.btn-minimize:hover {
+  transform: scale(1.1);
+  background-color: #d4b895;
+  box-shadow: 0 4px 12px rgba(139, 69, 19, 0.2);
+}
