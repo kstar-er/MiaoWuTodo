@@ -1,0 +1,78 @@
+name: Publish MiaoWuTodo
+
+on:
+  push:
+    tags:
+      - 'v*' # 推送 v 开头的 tag 时触发工作流
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write # 赋予 GITHUB_TOKEN 写入 Release 的权限
+    strategy:
+      fail-fast: false # 一个平台失败不影响其他平台继续构建
+      matrix:
+        platform: [macos-latest, windows-latest] # 构建平台矩阵
+    runs-on: ${{ matrix.platform }} # 根据矩阵选择运行器
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+        # 安装证书到钥匙串 :cite[2]:cite[4]
+      - name: Import Apple Certificate
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          echo $APPLE_CERTIFICATE | base64 --decode > certificate.p12
+          security create-keychain -p "$APPLE_CERTIFICATE_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$APPLE_CERTIFICATE_PASSWORD" build.keychain
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$APPLE_CERTIFICATE_PASSWORD" build.keychain
+          rm certificate.p12
+
+      # 将 APPLE_API_KEY Secret 内容写入 .p8 文件
+      - name: Create AuthKey file from Secret
+        run: |
+          echo '${{ secrets.APPLE_API_KEY_PATH }}' > AuthKey_${{ secrets.APPLE_API_KEY }}.p8
+        # 或者如果 Secret 是直接复制文件内容，上述命令通常可行。
+        # 确保生成的文件名和路径与 APPLE_API_KEY 变量匹配。
+
+      # 设置环境变量以供 Tauri Action 使用
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm' # 或 yarn 或 pnpm，根据你的项目选择
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Rust cache # 缓存 Rust 依赖，加速后续构建
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install frontend dependencies
+        run: npm install # 或 yarn install 或 pnpm install
+
+      - name: Build the Tauri application
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 签名相关
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          # 公证相关 (API Key方式)
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_PATH: AuthKey_${{ secrets.APPLE_API_KEY }}.p8 # 指向刚才创建的文件
+
+        with:
+          tagName: ${{ github.ref_name }} # 使用触发工作流的 tag 名称
+          releaseName: 'MiaoWuTodo v__VERSION__' # __VERSION__ 会被自动替换
+          releaseBody: 'See the assets to download and install.'
+          releaseDraft: false # 创建正式发布（false）还是草稿（true）

@@ -50,6 +50,8 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import tourImgGroup from '../assets/images/tour/群组功能.png'
+import tourImgCreate from '../assets/images/tour/创建项目.png'
 
 // 本地存储键名
 const TOUR_COMPLETED_KEY = 'miaoTodo_tour_completed'
@@ -68,13 +70,12 @@ const currentImage = computed(() => {
 // 引导图片数据
 const tourImages = ref([
   {
-    src: '/src/assets/images/tour/群组功能.png',
+    src: tourImgGroup,
     alt: '群组功能',
     title: '群组功能',
     description: '添加好友或者群组，邀请小伙伴'
-  },
-  {
-    src: '/src/assets/images/tour/创建项目.png',
+  },  {
+    src: tourImgCreate,
     alt: '项目或任务功能',
     title: '项目或任务功能',
     description: '创建项目、分配任务、跟踪进度，让团队协作更高效'
