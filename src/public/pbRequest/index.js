@@ -3,7 +3,7 @@ import { errorHandle } from './errorHandle'
 import router from '../../router/index'
 import { ElMessageBox } from 'element-plus'
 import { ref } from 'vue'
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow, getAllWindows} from "@tauri-apps/api/window";
 import { createLoginWin } from '../../multiwins/action'
 
 // axios.defaults.headers["Content-Type"] = "application/json"
@@ -33,9 +33,12 @@ const getTime = () => {
 const pbRequest = axios.create({
 
   // baseURL: process.env.VUE_APP_TITLE === 'pro' ? 'https://www.baiaidu.com:9822' : 'http://192.168.1.13:9820',
-  baseURL: 'https://www.baiaidu.com:9822',
+  baseURL: 'http://192.168.1.13:9820',
   headers: {
     "Content-Type": "application/json"
+  },
+  validateStatus: function (status) {
+    return true; // 让所有状态码都不抛错，全部走成功回调
   }
 })
 
@@ -112,7 +115,7 @@ pbRequest.interceptors.response.use(
       console.warn(response.config.url + '该接口响应时间过长')
     }
 
-    if (response.data.code === 401){
+    if (response.status === 401 || response.data.code === 401){
       ElMessageBox.alert('登录过期，请重新登录', '提示', {
         confirmButtonText: '确定',
         type: 'warning',
@@ -121,9 +124,25 @@ pbRequest.interceptors.response.use(
           if (action === 'confirm') {
             sessionStorage.clear() // 清除缓存
 
+            // 除了宠物窗口，其他所开的窗口均关闭
+            const windows = await getAllWindows(); // 获取所有窗口实例
+            const keepWindows = ['pet', 'main_task'];   // 白名单：保留的窗口 label
+
+            for (const win of windows) {
+              console.log(win.label)
+              const label = win.label;
+
+              if (!keepWindows.includes(label)) {
+                try {
+                  // 尝试平滑关闭
+                  await win.close();
+                } catch (err) {
+                  console.warn(`无法关闭窗口 ${label}:`, err);
+                }
+              }
+            }
+
             const main_win = getCurrentWindow("main_task") // 获取主窗口实例
-            
-            // 打开登录窗口
             // 等待登录窗口创建打开后再关闭主窗口---即等待主窗口给登录窗口发送完消息以后
             await createLoginWin() 
             main_win.close()
