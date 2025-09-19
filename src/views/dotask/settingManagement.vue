@@ -250,7 +250,7 @@
 </template>
 
 <script setup>
-import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
+import { getCurrentWindow, getAllWindows  } from '@tauri-apps/api/window';
 import { onMounted, ref, onUnmounted, getCurrentInstance } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { createLoginWin, createPetManagementWin } from "../../multiwins/action";
@@ -260,7 +260,7 @@ import { clearWindowPositions } from '../../utils';
 import packageJson from '../../../package.json';
 import { checkUpdate, getVersion } from '../../utils/settings/update';
 import { useRouter } from 'vue-router';
-import { logout, updateProfile, getUserInfo } from '../../utils/login';
+import { logout, updateProfile } from '../../utils/login';
 import { uploadAvatarToOSS } from '../../utils/upload/secureOSSUpload.js';
 import CryptoJS from 'crypto-js';
 import { emit } from '@tauri-apps/api/event';
@@ -480,7 +480,7 @@ const goToHelp = () => {
 
 // 切换用户 事件
 const main_win = getCurrentWindow('main_task');
-const switchUser = () => {
+const switchUser = async () => {
   ElMessageBox.confirm(
     '切换用户将重新登录，确定要切换用户吗？',
     '提示',
@@ -492,8 +492,24 @@ const switchUser = () => {
   )
     .then(async () => {
       try {
-        
-        // WebSocket连接由pet.vue统一管理，无需在此断开
+
+        // 切换用户时，除了登录窗口、宠物窗口，其他所开的窗口均关闭
+        const windows = await getAllWindows(); // 获取所有窗口实例
+        const keepWindows = ['login', 'pet', 'main_task'];   // 白名单：保留的窗口 label
+
+        for (const win of windows) {
+          console.log(win.label)
+          const label = win.label;
+
+          if (!keepWindows.includes(label)) {
+            try {
+              // 尝试平滑关闭
+              await win.close();
+            } catch (err) {
+              console.warn(`无法关闭窗口 ${label}:`, err);
+            }
+          }
+        }
         
         // 调用后端退出登录接口
         await logout();
@@ -505,7 +521,7 @@ const switchUser = () => {
         await emit('logout-clear-form');
         
         await createLoginWin();
-        await main_win.close();
+        await main_win.destroy();
         ElMessage.success('已退出登录');
       } catch (error) {
         console.error('退出登录失败:', error);
@@ -517,7 +533,7 @@ const switchUser = () => {
         await emit('logout-clear-form');
         
         await createLoginWin();
-        await main_win.close();
+        await main_win.destroy();
         
         ElMessage.warning('退出登录时出现错误，已清理本地缓存');
       }

@@ -235,6 +235,7 @@ const getFilterParams = () => {
     filterLength.value = count;
     return {...filter}
   } else {
+    filterLength.value = 0;
     return {}
   }
 }
