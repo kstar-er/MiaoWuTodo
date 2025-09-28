@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>喵呜Todo</title>
   <meta name="description" content="任务管理 · 多人协作 · 萌宠陪伴 —— 喵呜Todo 桌面宠物任务管理器" />
-  <link rel="icon" href="./app-icon.png" />
+  <link rel="icon" href="https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/images/index/app-icon1.png" />
   <style>
     :root {
       /* 贴合应用主题（全局 global.less） */
@@ -51,7 +51,7 @@
       position: relative;
       padding: 100px 0 60px; 
       text-align: center; 
-      background-image: url('./ghibli-bg.png');
+      background-image: url('https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/images/index/1024.png');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -148,7 +148,7 @@
   <header>
     <div class="container nav">
       <a class="brand" href="#">
-        <img src="./app-icon.png" alt="DoTask" />
+        <img src="https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/images/index/app-icon1.png" alt="DoTask" />
         <span>喵呜Todo 桌面宠物任务管理器</span>
       </a>
       <nav>
@@ -201,11 +201,14 @@
       <h3>开源地址</h3>
       <p>
         项目源码开放，欢迎 Star 与参与贡献：
-        <a href="https://github.com/kstar-er/MiaoWuTodo" style="color: var(--brand-2); text-decoration: none;">GitHub地址: https://github.com/kstar-er/MiaoWuTodo</a>
+        <br />
+        <a href="https://github.com/kstar-er/MiaoWuTodo" style="color: #1e90ff; text-decoration: underline;">GitHub地址</a>
+        <br />
+        <a href="https://gitee.com/k_star/miao-wu-todo" style="color: #1e90ff; text-decoration: underline;">Gitee地址</a>
       </p>
       <div class="links">
-        <a class="btn" href="https://github.com/kstar-er/MiaoWuTodo">查看文档</a>
-        <a class="btn" href="https://github.com/kstar-er/MiaoWuTodo">参与开发</a>
+        <a class="btn" href="https://gitee.com/k_star/miao-wu-todo">查看文档</a>
+        <a class="btn" href="https://gitee.com/k_star/miao-wu-todo">参与开发</a>
       </div>
     </section>
 
@@ -222,10 +225,15 @@
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
     // 占位：后续替换为真实下载链接
-    const winLink = '#'; // 例如 https://example.com/download/DoTask-Setup.exe
+    const winLink = 'https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/package/%E5%96%B5%E5%91%9CTodo_1.0.1_x64-setup.exe'; // 例如 https://example.com/download/DoTask-Setup.exe
     const macLink = '#'; // 例如 https://example.com/download/DoTask-mac.dmg
     document.getElementById('download-windows').setAttribute('href', winLink);
     document.getElementById('download-mac').setAttribute('href', macLink);
+    // mac 版本暂未上线，点击提示
+    document.getElementById('download-mac').addEventListener('click', function (e) {
+      e.preventDefault();
+      alert('Mac版本正在加急审核中！审核完了马上上线喵');
+    });
   </script>
 </body>
 </html>
