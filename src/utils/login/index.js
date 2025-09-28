@@ -61,4 +61,10 @@ const updateProfile = async function(params) {
   return code === 200 ? { data, code } : message
 }
 
-export { loading, userLogin, getUserInfo, getRouters, logout, sendRegisterCode, userRegister, updateProfile, resetPassword }
+// 修改密码
+const updatePassword = async function(params) {
+  let { data: { code, data, message } } = await pbRequest.post('/eam/auth/updatePassWord', params)
+  return code === 200 ? { data, code } : message
+}
+
+export { loading, userLogin, getUserInfo, getRouters, logout, sendRegisterCode, userRegister, updateProfile, resetPassword, updatePassword }
