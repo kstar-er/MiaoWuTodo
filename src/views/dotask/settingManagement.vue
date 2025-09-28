@@ -28,7 +28,7 @@
           </div>
         </div>
 
-        <div class="user-info" v-if="!showUpdateForm">
+        <div class="user-info" v-if="!editingMode">
           <div class="user-item">
             <div class="left-label">账号</div>
             <div class="right-text">{{ userInfo.username }}</div>
@@ -52,6 +52,7 @@
         
         <div class="update-info" v-else>
           <el-input
+            v-if="editingMode === 'info'"
             v-model="updateNickname"
             :prefix-icon="User"
             maxlength="20"
@@ -62,6 +63,7 @@
             clearable
           />
           <el-input
+            v-if="editingMode === 'psw'"
             v-model="updatePsw"
             :prefix-icon="Lock"
             type="password"
@@ -71,13 +73,22 @@
         </div>
 
         <template #footer>
-          <div class="footer-actions" v-if="!showUpdateForm">
+          <div class="footer-actions" v-if="!editingMode">
             <el-tooltip content="修改信息" effect="dark">
+              <img src="/editUserInfo.svg"
+                class="img-btn"
+                alt="修改信息"
+                style="width: 25px; height: 25px; margin-right: 30px;"
+                @click="startEditInfo"
+              />
+            </el-tooltip>
+
+            <el-tooltip content="修改密码" effect="dark">
               <img src="/updatepsw.svg"
                 class="img-btn"
                 alt="修改密码"
                 style="width: 25px; height: 25px; margin-right: 30px;"
-                @click="showUpdateForm = true"
+                @click="startEditPassword"
               />
             </el-tooltip>
             
@@ -102,7 +113,7 @@
               <el-button
                 type="primary"
                 style="float: right; margin-right: 25px;"
-                @click="handleUpdatePsw"
+                @click="handleSubmit"
                 class="btn-base btn-primary"
                 size="large"
                 circle
@@ -121,7 +132,7 @@
               <el-button
                 type="danger"
                 style="float: right; margin-right: 10px;"
-                @click="showUpdateForm = false"
+                @click="cancelEdit"
                 class="btn-base btn-danger"
                 size="large"
                 circle
@@ -260,7 +271,7 @@ import { clearWindowPositions } from '../../utils';
 import packageJson from '../../../package.json';
 import { checkUpdate, getVersion } from '../../utils/settings/update';
 import { useRouter } from 'vue-router';
-import { logout, updateProfile } from '../../utils/login';
+import { logout, updateProfile, updatePassword } from '../../utils/login';
 import { uploadAvatarToOSS } from '../../utils/upload/secureOSSUpload.js';
 import CryptoJS from 'crypto-js';
 import { emit } from '@tauri-apps/api/event';
@@ -329,25 +340,53 @@ const handleAvatarUpload = async (event) => {
   }
 };
 
+/**
+ * 分离编辑模式
+ */
+const editingMode = ref("")
+
+// 取消编辑
+const cancelEdit = () => {
+  updateNickname.value = '';
+  updatePsw.value = '';
+  editingMode.value = ''
+}
+
+// 修改用户信息
+const startEditInfo = () => {
+  updateNickname.value = '';
+  editingMode.value = 'info';
+};
+
+// 修改密码
+const startEditPassword = () => {
+  updatePsw.value = '';
+  editingMode.value = 'psw';
+};
+
+// 统一处理
+const handleSubmit = async () => {
+  if (editingMode.value === 'info') {
+    await handleUpdateUserInfo();
+  } else if (editingMode.value === 'psw') {
+    await handleUpdatePsw();
+  }
+};
 
 /**
  * 修改密码
  */
 const updatePsw = ref("");
-const updateNickname = ref("");
-const showUpdateForm = ref(false);
 const SECRET_KEY = "do-task-secret-key"; // 加密密钥
-
 const handleUpdatePsw = async () => {
   const newPsw = updatePsw.value.trim();
-  const newNickname = updateNickname.value.trim();
-  if (!newPsw && !newNickname) {
-    proxy.$message.error('信息不能全为空！');
+  if (!newPsw) {
+    proxy.$message.error('密码不能为空');
     return;
   }
 
   try {
-    proxy.$alert(`确定要修改信息吗？`, '提示', {
+    proxy.$alert(`确定要修改密码吗？`, '提示', {
       type: 'warning',
       showCancelButton: true,
       cancelButtonText: '再想想',
@@ -357,13 +396,11 @@ const handleUpdatePsw = async () => {
         if (action === 'cancel') return
         else {
           let params = {
-            nickname: newNickname,
             password: newPsw
           }
           if (!newPsw) delete params.password;
-          if (!newNickname) delete params.nickname;
 
-          await updateProfile(params).then(response => {
+          await updatePassword(params).then(response => {
             console.log(response)
             if (response.code === 200) {
 
@@ -380,6 +417,52 @@ const handleUpdatePsw = async () => {
                 ).toString();
                 localStorage.setItem('lastLoginInfo', encryptedInfo);
               }
+              
+              // 弹出提示信息，并关闭密码输入
+              proxy.$message.success("修改密码成功");
+              cancelEdit()
+            } else {
+              proxy.$message.error("修改密码失败");
+            }
+          });
+        }
+      }
+    })
+  } catch (error) {
+    console.error("密码修改发生错误:", error);
+    proxy.$message.error('密码修改发生错误');
+  }
+}
+
+/**
+ * 修改信息
+ */
+const updateNickname = ref("");
+const handleUpdateUserInfo = async () => {
+  const newNickname = updateNickname.value.trim();
+  if (!newNickname) {
+    proxy.$message.error('新昵称不能为空');
+    return;
+  }
+
+  try {
+    proxy.$alert(`确定要修改信息吗？`, '提示', {
+      type: 'warning',
+      showCancelButton: true,
+      cancelButtonText: '再想想',
+      confirmButtonText: '确认',
+      confirmButtonClass: 'delete-confirm-btn',
+      callback: async (action) => {
+        if (action === 'cancel') return
+        else {
+          let params = {
+            nickname: newNickname
+          }
+          if (!newNickname) delete params.nickname;
+
+          await updateProfile(params).then(response => {
+            console.log(response)
+            if (response.code === 200) {
 
               if (params.nickname) {
                 // 更新localStorage中的用户信息
@@ -391,9 +474,7 @@ const handleUpdatePsw = async () => {
               
               // 弹出提示信息，并关闭密码输入
               proxy.$message.success("修改信息成功!");
-              updateNickname.value = "";
-              updatePsw.value = "";
-              showUpdateForm.value = false;
+              cancelEdit()
             } else {
               proxy.$message.error("修改密码失败!");
             }
