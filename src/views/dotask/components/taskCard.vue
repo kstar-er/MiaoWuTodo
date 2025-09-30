@@ -167,6 +167,8 @@ import { ref, onMounted, nextTick, onUnmounted, watch, reactive, computed } from
 import { getTagColor } from '../../../utils';
 import { ArrowRight, Plus, Check, Close } from '@element-plus/icons-vue';
 import ProgressBackground from './ProgressBackground.vue';
+import { formatToLocalTime } from '../../../utils/index';
+
 // Recursive self-reference by name
 defineOptions({ name: 'TaskCard' });
 const props = defineProps({
@@ -452,7 +454,7 @@ const onConfirmAddSubtask = () => {
     projectId: props.task.projectId,
     parentId: props.task.id,
     taskDetail: text,
-    deadline: props.task.deadline? props.task.deadline.substring(0, 19).replace("T", " ") : null,
+    deadline: props.task.deadline? formatToLocalTime(props.task.deadline) : null,
     taskName: text.slice(0, 6),
     priority: props.task.priority || 'P1',
     caption: '',

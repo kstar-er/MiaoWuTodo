@@ -78,7 +78,7 @@
           <template #content>点击即可将任务流程更新到下一任务流程</template>
           <el-button
             :class="nextStepBtnClass"
-            v-if="task.schedule !== '归档'"
+            v-if="!task.isFinalSchedule"
             @click.stop="onNextStep"
           >
             下一步
@@ -87,7 +87,7 @@
         <el-button
           v-else
           :class="nextStepBtnClass"
-          v-if="task.schedule !== '归档'"
+          v-if="!task.isFinalSchedule"
           @click.stop="onNextStep"
         >
           下一步
@@ -148,7 +148,7 @@
 
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted, watch, reactive } from 'vue';
-import { getTagColor } from '../../../utils';
+import { getTagColor, formatToLocalTime } from '../../../utils';
 const props = defineProps({
   task: {
     type: Object,
@@ -272,7 +272,7 @@ onMounted(() => {
 
     if (isLastSchedule) {
       let endTime = props.task.endTime;
-      timeLeft.value = endTime ? endTime.substring(0, 19).replace("T", " ") : '无完成时间'
+      timeLeft.value = endTime ? formatToLocalTime(endTime) : '无完成时间'
     } else if (props.task.deadline) {
       timeLeft.value = calculateTimeLeft(props.task.deadline);
     } else {
