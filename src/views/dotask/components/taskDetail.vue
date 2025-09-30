@@ -215,7 +215,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { CloseBold, ArrowRight, ArrowLeft } from "@element-plus/icons-vue";
 import { addOrUpdateTask, getProject, deleteTask } from "../../../utils/taskManagement";
-import { getCurrentFormattedTime } from "../../../utils"; // 获取当前时间js
+import { getCurrentFormattedTime, formatToLocalTime } from "../../../utils"; // 获取当前时间js
 import customDragWindow from "../../components/public/customDragWindow.vue"; // 封装窗口拖拽
 
 const myClient = ref( );
@@ -405,7 +405,7 @@ const initInlineData = async (data) => {
     } else {
       priority.value = data.priority; // 优先级
       let usersArray = data.scheduleUserList?.split(',') || [];
-      formData.value.deadline = data?.deadline?.substring(0, 19).replace("T", " ") || null; // 去掉多余的.0
+      formData.value.deadline = data?.deadline ? formatToLocalTime(data.deadline) : null; // 去掉多余的.0
       formData.value.scheduleList = data.scheduleList?.map((item, index) => {
         let itemName = item;
         let users = usersArray[index] ? (usersArray[index]).split('、') : '';

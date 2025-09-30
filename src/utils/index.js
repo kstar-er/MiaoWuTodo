@@ -91,3 +91,20 @@ export function clearWindowFormdata() {
     }
   });
 }
+
+/**
+ * 转换为当前时区的时间
+ */
+export function formatToLocalTime(isoString) {
+  if (!isoString) return null;
+  const date = new Date(isoString);
+  return new Intl.DateTimeFormat('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(date).replace(/\//g, '-'); // 替换 / 为 -，保持 YYYY-MM-DD 格式
+}
