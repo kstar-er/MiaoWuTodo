@@ -7,7 +7,7 @@
             <Close />
           </el-icon>
         </div>
-        <h2>任务管理桌面端</h2>
+        <h2>喵呜Todo</h2>
       </template>
     </customDragWindow>
     <!-- 登录/注册区域 -->

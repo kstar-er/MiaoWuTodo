@@ -212,7 +212,7 @@ export async function createMainWin() {
   await createWin({
     label: "main_task",
     url: "index.html#/index",
-    title: "任务管理桌面端",
+    title: "喵呜Todo",
     width: 360,
     height: 700,
     resizable: false,

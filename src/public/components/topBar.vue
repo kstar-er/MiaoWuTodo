@@ -8,7 +8,7 @@
             <img :src="title_icon" alt="" style="width: 20px; height: auto;">
           </div>
           <div class="title-text">
-            任务管理桌面端
+            喵呜Todo
           </div>
         </div>
         <div class="actions">

@@ -38,7 +38,7 @@ const routes = [
     name: "index",
     component: () => import("../views/dotask/index.vue"),
     meta: {
-      title: "任务管理桌面端",
+      title: "喵呜Todo",
       keepAlive: true, //设置页面是否需要使用缓存
     },
     children: [
