@@ -91,7 +91,7 @@ import miniTaskCard from './components/minitaskCard.vue';
 import selectUserDialog from './components/selectUserDialog.vue';
 import { handleDelete, handlePreviewImage } from "./utils/eventHandler";
 import { createTaskWin, createFilterWin } from '../../multiwins/action';
-import { getScheduleTagColor } from '../../utils/index';
+import { getScheduleTagColor, formatToLocalTime } from '../../utils/index';
 
 const { proxy } = getCurrentInstance();
 
@@ -151,13 +151,11 @@ onMounted(async () => {
       const { action, filterdata } = event.payload;
       if (action === "doMiniFiter") {
         await initData();
-        proxy.$message.success("筛选成功");
         return;
       }
       if (action === "resetMiniFilter") {
         localStorage.removeItem("miniFilter");
         await initData();
-        proxy.$message.success("清空筛选成功");
         return;
       }
     });
@@ -182,7 +180,7 @@ const imageList = ref({
 const recentTasks = ref([]); // 最近任务列表
 const initData = async () => {
   filterParams.value = getFilterParams();
-  console.log("11filter", filterParams.value)
+
   let params = {
     ...filterParams.value,
     pageNum: 1,
@@ -193,7 +191,17 @@ const initData = async () => {
   recentTasks.value = taskRows;
   recentTasks.value.map(item => {
     item.isCanSelectProject = true;
-    item.deadline = item.deadline ? item.deadline.substring(0, 19).replace("T", " ") : null;
+    item.deadline = formatToLocalTime(item.deadline);
+
+    if (item?.scheduleList) {
+      const scheduleList = item.scheduleList;
+      const scheduleArray = scheduleList?.split(',') || [];
+      if (scheduleArray && scheduleArray.length === 1) {
+        item.isFinalSchedule = true;
+      } else {
+        item.isFinalSchedule = (item.schedule === scheduleArray[scheduleArray?.length - 1]);
+      }
+    }
   })
 
   console.log("recent", recentTasks.value)
@@ -343,16 +351,12 @@ const isChangeSchedule = async (task) => {
   })
 
   const data = await updateNextSchedule(task);
-  console.log("task", data)
   if (data.code === 200) {
     nextScheduleUser.value = data.data;
     if (nextScheduleUser.value?.length > 1) {
       showNextSchedule.value = true;
       return;
     } else {
-      await handleUpdateSchedule({
-        name: nextScheduleUser.value?.length === 1 ? nextScheduleUser.value[0] : null
-      })
       await initData();
     }
   }

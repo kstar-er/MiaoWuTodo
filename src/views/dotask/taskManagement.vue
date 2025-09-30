@@ -219,6 +219,7 @@ import { ArrowDown } from "@element-plus/icons-vue";
 import { getUserInfo } from "../../utils/login";
 import GuidedTour from "../../components/GuidedTour.vue";
 import EmptyState from "@/public/components/EmptyState.vue";
+import { formatToLocalTime } from '../../utils/index';
 
 const { proxy } = getCurrentInstance();
 
@@ -1288,7 +1289,7 @@ const handleAddOrUpdateSubTask = async (subTaskData) => {
   const isFormattedDeadline = (subTaskData.deadline?.split(' ').length) > 1;
   let params = {
     ...subTaskData,
-    deadline: isFormattedDeadline ? subTaskData.deadline : subTaskData.deadline?.substring(0, 19).replace("T", " ") || null
+    deadline: isFormattedDeadline ? subTaskData.deadline : formatToLocalTime(subTaskData.deadline) || null
   }
   addOrUpdateTask({ list: [params] }).then( async (res) => {
     if (res && res.code){
