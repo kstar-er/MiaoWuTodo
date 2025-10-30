@@ -32,7 +32,7 @@ const getTime = () => {
  */
 const pbRequest = axios.create({
 
-  baseURL: process.env.VUE_APP_TITLE === 'pro' ? 'https://www.baiaidu.com:9822' : 'http://192.168.1.13:9820',
+  baseURL: process.env.VUE_APP_TITLE === 'pro' ? 'https://www.baiaidu.com:9822' : 'http://192.168.1.26:9820',
   // baseURL: 'https://www.baiaidu.com:9822',
   headers: {
     "Content-Type": "application/json"
@@ -126,7 +126,7 @@ pbRequest.interceptors.response.use(
 
             // 除了宠物窗口，其他所开的窗口均关闭
             const windows = await getAllWindows(); // 获取所有窗口实例
-            const keepWindows = ['pet', 'main_task'];   // 白名单：保留的窗口 label
+            const keepWindows = ['main_task'];   // 白名单：保留的窗口 label
 
             for (const win of windows) {
               console.log(win.label)
@@ -135,7 +135,7 @@ pbRequest.interceptors.response.use(
               if (!keepWindows.includes(label)) {
                 try {
                   // 尝试平滑关闭
-                  await win.close();
+                  await win.destroy();
                 } catch (err) {
                   console.warn(`无法关闭窗口 ${label}:`, err);
                 }
@@ -145,7 +145,7 @@ pbRequest.interceptors.response.use(
             const main_win = getCurrentWindow("main_task") // 获取主窗口实例
             // 等待登录窗口创建打开后再关闭主窗口---即等待主窗口给登录窗口发送完消息以后
             await createLoginWin() 
-            main_win.close()
+            main_win.destroy()
           }
         }
       }).then(res => {
