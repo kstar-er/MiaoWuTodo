@@ -5,8 +5,6 @@ class WebSocketService {
         this.maxReconnectAttempts = 5;
         this.reconnectInterval = 10000; // 3秒
         this.messageHandlers = new Set();
-        this.isDev = process.env.NODE_ENV === 'development';
-        
         // 心跳相关配置
         this.heartbeatMinInterval = 30000; // 最小30秒
         this.heartbeatMaxInterval = 35000; // 最大35秒
@@ -36,11 +34,12 @@ class WebSocketService {
         this.reconnectAttempts = 0;
         this.currentUserId = userId;
         
-        // 根据环境选择不同的WebSocket地址
-        // const wsUrl = this.isDev 
-        //     ? `ws://localhost:9820/eam/websocket/${userId}`  // 开发环境使用ws协议
-        //     : `wss://www.baiaidu.com:9822/eam/websocket/${userId}`; // 生产环境使用wss协议
-        const wsUrl = `wss://www.baiaidu.com:9822/eam/websocket/${userId}`;
+        // Vite风格环境变量判断
+        const isPro = import.meta.env.VITE_API_ENV === 'pro';
+        console.log('当前环境变量env:', import.meta.env);
+        const wsUrl = isPro
+            ? `wss://www.baiaidu.com:9822/eam/websocket/${userId}` // 生产环境用wss
+            : `ws://localhost:9820/eam/websocket/${userId}`;      // 开发环境用ws
         console.log('WebSocket连接地址1:', wsUrl);
         this.ws = new WebSocket(wsUrl);
 
