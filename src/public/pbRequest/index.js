@@ -32,7 +32,9 @@ const getTime = () => {
  */
 // 环境兼容 vite
 const isPro = import.meta.env.VITE_API_ENV === 'pro';
-const baseURL = isPro ? 'https://www.baiaidu.com:9822' : 'http://192.168.1.26:9820';
+// const baseURL = isPro ? 'https://www.baiaidu.com:9822' : 'http://192.168.1.26:9820';
+const baseURL =  'https://www.baiaidu.com:9822' ;
+
 const pbRequest = axios.create({
   baseURL,
   headers: {

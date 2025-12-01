@@ -22,7 +22,7 @@
     />
     <div v-if="!isOverdue && remainingText" class="progress-label" :style="{ right: '13%' }">{{ remainingText }}</div>
     <div v-if="isOverdue && !props.isFinalStage" class="overdue-stripe" />
-    <div v-if="props.isFinalStage" class="final-shine" />
+    <div v-if="props.isFinalStage" />
   </div>
 </template>
 
@@ -359,42 +359,6 @@ const forwardEvent = (e) => dispatchToCard(e);
   pointer-events: none; /* 不阻挡交互 */
 }
 
-/* 最后一项流程：45° 斜向白色透明光条滑过效果 */
-.final-shine {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-.final-shine::before {
-  content: '';
-  position: absolute;
-  top: -100%;
-  left: -50%;
-  width: 100%;
-  height: 300%;
-  background: linear-gradient(
-    45deg,
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,0.0) 35%,
-    rgba(255,255,255,0.28) 50%,
-    rgba(255,255,255,0.0) 65%,
-    rgba(255,255,255,0) 100%
-  );
-  transform: rotate(0deg);
-  animation: shine-sweep 2s linear infinite;
-  filter: blur(0.2px);
-}
-
-@keyframes shine-sweep {
-  0%   { transform: translate(-20%, -20%) rotate(0deg); }
-  100% { transform: translate(140%, 40%) rotate(0deg); }
-}
-
-@keyframes stripe-move {
-  0% { background-position: 0 0; }
-  100% { background-position: 28px 28px; }
-}
 
 .progress-label {
   position: absolute;
