@@ -84,17 +84,14 @@ const tourImages = ref([
 
 // 检查是否是首次登录
 const checkFirstLogin = () => {
-  console.log('checkFirstLogin 被调用');
   const isFirstLogin = localStorage.getItem(FIRST_LOGIN_KEY) !== 'true'
   const tourCompleted = localStorage.getItem(TOUR_COMPLETED_KEY) === 'true'
   
   console.log('isFirstLogin:', isFirstLogin, 'tourCompleted:', tourCompleted);
   
   if (isFirstLogin && !tourCompleted) {
-    console.log('显示欢迎对话框');
     showWelcomeDialog.value = true
   } else {
-    console.log('不显示欢迎对话框，原因：', isFirstLogin ? '已完成引导' : '非首次登录');
   }
 }
 

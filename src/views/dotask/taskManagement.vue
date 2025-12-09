@@ -974,8 +974,7 @@ const addTaskParams = ref({});
 const detailDrawerVisible = ref(false);
 const inlineDetailData = ref(null);
 const drawerDirection = ref('rtl');
-const drawerSize = ref('620px');
-const drawerPixelWidth = ref(620);
+const drawerSize = ref('');
 const originalWindowPos = ref(null);
 const originalWindowSize = ref(null);
 const isWindowExpanded = ref(false);
@@ -989,7 +988,11 @@ const computeDrawerSide = async () => {
     // 若已有原始位置，则基于原始位置判断，避免窗口移动后方向切换
     const pos = originalWindowPos.value || await win.innerPosition();
     const size = originalWindowSize.value || await win.innerSize();
+    console.log("计算当前window的pos", pos)
+    console.log("计算当前窗口的的size",  await win.innerSize())
     const screenWidth = window.screen?.width || 1920;
+    console.log("计算当前window的screen", window.screen?.width)
+    console.log("计算当前窗口的screenWidth", screenWidth)
     const screenCenterX = (pos.x + size.width / 2);
     // 窗口中心在屏幕左侧 -> 从右侧打开；在右侧 -> 从左侧打开
     drawerDirection.value = screenCenterX < (screenWidth / 2) ? 'rtl' : 'ltr';
@@ -1009,7 +1012,9 @@ const expandMainWindowForDrawer = async () => {
       originalWindowSize.value = { width: currentSize.width, height: currentSize.height };
     }
     // 使用固定抽屉宽度（外部已设置 drawerSize/drawerPixelWidth）
-    const dw = drawerPixelWidth.value || parseInt(String(drawerSize.value)) || 620;
+    const dw = currentSize.width*1.7
+    drawerSize.value = dw + 'px'
+    console.log("计算当前窗口的dw", dw)
     const basePos = originalWindowPos.value;
     const baseSize = originalWindowSize.value;
     // 基于原始尺寸计算目标（幂等）
@@ -1032,8 +1037,8 @@ const restoreMainWindow = async () => {
     // 使用当前展开状态下的位置与尺寸，按抽屉宽度收缩，避免跳回原位置
     const currentPos = await win.innerPosition();
     const currentSize = await win.innerSize();
-    const dw = drawerPixelWidth.value || parseInt(String(drawerSize.value)) || 620;
-    const targetWidth = Math.max(100, currentSize.width - dw);
+    const targetWidth = originalWindowSize.value.width;
+    console.log("计算当前窗口的targetWidth", targetWidth)
     const targetX = drawerDirection.value === 'ltr' ? currentPos.x + dw : currentPos.x;
     await win.setSize(new LogicalSize(targetWidth, currentSize.height));
     await win.setPosition(new LogicalPosition(targetX, currentPos.y));
