@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>周报模板测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .field-group {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+        .field-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .field-value {
+            color: #666;
+        }
+        .success {
+            color: #67c23a;
+        }
+        .info {
+            color: #909399;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>周报模板功能测试</h1>
+        
+        <h2>✅ 已完成的功能</h2>
+        
+        <div class="field-group">
+            <div class="field-label">1. ReportConfig 实体类字段映射</div>
+            <div class="field-value success">
+                ✓ 已根据 ReportConfig 实体类添加所有必要字段<br>
+                ✓ 包含：reportType, templateFormat, contentFormat, language, detailLevel<br>
+                ✓ 包含：scheduleType, generateDay, autoGenerateTime<br>
+                ✓ 包含：includeMetrics, includeSuggestions, autoGenerate, enabled
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">2. publicIconForm 组件扩展</div>
+            <div class="field-value success">
+                ✓ 添加了 formSwitchEl 属性支持<br>
+                ✓ 添加了开关字段的模板渲染<br>
+                ✓ 添加了时间选择器支持<br>
+                ✓ 修复了数字输入框的 min 属性
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">3. 周报模板列表组件</div>
+            <div class="field-value success">
+                ✓ 修复了字段映射（name → templateType）<br>
+                ✓ 添加了状态显示（enabled → 启用/禁用）<br>
+                ✓ 添加了详细信息显示（报告类型、模板格式等）<br>
+                ✓ 修复了搜索功能的字段匹配
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">4. 样式修复</div>
+            <div class="field-value success">
+                ✓ 修复了容器背景色问题<br>
+                ✓ 添加了滚动支持<br>
+                ✓ 优化了卡片布局和信息展示
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">5. API 工具函数</div>
+            <div class="field-value success">
+                ✓ 创建了 reportManagement API 工具函数<br>
+                ✓ 包含：getReportConfigs, saveReportConfig, deleteReportConfig<br>
+                ✓ 包含：getReports, createReport, deleteReport
+            </div>
+        </div>
+
+        <h2>📋 新增模板时的字段配置</h2>
+        
+        <div class="field-group">
+            <div class="field-label">基础信息</div>
+            <div class="field-value">
+                • 模板名称 (templateType) - 必填<br>
+                • 模板描述 (description) - 可选
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">报告配置</div>
+            <div class="field-value">
+                • 报告类型 (reportType): 周报/月报/季报<br>
+                • 模板格式 (templateFormat): Markdown/HTML/纯文本<br>
+                • 内容格式 (contentFormat): 简洁/详细/图表<br>
+                • 语言 (language): 中文/英文<br>
+                • 详细程度 (detailLevel): 简要/标准/详细
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">调度配置</div>
+            <div class="field-value">
+                • 调度类型 (scheduleType): 手动/每周/每月<br>
+                • 生成日 (generateDay): 1-31<br>
+                • 自动生成时间 (autoGenerateTime): HH:mm:ss 格式
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">功能开关</div>
+            <div class="field-value">
+                • 包含指标 (includeMetrics): 是否包含数据指标<br>
+                • 包含建议 (includeSuggestions): 是否包含改进建议<br>
+                • 自动生成 (autoGenerate): 是否自动生成报告<br>
+                • 启用配置 (enabled): 是否启用当前配置
+            </div>
+        </div>
+
+        <h2>🔧 使用说明</h2>
+        
+        <div class="field-group">
+            <div class="field-label">新增模板</div>
+            <div class="field-value">
+                1. 点击"周报模板管理"标签页<br>
+                2. 点击右下角的"+"按钮<br>
+                3. 填写模板信息和配置<br>
+                4. 点击保存按钮
+            </div>
+        </div>
+
+        <div class="field-group">
+            <div class="field-label">编辑模板</div>
+            <div class="field-value">
+                1. 在模板列表中点击要编辑的模板卡片<br>
+                2. 在右侧抽屉中修改配置<br>
+                3. 点击保存按钮
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -70,6 +70,24 @@ const routes = [
         },
       },
       {
+        path: "/reportManagement",
+        name: "reportManagement",
+        component: () => import("../views/dotask/reportManagement.vue"),
+        meta: {
+          title: "报表管理",
+          keepAlive: true, //设置页面是否需要使用缓存
+        },
+      },
+      {
+        path: "/weeklyReportManagement",
+        name: "weeklyReportManagement",
+        component: () => import("../views/dotask/weeklyReportManagement.vue"),
+        meta: {
+          title: "周报管理",
+          keepAlive: true, //设置页面是否需要使用缓存
+        },
+      },
+      {
         path: "/settingManagement",
         name: "settingManagement",
         component: () => import("../views/dotask/settingManagement.vue"),

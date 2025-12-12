@@ -6,6 +6,7 @@
       class="el-menu-vertical"
       @select="handleSelect"
       :background-color="'#000000'"
+      :ellipsis="false"
     >
       <el-menu-item index="1" data-tab="projectManagement">
         <el-icon><Folder /></el-icon>
@@ -16,7 +17,10 @@
       <el-menu-item index="3" data-tab="groupManagement">
         <el-icon><User /></el-icon>
       </el-menu-item>
-      <el-menu-item index="4" data-tab="settingManagement">
+      <el-menu-item index="4" data-tab="weeklyReportManagement">
+        <el-icon><DataAnalysis /></el-icon>
+      </el-menu-item>
+      <el-menu-item index="5" data-tab="settingManagement">
         <el-icon><Setting /></el-icon>
       </el-menu-item>
     </el-menu>
@@ -25,7 +29,7 @@
 
 <script lang="ts" setup>
 import { ref, watch } from 'vue';
-import { Folder, Document, Setting, User } from '@element-plus/icons-vue';
+import { Folder, Document, Setting, User, DataAnalysis } from '@element-plus/icons-vue';
 
 const props = defineProps({
   currentIndex: {

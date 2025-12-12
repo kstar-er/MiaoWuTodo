@@ -246,12 +246,58 @@
             v-model="myformData[item.key]"
             style="width: 220px"
             :disabled="item.disabled"
-            :min="0"
+            :min="item.min ? item.min : 0"
             :precision="item.precision ? item.precision : 0"
             :max="item.max ? item.max : 100000000"
             controls-position="right"
             placeholder="1"
             size=""
+          />
+          
+          <el-time-picker
+            v-if="item.element === 'time'"
+            v-model="myformData[item.key]"
+            :format="item.format ? item.format : 'HH:mm:ss'"
+            :value-format="item.format ? item.format : 'HH:mm:ss'"
+            :placeholder="`请选择${item.title}`"
+            style="width: 220px"
+            :disabled="item.disabled"
+          />
+        </el-form-item>
+
+        <!-- 开关字段 -->
+        <el-form-item
+          v-for="item in formSwitchEl"
+          :key="item.key"
+          :label="item.title"
+          :rules="item.rules"
+          :prop="item.key"
+          :class="{'full-width': item.fullWidth}"
+          class="form-item"
+        >
+          <template #label>
+            <el-popover
+              v-if="item.illustrate"
+              placement="top"
+              width="300"
+              :hide-after="0"
+            >
+              <template #reference>
+                <el-icon :style="`color: ${item.color ? item.color : 'orange'}`" :size="item.size ? item.size : ''">
+                  <component :is="item.icon ? item.icon : Warning" />
+                </el-icon>
+              </template>
+              <template #default>
+                {{ item.illustrate }}
+              </template>
+            </el-popover>
+            <div v-if="!item.icon">{{ item.title }}</div>
+          </template>
+
+          <el-switch
+            v-model="myformData[item.key]"
+            :disabled="item.disabled"
+            @change="item.change"
           />
         </el-form-item>
 
@@ -543,7 +589,7 @@
 
 <script setup>
 import { ref, getCurrentInstance, onMounted, onUnmounted } from "vue";
-import { Edit, Plus, Delete, Picture, Check, Close, Document, ArrowLeft, ArrowRight } from "@element-plus/icons-vue";
+import { Edit, Plus, Delete, Picture, Check, Close, Document, ArrowLeft, ArrowRight, Warning } from "@element-plus/icons-vue";
 import { getTaskLogs } from "../../../utils/taskManagement/index.js";
 import { uploadTaskImageToOSS } from "../../../utils/upload/secureOSSUpload.js";
 
@@ -612,6 +658,14 @@ const _props = defineProps({
     type: Object,
     default: () => {
       return {};
+    },
+  },
+
+  // 开关表单
+  formSwitchEl: {
+    type: Array,
+    default: () => {
+      return [];
     },
   },
 

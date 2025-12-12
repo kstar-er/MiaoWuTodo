@@ -1011,10 +1011,12 @@ const expandMainWindowForDrawer = async () => {
       originalWindowPos.value = { x: currentPos.x, y: currentPos.y };
       originalWindowSize.value = { width: currentSize.width, height: currentSize.height };
     }
-    // 使用固定抽屉宽度（外部已设置 drawerSize/drawerPixelWidth）
-    const dw = currentSize.width*1.7
-    drawerSize.value = dw + 'px'
-    console.log("计算当前窗口的dw", dw)
+    // 计算抽屉宽度，限制在最大 620px 或屏幕宽度的 80%（取较小值）
+    const maxDrawer = 620;
+    const screenWidth = window.innerWidth || 1920;
+    const dw = Math.min(maxDrawer, Math.floor(screenWidth * 1.8));
+    drawerSize.value = dw + 'px';
+    console.log("计算抽屉宽度 dw", dw);
     const basePos = originalWindowPos.value;
     const baseSize = originalWindowSize.value;
     // 基于原始尺寸计算目标（幂等）
@@ -1038,7 +1040,11 @@ const restoreMainWindow = async () => {
     const currentPos = await win.innerPosition();
     const currentSize = await win.innerSize();
     const targetWidth = originalWindowSize.value.width;
-    console.log("计算当前窗口的targetWidth", targetWidth)
+    console.log("计算当前窗口的targetWidth", targetWidth);
+    // 重新计算抽屉宽度（与展开时保持一致）
+    const maxDrawer = 620;
+    const screenWidth = window.innerWidth || 1920;
+    const dw = Math.min(maxDrawer, Math.floor(screenWidth * 0.8));
     const targetX = drawerDirection.value === 'ltr' ? currentPos.x + dw : currentPos.x;
     await win.setSize(new LogicalSize(targetWidth, currentSize.height));
     await win.setPosition(new LogicalPosition(targetX, currentPos.y));
@@ -1641,10 +1647,10 @@ const resetLocalFormdata = async () => {
 
 /* 外层容器 */
 .tabs-container {
-  /* 固定主列表区域的宽度，窗口变宽时保持不变 */
-  width: 360px;
+  /* 在不同屏幕宽度下自动适配 */
+  width: 100%;
   max-width: 360px;
-  flex: 0 0 360px;
+  flex: 0 0 auto;
   .tab-slider-controls {
     z-index: 9;
     position: absolute;
@@ -1683,8 +1689,8 @@ const resetLocalFormdata = async () => {
 }
 // .inline-detail-panel.side-rtl { right: 0; transform: translateX(100%); }
 // .inline-detail-panel.side-ltr { left: 0; transform: translateX(-100%); }
-.inline-detail-panel.side-rtl { left: 360px; transform: translateX(-100%); }
-.inline-detail-panel.side-ltr { right: 360px; transform: translateX(100%); }
+.inline-detail-panel.side-rtl { right: 0; transform: translateX(100%); }
+.inline-detail-panel.side-ltr { left: 0; transform: translateX(-100%); }
 
 .container.drawer-ltr .tabs-container { margin-left: auto; }
 .inline-detail-panel.show { width: var(--drawer-size, 620px); transform: translateX(0); opacity: 1; visibility: visible; pointer-events: auto; }

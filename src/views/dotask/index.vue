@@ -23,11 +23,12 @@ import TaskManagement from './taskManagement.vue';
 import SettingManagement from './settingManagement.vue';
 import GroupManagement from './groupManagement.vue';
 import ProjectManagement from './projectManagement.vue';
-
+import WeeklyReportManagement from "./weeklyReportManagement.vue";
 const projectManagement = markRaw(ProjectManagement);
 const taskManagement = markRaw(TaskManagement);
 const settingManagement = markRaw(SettingManagement);
 const groupManagement = markRaw(GroupManagement);
+const weeklyReportManagement = markRaw(WeeklyReportManagement)
 
 // 定义当前显示的页面
 const currentComponent = ref(taskManagement);
@@ -59,6 +60,9 @@ const changePage = (index) => {
       currentComponent.value = groupManagement;
       break;
     case '4':
+      currentComponent.value = weeklyReportManagement;
+      break;
+    case '5':
       currentComponent.value = settingManagement;
       break;
     default:

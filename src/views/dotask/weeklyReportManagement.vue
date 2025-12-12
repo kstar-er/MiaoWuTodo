@@ -1,0 +1,252 @@
+<template>
+  <main class="container">
+    <!-- 加载动画 -->
+    <loadingAnimation :loading="loading" loadingText="加载周报数据中..." />
+
+    <div class="weekly-report-container" v-if="!loading">
+      <!-- 标签页切换：周报查看和周报模板管理 -->
+      <el-tabs v-model="activeTab" type="card" class="sticky-tabs" @tab-change="handleTabChange">
+        <el-tab-pane label="周报查看" name="reportList">
+          <WeeklyReportList ref="reportListRef" @item-click="handleItemClick" />
+        </el-tab-pane>
+        <el-tab-pane label="周报模板管理" name="templateManagement">
+          <WeeklyReportTemplate ref="templateRef" @item-click="handleItemClick" />
+        </el-tab-pane>
+      </el-tabs>
+    </div>
+
+    <!-- 详情抽屉面板 -->
+    <div
+      v-if="detailDrawerVisible"
+      class="inline-detail-panel"
+      :class="['side-' + drawerDirection, { show: detailDrawerVisible, 'no-anim': noAnim }]"
+      :style="{ width: drawerSize, '--drawer-size': drawerSize }"
+    >
+      <WeeklyReportDetail
+        :isInline="true"
+        :inlineData="inlineDetailData"
+        :drawerDirection="drawerDirection"
+        @inlineClose="handleInlineClose"
+        @inlineSaved="handleInlineSaved"
+      />
+    </div>
+    <div class="add_but" v-if="activeTab==='templateManagement'" >
+      <FloatIcon @onClick="openTemplateDetail('add', {}, '')"></FloatIcon>
+    </div>
+  </main>
+</template>
+
+<script setup>
+import { ref, onMounted } from "vue";
+import FloatIcon from "./components/dragFloatBtn.vue"; // 拖拽按钮
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { LogicalSize, LogicalPosition } from "@tauri-apps/api/window";
+import loadingAnimation from "../components/public/loadingAnimation.vue";
+import WeeklyReportList from "./components/weeklyReportList.vue";
+import WeeklyReportTemplate from "./components/weeklyReportTemplate.vue";
+import WeeklyReportDetail from "./components/weeklyReportDetail.vue";
+
+const loading = ref(false);
+const activeTab = ref('reportList');
+const detailDrawerVisible = ref(false);
+const inlineDetailData = ref(null);
+const drawerDirection = ref('rtl');
+const drawerSize = ref('');
+const originalWindowPos = ref(null);
+const originalWindowSize = ref(null);
+const isWindowExpanded = ref(false);
+const noAnim = ref(false);
+const isClosing = ref(false);
+const reportListRef = ref(null);
+const templateRef = ref(null);
+
+const handleTabChange = (tabName) => {
+  // 切换标签页时，可以重新加载对应数据
+  if (tabName === 'reportList' && reportListRef.value) {
+    reportListRef.value.initData();
+  } else if (tabName === 'templateManagement' && templateRef.value) {
+    templateRef.value.initData();
+  }
+};
+
+const handleItemClick = (item) => {
+  // 点击列表项，打开详情抽屉
+  openDetailDrawer(item);
+};
+
+const computeDrawerSide = async () => {
+  try {
+    const win = getCurrentWindow();
+    const pos = originalWindowPos.value || await win.innerPosition();
+    const size = originalWindowSize.value || await win.innerSize();
+    const screenWidth = window.screen?.width || 1920;
+    const screenCenterX = (pos.x + size.width / 2);
+    drawerDirection.value = screenCenterX < (screenWidth / 2) ? 'rtl' : 'ltr';
+  } catch (e) {
+    drawerDirection.value = 'rtl';
+  }
+};
+
+const expandMainWindowForDrawer = async () => {
+  try {
+    const win = getCurrentWindow();
+    const currentPos = await win.innerPosition();
+    const currentSize = await win.innerSize();
+    if (!originalWindowPos.value || !originalWindowSize.value) {
+      originalWindowPos.value = { x: currentPos.x, y: currentPos.y };
+      originalWindowSize.value = { width: currentSize.width, height: currentSize.height };
+    }
+    const maxDrawer = 620;
+    const screenWidth = window.innerWidth || 1920;
+    const dw = Math.min(maxDrawer, Math.floor(screenWidth * 1.8));
+    drawerSize.value = dw + 'px';
+    const basePos = originalWindowPos.value;
+    const baseSize = originalWindowSize.value;
+    const targetWidth = baseSize.width + dw;
+    const targetX = drawerDirection.value === 'ltr' ? basePos.x - dw : basePos.x;
+    if (currentSize.width !== targetWidth || currentPos.x !== targetX) {
+      await win.setSize(new LogicalSize(targetWidth, baseSize.height));
+      await win.setPosition(new LogicalPosition(targetX, basePos.y));
+    }
+    isWindowExpanded.value = true;
+  } catch (e) {
+    console.error('扩展主窗口失败:', e);
+  }
+};
+
+const restoreMainWindow = async () => {
+  try {
+    if (!isWindowExpanded.value) return;
+    const win = getCurrentWindow();
+    const currentPos = await win.innerPosition();
+    const currentSize = await win.innerSize();
+    const targetWidth = originalWindowSize.value.width;
+    const maxDrawer = 620;
+    const screenWidth = window.innerWidth || 1920;
+    const dw = Math.min(maxDrawer, Math.floor(screenWidth * 0.8));
+    const targetX = drawerDirection.value === 'ltr' ? currentPos.x + dw : currentPos.x;
+    await win.setSize(new LogicalSize(targetWidth, currentSize.height));
+    await win.setPosition(new LogicalPosition(targetX, currentPos.y));
+  } catch (e) {
+    console.error('还原主窗口失败:', e);
+  } finally {
+    isWindowExpanded.value = false;
+    originalWindowPos.value = null;
+    originalWindowSize.value = null;
+  }
+};
+
+const openDetailDrawer = async (item) => {
+  inlineDetailData.value = item;
+  await computeDrawerSide();
+  await expandMainWindowForDrawer();
+  detailDrawerVisible.value = true;
+};
+
+const handleInlineSaved = async (params) => {
+  detailDrawerVisible.value = false;
+  // 根据操作刷新对应列表
+  if (activeTab.value === 'reportList' && reportListRef.value) {
+    reportListRef.value.initData();
+  } else if (activeTab.value === 'templateManagement' && templateRef.value) {
+    templateRef.value.initData();
+  }
+};
+
+const handleInlineClose = async () => {
+  isClosing.value = true;
+  noAnim.value = true;
+  detailDrawerVisible.value = false;
+  try {
+    await restoreMainWindow();
+  } finally {
+    requestAnimationFrame(() => {
+      noAnim.value = false;
+      isClosing.value = false;
+    });
+  }
+};
+
+const openTemplateDetail = (action, data, extra) => {
+  // 构建新增模板的数据对象
+  const newTemplate = {
+    id: null,
+    type: 'template', // 标识为模板类型
+    templateType: '',
+    description: '',
+    reportType: 'weekly',
+    templateFormat: 'markdown',
+    contentFormat: 'detailed',
+    language: 'zh-CN',
+    detailLevel: 'standard',
+    scheduleType: 'manual',
+    generateDay: 1,
+    autoGenerateTime: '09:00:00',
+    includeMetrics: true,
+    includeSuggestions: true,
+    autoGenerate: false,
+    enabled: true,
+    userId: null, // 可以后续从用户信息获取
+    groupId: null,
+    creator: '', // 可以后续从用户信息获取
+    createTime: new Date().toISOString().split('T')[0]
+  };
+  openDetailDrawer(newTemplate);
+};
+
+const initData = async () => {
+  loading.value = true;
+  // 初始化数据
+  setTimeout(() => {
+    loading.value = false;
+  }, 500);
+};
+
+defineExpose({ initData });
+
+onMounted(() => {
+  initData();
+});
+</script>
+
+<style lang="less" scoped>
+.container {
+  padding-top: 10px;
+  font-size: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  text-align: center;
+}
+
+.weekly-report-container {
+  width: 100%;
+  max-width: 360px;
+  flex: 0 0 auto;
+}
+
+/* 侧边内联详情面板：基于主表侧边弹出 */
+.inline-detail-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: #fff;
+  box-shadow: 0 0 12px rgba(0,0,0,0.15);
+  transition: transform 0.25s ease, width 0.25s ease, opacity 0.2s ease;
+  overflow: hidden;
+  z-index: 10;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.inline-detail-panel.side-rtl { right: 0; transform: translateX(100%); }
+.inline-detail-panel.side-ltr { left: 0; transform: translateX(-100%); }
+
+.container.drawer-ltr .weekly-report-container { margin-left: auto; }
+.inline-detail-panel.show { width: var(--drawer-size, 620px); transform: translateX(0); opacity: 1; visibility: visible; pointer-events: auto; }
+
+:root { --drawer-size: 620px; }
+</style>
