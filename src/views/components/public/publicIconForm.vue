@@ -297,6 +297,7 @@
           <el-switch
             v-model="myformData[item.key]"
             :disabled="item.disabled"
+            inline-prompt
             @change="item.change"
           />
         </el-form-item>

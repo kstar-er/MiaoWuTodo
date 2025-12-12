@@ -137,7 +137,9 @@ const restoreMainWindow = async () => {
 };
 
 const openDetailDrawer = async (item) => {
+  console.log('openDetailDrawer called with item:', item);
   inlineDetailData.value = item;
+  console.log('inlineDetailData.value set to:', inlineDetailData.value);
   await computeDrawerSide();
   await expandMainWindowForDrawer();
   detailDrawerVisible.value = true;
@@ -191,6 +193,7 @@ const openTemplateDetail = (action, data, extra) => {
     creator: '', // 可以后续从用户信息获取
     createTime: new Date().toISOString().split('T')[0]
   };
+  console.log('openTemplateDetail - newTemplate:', newTemplate);
   openDetailDrawer(newTemplate);
 };
 

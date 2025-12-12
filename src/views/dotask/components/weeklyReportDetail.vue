@@ -20,6 +20,7 @@
       </div>
     </div>
 
+
     <publicIconForm
       ref="ruleFormRef"
       :label-width="'90px'"
@@ -99,7 +100,7 @@ watch(() => props.inlineData, async (val) => {
   if (props.isInline && val) {
     await initInlineData(val);
   }
-}, { deep: true });
+}, { deep: true, immediate: true });
 
 const initDataSource = async (event) => {
   const { data, emitWin } = event.payload;
@@ -116,6 +117,7 @@ const initInlineData = async (data) => {
   loading.value = true;
   try {
     formData.value = { ...data };
+    console.log('initInlineData - data.type:', data.type);
     setupFormByData(data);
     nextTick(() => {
       ruleFormRef.value?.updateFormData(formData.value);
@@ -127,15 +129,19 @@ const initInlineData = async (data) => {
 
 // 根据数据类型设置表单字段
 const setupFormByData = (data) => {
+  console.log('setupFormByData called with data:', data);
+  console.log('data.type:', data.type);
+  
   if (data.type === 'template') {
+    console.log('Setting up template form fields');
     // 模板详情
-    detailForm.formInputEl[0].title = "模板名称";
-    detailForm.formInputEl[0].key = "templateType";
-    detailForm.formTextAreaEl[0].title = "模板描述";
-    detailForm.formTextAreaEl[0].key = "description";
+    detailForm.value.formInputEl[0].title = "模板名称";
+    detailForm.value.formInputEl[0].key = "templateType";
+    detailForm.value.formTextAreaEl[0].title = "模板描述";
+    detailForm.value.formTextAreaEl[0].key = "description";
     
     // 设置模板配置的特定字段
-    detailForm.formSelectEl = [
+    detailForm.value.formSelectEl = [
       {
         title: "报告类型",
         key: "reportType",
@@ -247,7 +253,7 @@ const setupFormByData = (data) => {
       },
     ];
 
-    detailForm.formTimeAndNumber = [
+    detailForm.value.formTimeAndNumber = [
       {
         title: "生成日",
         key: "generateDay",
@@ -274,13 +280,12 @@ const setupFormByData = (data) => {
     ];
 
     // 添加开关选项
-    detailForm.formSwitchEl = [
+    detailForm.value.formSwitchEl = [
       {
         title: "包含指标",
         key: "includeMetrics",
         element: "switch",
         illustrate: "是否包含数据指标",
-        icon: "DataAnalysis",
         color: "#d47549",
         size: "18",
         fullWidth: false
@@ -290,7 +295,6 @@ const setupFormByData = (data) => {
         key: "includeSuggestions",
         element: "switch",
         illustrate: "是否包含改进建议",
-        icon: "ChatDotRound",
         color: "#d47549",
         size: "18",
         fullWidth: false
@@ -300,7 +304,6 @@ const setupFormByData = (data) => {
         key: "autoGenerate",
         element: "switch",
         illustrate: "是否自动生成报告",
-        icon: "Setting",
         color: "#d47549",
         size: "18",
         fullWidth: false
@@ -310,7 +313,6 @@ const setupFormByData = (data) => {
         key: "enabled",
         element: "switch",
         illustrate: "是否启用当前配置",
-        icon: "Switch",
         color: "#d47549",
         size: "18",
         fullWidth: false
@@ -318,12 +320,12 @@ const setupFormByData = (data) => {
     ];
   } else {
     // 周报详情
-    detailForm.formInputEl[0].title = "周报标题";
-    detailForm.formInputEl[0].key = "title";
-    detailForm.formTextAreaEl[0].title = "周报内容";
-    detailForm.formTextAreaEl[0].key = "content";
+    detailForm.value.formInputEl[0].title = "周报标题";
+    detailForm.value.formInputEl[0].key = "title";
+    detailForm.value.formTextAreaEl[0].title = "周报内容";
+    detailForm.value.formTextAreaEl[0].key = "content";
     // 显示周报的特定字段
-    detailForm.formTimeAndNumber = [
+    detailForm.value.formTimeAndNumber = [
       {
         title: "开始日期",
         key: "startDate",
@@ -347,7 +349,7 @@ const setupFormByData = (data) => {
         valueFormat: 'YYYY-MM-DD'
       },
     ];
-    detailForm.formSelectEl = [
+    detailForm.value.formSelectEl = [
       {
         title: "周报类型",
         key: "reportType",
@@ -372,8 +374,18 @@ const setupFormByData = (data) => {
       },
     ];
     // 清空模板相关字段
-    detailForm.formSwitchEl = [];
+    detailForm.value.formSwitchEl = [];
   }
+  
+  console.log('setupFormByData completed, detailForm.value:', detailForm.value);
+  
+  // 强制触发响应式更新
+  nextTick(() => {
+    console.log('nextTick - updating form data');
+    if (ruleFormRef.value) {
+      ruleFormRef.value.updateFormData(formData.value);
+    }
+  });
 };
 
 const hideWin = (type, params) => {
@@ -431,17 +443,17 @@ const detailForm = ref({
   formSwitchEl: [],
   formTextAreaEl: [
     {
-      title: "周报内容",
+      title: "周报模板",
       key: "content",
       element: "input",
-      illustrate: "周报详细内容",
+      illustrate: "周报模板内容",
       icon: "ChatDotRound",
       color: "#d47549",
       size: "18",
       type: "textarea",
       minRows: 8,
       maxRows: 12,
-      placeholder: "请输入周报内容",
+      placeholder: "请输入周报模板",
       fullWidth: true
     },
   ],
