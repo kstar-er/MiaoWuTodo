@@ -274,8 +274,12 @@ const login = async () => {
     return;
   }
 
+  console.log("开始登录...");
   let ctx = await userLogin(user); // 从后端调用接口，并将参数传入
+  console.log("登录响应:", ctx);
+  
   if (ctx.code === 200) { // 登录成功
+    console.log("登录成功，保存token和用户信息");
     // 将token信息保存
     sessionStorage.setItem("token", ctx.data.accessToken);
     sessionStorage.setItem("userInfo", JSON.stringify(ctx.data.user));
@@ -286,13 +290,16 @@ const login = async () => {
     ).toString();
     localStorage.setItem("lastLoginInfo", encryptedInfo)
 
+    console.log("开始创建主窗口和宠物窗口...");
     // 打开任务列表窗口
     await createMainWin();
     await createWinPetWin();
+    console.log("窗口创建完成，隐藏登录窗口");
     // 关闭登录窗口
     await login_win.hide();
 
   } else { // 登录失败
+    console.log("登录失败:", ctx);
     erroring.value = true;
   }
 };

@@ -30,19 +30,23 @@ export function listenAndRemove(windowInstance, eventName, callback) {
  * @param args {object} {label: 'new', url: '/new', width: 500, height: 300, ...}
  */
 export async function createDefaultWin(args) {
+  console.log("创建默认窗口，参数:", args);
   const newWindow = new WebviewWindow(args.label, args);
-  const login_win = await WebviewWindow.getByLabel("login");
 
   let unlistenFn;
   newWindow.once("tauri://created", async () => {
-    console.log("任务窗口已成功创建12");
+    console.log("任务窗口已成功创建:", args.label);
     unlistenFn = newWindow.listen("window-ready", async (event) => {
-      console.log("任务管理窗口 已准备好");
+      console.log("任务管理窗口已准备好:", args.label);
       try {
         const token = sessionStorage.getItem("token");
         const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
-        await login_win.emit("login-info", { token, userInfo });
+        console.log("发送登录信息到窗口:", { token: !!token, userInfo: !!userInfo });
+        
+        // 向新创建的窗口发送登录信息
+        await newWindow.emit("login-info", { token, userInfo });
         await newWindow.show(); // 显示窗口
+        console.log("窗口已显示:", args.label);
       } catch (error) {
         console.error("事件发送失败:", error);
       }
@@ -50,7 +54,7 @@ export async function createDefaultWin(args) {
   });
 
   newWindow.once("tauri://error", (e) => {
-    console.error("创建任务窗口时出错12:", e);
+    console.error("创建任务窗口时出错:", args.label, e);
   });
 }
 
@@ -60,7 +64,6 @@ export async function createDefaultWin(args) {
  */
 export async function createMiniTaskWin(args) {
   const newWindow = new WebviewWindow(args.label, args);
-  const pet_win = await WebviewWindow.getByLabel("pet");
 
   let unlistenFn;
   newWindow.once("tauri://created", async () => {
@@ -70,7 +73,8 @@ export async function createMiniTaskWin(args) {
       try {
         const token = sessionStorage.getItem("token");
         const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
-        await pet_win.emit("login-info", { token, userInfo });
+        // 向新创建的窗口发送登录信息
+        await newWindow.emit("login-info", { token, userInfo });
         await newWindow.show(); // 显示窗口
       } catch (error) {
         console.error("事件发送失败:", error);
@@ -80,6 +84,38 @@ export async function createMiniTaskWin(args) {
 
   newWindow.once("tauri://error", (e) => {
     console.error("创建任务窗口时出错:", e);
+  });
+}
+
+/**
+ * @desc 创建宠物窗口时传参
+ * @param args {object} {label: 'new', url: '/new', width: 500, height: 300, ...}
+ */
+export async function createPetWin(args) {
+  console.log("创建宠物窗口，参数:", args);
+  const newWindow = new WebviewWindow(args.label, args);
+
+  let unlistenFn;
+  newWindow.once("tauri://created", async () => {
+    console.log("宠物窗口已成功创建:", args.label);
+    unlistenFn = newWindow.listen("window-ready", async (event) => {
+      console.log("宠物窗口已准备好:", args.label);
+      try {
+        const token = sessionStorage.getItem("token");
+        const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
+        console.log("发送登录信息到宠物窗口:", { token: !!token, userInfo: !!userInfo });
+        
+        // 向宠物窗口发送登录信息
+        await newWindow.emit("login-info", { token, userInfo });
+        console.log("宠物窗口登录信息已发送");
+      } catch (error) {
+        console.error("宠物窗口事件发送失败:", error);
+      }
+    });
+  });
+
+  newWindow.once("tauri://error", (e) => {
+    console.error("创建宠物窗口时出错:", args.label, e);
   });
 }
 
@@ -104,6 +140,9 @@ export async function createWin(args) {
 
   if (args.label === 'mini_task') {
     await createMiniTaskWin(args);
+  } else if (args.label === 'pet') {
+    // 宠物窗口直接创建，不需要等待 window-ready
+    await createPetWin(args);
   } else {
     await createDefaultWin(args)
   }
@@ -209,6 +248,7 @@ export async function createLoginWin() {
  * @desc 主窗口
  */
 export async function createMainWin() {
+  console.log("开始创建主窗口...");
   await createWin({
     label: "main_task",
     url: "index.html#/index",
@@ -217,11 +257,12 @@ export async function createMainWin() {
     height: 700,
     resizable: false,
     center: true,
-    visible: false,
+    visible: false, // 改回 false，等待 window-ready 事件
     decorations: false,
     alwaysOnTop: false,
     theme: 'Dark'
   });
+  console.log("主窗口创建完成");
 }
 
 /**
@@ -375,6 +416,7 @@ export async function createPreviewImageWin(win) {
  * @desc 桌面宠物窗口
  */
 export async function createWinPetWin() {
+  console.log("开始创建宠物窗口...");
   await createWin({
     url: "index.html#/pet",
     label: "pet",
@@ -382,10 +424,10 @@ export async function createWinPetWin() {
     width: 32,
     height: 160,
     resizable: false,
-    // center: true,
+    center: false,
     visible: true,
-    x: 900,
-    y: 900,
+    x: 100, // 改为更安全的位置
+    y: 100,
     alwaysOnTop: true,
     transparent: true,
     decorations: false,
@@ -393,6 +435,7 @@ export async function createWinPetWin() {
     skipTaskbar: true,
     theme: 'Dark'
   });
+  console.log("宠物窗口创建完成");
 }
 
 /**
