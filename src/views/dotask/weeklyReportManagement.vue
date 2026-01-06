@@ -79,8 +79,14 @@ const computeDrawerSide = async () => {
     const win = getCurrentWindow();
     const pos = originalWindowPos.value || await win.innerPosition();
     const size = originalWindowSize.value || await win.innerSize();
+    const scaleFactor = await win.scaleFactor();
+    
+    // 对获取到的位置和尺寸先除以缩放因子
+    const adjustedPos = originalWindowPos.value || { x: pos.x / scaleFactor, y: pos.y / scaleFactor };
+    const adjustedSize = originalWindowSize.value || { width: size.width / scaleFactor, height: size.height / scaleFactor };
+    
     const screenWidth = window.screen?.width || 1920;
-    const screenCenterX = (pos.x + size.width / 2);
+    const screenCenterX = (adjustedPos.x + adjustedSize.width / 2);
     drawerDirection.value = screenCenterX < (screenWidth / 2) ? 'rtl' : 'ltr';
   } catch (e) {
     drawerDirection.value = 'rtl';
@@ -92,9 +98,15 @@ const expandMainWindowForDrawer = async () => {
     const win = getCurrentWindow();
     const currentPos = await win.innerPosition();
     const currentSize = await win.innerSize();
+    const scaleFactor = await win.scaleFactor();
+    
+    // 对获取到的位置和尺寸先除以缩放因子
+    const adjustedCurrentPos = { x: currentPos.x / scaleFactor, y: currentPos.y / scaleFactor };
+    const adjustedCurrentSize = { width: currentSize.width / scaleFactor, height: currentSize.height / scaleFactor };
+    
     if (!originalWindowPos.value || !originalWindowSize.value) {
-      originalWindowPos.value = { x: currentPos.x, y: currentPos.y };
-      originalWindowSize.value = { width: currentSize.width, height: currentSize.height };
+      originalWindowPos.value = { x: adjustedCurrentPos.x, y: adjustedCurrentPos.y };
+      originalWindowSize.value = { width: adjustedCurrentSize.width, height: adjustedCurrentSize.height };
     }
     const maxDrawer = 620;
     const screenWidth = window.innerWidth || 1920;
@@ -104,7 +116,7 @@ const expandMainWindowForDrawer = async () => {
     const baseSize = originalWindowSize.value;
     const targetWidth = baseSize.width + dw;
     const targetX = drawerDirection.value === 'ltr' ? basePos.x - dw : basePos.x;
-    if (currentSize.width !== targetWidth || currentPos.x !== targetX) {
+    if (adjustedCurrentSize.width !== targetWidth || adjustedCurrentPos.x !== targetX) {
       await win.setSize(new LogicalSize(targetWidth, baseSize.height));
       await win.setPosition(new LogicalPosition(targetX, basePos.y));
     }
@@ -120,13 +132,19 @@ const restoreMainWindow = async () => {
     const win = getCurrentWindow();
     const currentPos = await win.innerPosition();
     const currentSize = await win.innerSize();
+    const scaleFactor = await win.scaleFactor();
+    
+    // 对获取到的位置和尺寸先除以缩放因子
+    const adjustedCurrentPos = { x: currentPos.x / scaleFactor, y: currentPos.y / scaleFactor };
+    const adjustedCurrentSize = { width: currentSize.width / scaleFactor, height: currentSize.height / scaleFactor };
+    
     const targetWidth = originalWindowSize.value.width;
     const maxDrawer = 620;
     const screenWidth = window.innerWidth || 1920;
     const dw = Math.min(maxDrawer, Math.floor(screenWidth * 0.8));
-    const targetX = drawerDirection.value === 'ltr' ? currentPos.x + dw : currentPos.x;
-    await win.setSize(new LogicalSize(targetWidth, currentSize.height));
-    await win.setPosition(new LogicalPosition(targetX, currentPos.y));
+    const targetX = drawerDirection.value === 'ltr' ? adjustedCurrentPos.x + dw : adjustedCurrentPos.x;
+    await win.setSize(new LogicalSize(targetWidth, adjustedCurrentSize.height));
+    await win.setPosition(new LogicalPosition(targetX, adjustedCurrentPos.y));
   } catch (e) {
     console.error('还原主窗口失败:', e);
   } finally {

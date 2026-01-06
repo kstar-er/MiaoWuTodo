@@ -54,7 +54,7 @@ const OVERDUE_COUNT_KEY = 'overdue_count';
 
 // 计算消息数量
 const messageCount = computed(() => cachedMessages.value.length);
-var outTimeCount = 10;
+var outTimeCount = 0;
 
 // 右键菜单状态
 const contextMenuVisible = ref(false);
@@ -343,8 +343,8 @@ const showContextMenu = (e) => {
   // 显示菜单
   contextMenuVisible.value = true;
   
-  // 确保不会干扰宠物的动作状态
-  if (animationState.isUserControlled) {
+  // 确保不会干扰宠物的动作状态，但不要在拖拽时重置状态
+  if (animationState.isUserControlled && !isDragging.value) {
     animationState.isUserControlled = false;
     startAutoPlay();
   }
@@ -358,11 +358,7 @@ const closeContextMenu = () => {
 const isDragging = ref(false);
 let startX = 0;
 let startY = 0;
-let initialWindowX = 0;
-let initialWindowY = 0;
 let isUpdating = false;
-let savePositionTimer = null;
-let animationFrameId = null;
 
 // 鼠标按下时触发
 const startDrag = async (e) => {
@@ -378,13 +374,7 @@ const startDrag = async (e) => {
   startX = e.clientX;
   startY = e.clientY;
   
-  // 记录窗口起始位置
-  const position = await tauriWindow.innerPosition();
-  initialWindowX = position.x;
-  initialWindowY = position.y;
-  
   console.log("起始鼠标位置:", { x: startX, y: startY });
-  console.log("起始窗口位置:", { x: initialWindowX, y: initialWindowY });
   
   document.addEventListener("mousemove", handleDrag);
   document.addEventListener("mouseup", stopDrag);
@@ -393,52 +383,44 @@ const startDrag = async (e) => {
   animationState.isUserControlled = true;
   stopAutoPlay();
 
+  // 切换到拖拽状态
+  console.log("切换到拖拽状态");
   updatePetStatus(PetStatus.DRAG);
 };
 
 // 鼠标移动时更新窗口位置
-const handleDrag = (e) => {
-  if (!isDragging.value) return;
+const handleDrag = async (e) => {
+  if (!isDragging.value || isUpdating) return;
   
-  // 取消之前的动画帧
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
+  const deltaX = e.clientX - startX;
+  const deltaY = e.clientY - startY;
+
+  isUpdating = true;
+  
+  try {
+    const position = await tauriWindow.innerPosition();
+    const scaleFactor = await tauriWindow.scaleFactor();
+    const adjustedPosition = { x: position.x / scaleFactor, y: position.y / scaleFactor };
+    const newX = adjustedPosition.x + deltaX;
+    const newY = adjustedPosition.y + deltaY;
+    
+    const newPosition = new LogicalPosition(newX, newY);
+    
+    // 更新窗口位置
+    await tauriWindow.setPosition(newPosition);
+    
+    // 保存当前位置
+    await saveWindowPosition(windowId, newPosition);
+    
+    // 更新起始鼠标位置，避免累积误差
+    startX = e.clientX - deltaX;
+    startY = e.clientY - deltaY;
+    
+  } catch (error) {
+    console.error("拖拽更新位置失败:", error);
+  } finally {
+    isUpdating = false;
   }
-  
-  // 使用 requestAnimationFrame 来确保流畅的拖动
-  animationFrameId = requestAnimationFrame(async () => {
-    if (!isDragging.value || isUpdating) return;
-    
-    isUpdating = true;
-    
-    try {
-      // 计算鼠标移动的距离
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      
-      // 计算新的窗口位置
-      const newX = initialWindowX + dx;
-      const newY = initialWindowY + dy;
-      
-      const newPosition = new LogicalPosition(newX, newY);
-      
-      // 更新窗口位置
-      await tauriWindow.setPosition(newPosition);
-      
-      // 使用防抖来减少位置保存频率
-      if (savePositionTimer) {
-        clearTimeout(savePositionTimer);
-      }
-      savePositionTimer = setTimeout(async () => {
-        await saveWindowPosition(windowId, newPosition);
-      }, 100); // 100ms 防抖
-      
-    } catch (error) {
-      console.error("拖拽更新位置失败:", error);
-    } finally {
-      isUpdating = false;
-    }
-  });
 };
 
 // 停止拖拽
@@ -451,35 +433,25 @@ const stopDrag = async () => {
   document.removeEventListener("mousemove", handleDrag);
   document.removeEventListener("mouseup", stopDrag);
 
-  // 取消动画帧
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-  }
-
-  // 清除防抖定时器并立即保存最终位置
-  if (savePositionTimer) {
-    clearTimeout(savePositionTimer);
-    savePositionTimer = null;
-  }
-  
-  // 保存最终位置
-  try {
-    const finalPosition = await tauriWindow.innerPosition();
-    await saveWindowPosition(windowId, finalPosition);
-    console.log("最终位置已保存:", finalPosition);
-  } catch (error) {
-    console.error("保存最终位置失败:", error);
-  }
-
-  // 重置用户控制状态并重新启动自动播放
+  // 重置用户控制状态
   animationState.isUserControlled = false;
+  
+  // 确保动画状态正确重置，避免闪烁
+  if (animationState.currentAnimationId) {
+    cancelAnimationFrame(animationState.currentAnimationId);
+    animationState.currentAnimationId = null;
+  }
+  animationState.isTransitioning = false;
+  
+  // 立即切换到站立状态
+  console.log("切换到站立状态");
   updatePetStatus(PetStatus.STAND);
 
   // 延迟一段时间后重新启动自动播放
   setTimeout(() => {
-    if (!isDragging.value) {
-      // 确保用户没有重新开始拖拽
+    if (!isDragging.value && !animationState.isUserControlled) {
+      // 确保用户没有重新开始拖拽且不在用户控制状态
+      console.log("重新启动自动播放");
       startAutoPlay();
     }
   }, 3000); // 3秒后恢复自动播放
@@ -488,18 +460,6 @@ const stopDrag = async () => {
 onUnmounted(() => {
   document.removeEventListener("mousemove", handleDrag);
   document.removeEventListener("mouseup", stopDrag);
-  
-  // 清理位置保存定时器
-  if (savePositionTimer) {
-    clearTimeout(savePositionTimer);
-    savePositionTimer = null;
-  }
-  
-  // 清理动画帧
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-  }
 });
 
 const image = new Image();
@@ -604,6 +564,12 @@ function loadPetFrame(image, config, status) {
 
   // 动画函数
   function animate(currentTime) {
+    // 检查状态是否已经改变，如果改变则停止当前动画
+    if (currentPetStatus.value !== status) {
+      animationState.isTransitioning = false;
+      return;
+    }
+
     if (!lastFrameTime) {
       lastFrameTime = currentTime;
     }

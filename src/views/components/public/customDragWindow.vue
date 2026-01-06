@@ -52,8 +52,10 @@ const getScreenSize = (): { width: number; height: number } => {
 const constrainToScreen = async(newX: number, newY: number): Promise<LogicalPosition> => {
   const screenSize = await getScreenSize();
   const windowSize = await windowInstance.innerSize();
-  const maxWidth = screenSize.width - windowSize.width;
-  const maxHeight = screenSize.height - windowSize.height;
+  const scaleFactor = await windowInstance.scaleFactor();
+  const adjustedWindowSize = { width: windowSize.width / scaleFactor, height: windowSize.height / scaleFactor };
+  const maxWidth = screenSize.width - adjustedWindowSize.width;
+  const maxHeight = screenSize.height - adjustedWindowSize.height;
 
   return new LogicalPosition(
     Math.max(0, Math.min(maxWidth, newX)),
@@ -70,9 +72,10 @@ const onDrag = async (event: MouseEvent) => {
 
   isUpdating = true;
   const position = await windowInstance.innerPosition();
-  const newX = position.x + deltaX;
-  const newY = position.y + deltaY;
-  const newPosition = new LogicalPosition(newX, newY);
+  const scaleFactor = await windowInstance.scaleFactor();
+  const adjustedPosition = { x: position.x / scaleFactor, y: position.y / scaleFactor };
+  const newX = adjustedPosition.x + deltaX;
+  const newY = adjustedPosition.y + deltaY;
 
   // 确保窗口不超出屏幕范围
   const constrainedPosition = await constrainToScreen(newX, newY);
