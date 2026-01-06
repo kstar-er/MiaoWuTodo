@@ -1527,15 +1527,22 @@ onMounted(async () => {
     // 监听来自登录窗口的登录信息
     try {
       unlistenFn = await listen("login-info", async (event) => {
-        const { token } = event.payload;
+        const { token, userInfo } = event.payload;
+        console.log("接收到登录信息:", { token: !!token, userInfo: !!userInfo });
+        
         // 存储登录信息到本地
         sessionStorage.setItem("token", token);
-
-        let userInfo = await getUserInfo(); // 获取当前登录用户数据
-        if (userInfo.code === 200) {
-          sessionStorage.setItem("userInfo", JSON.stringify(userInfo.data));
+        
+        if (userInfo) {
+          sessionStorage.setItem("userInfo", JSON.stringify(userInfo));
         } else {
-          proxy.$message.error("获取登录用户信息失败");
+          // 如果没有 userInfo，则从服务器获取
+          let userInfoResponse = await getUserInfo();
+          if (userInfoResponse.code === 200) {
+            sessionStorage.setItem("userInfo", JSON.stringify(userInfoResponse.data));
+          } else {
+            proxy.$message.error("获取登录用户信息失败");
+          }
         }
 
         // 检查是否已经显示过登录成功的提示

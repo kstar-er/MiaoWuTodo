@@ -5,28 +5,49 @@ import petConfig from '../assets/config/pet_config.ts'
 
 /**
  * 读取指定目录下的所有图片
- * @param {string} directory - 目录路径，相对于src/assets
+ * @param {string} directory - 目录路径，相对于public
  * @returns {Object} - 图片名称到URL的映射对象
  */
 export function loadImagesFromDirectory(directory) {
   const images = {};
   
   try {
-    // 使用Vite的import.meta.glob动态导入图片
-    const imageModules = import.meta.glob('/src/assets/**/*.{png,jpg,jpeg,gif,svg}', { eager: true });
-    
-    // 过滤指定目录下的图片
-    const directoryPath = `/src/assets/${directory}/`;
-    
-    // 处理每个匹配的图片模块
-    Object.entries(imageModules).forEach(([path, module]) => {
-      if (path.startsWith(directoryPath)) {
-        // 提取文件名 (不含扩展名)
-        const fileName = path.substring(path.lastIndexOf('/') + 1).split('.')[0];
-        // 存储图片URL
-        images[fileName] = module.default;
-      }
-    });
+    // 对于public目录下的图片，直接使用相对路径
+    if (directory === 'media') {
+      // 手动列出所有已知的宠物图片
+      const petImages = [
+        'shimeji_Germouser.png',
+        'shimeji_Caneko.png',
+        'shimeji_nekojapan.png',
+        'shimeji_skoreacat.png',
+        'shimeji_Turkat.png',
+        'Pusheen.png',
+        'Gengar Shimeji.png',
+        'Blooky Shimeji.png',
+        // 可以根据需要添加更多图片
+      ];
+      
+      petImages.forEach(imageName => {
+        const fileName = imageName.split('.')[0];
+        images[fileName] = `/media/${imageName}`;
+      });
+    } else {
+      // 使用Vite的import.meta.glob动态导入图片（用于src/assets下的图片）
+      const imageModules = import.meta.glob('/src/assets/**/*.{png,jpg,jpeg,gif,svg}', { eager: true });
+      
+      // 过滤指定目录下的图片
+      const directoryPath = `/src/assets/${directory}/`;
+      
+      // 处理每个匹配的图片模块
+      Object.entries(imageModules).forEach(([path, module]) => {
+        if (path.startsWith(directoryPath)) {
+          // 提取文件名 (不含扩展名)
+          const fileName = path.substring(path.lastIndexOf('/') + 1).split('.')[0];
+          // 存储图片URL
+          images[fileName] = module.default;
+        }
+      });
+    }
     
     return images;
   } catch (error) {
@@ -37,14 +58,14 @@ export function loadImagesFromDirectory(directory) {
 
 /**
  * 获取单个图片URL
- * @param {string} directory - 目录路径，相对于src/assets
+ * @param {string} directory - 目录路径，相对于public
  * @param {string} imageName - 图片名称(包含扩展名)
  * @returns {string|null} - 图片URL或null
  */
 export function getImageUrl(directory, imageName) {
   try {
-    // 使用新的路径格式
-    return `/assets/media/${imageName}`;
+    // 对于public目录下的图片，使用相对路径
+    return `/${directory}/${imageName}`;
   } catch (error) {
     console.error(`加载图片失败: ${directory}/${imageName}`, error);
     return null;

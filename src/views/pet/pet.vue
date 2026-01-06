@@ -238,6 +238,7 @@ const windowId = tauriWindow.label;
 onMounted(async () => {
   console.log("宠物窗口已挂载完毕");
   await tauriWindow.emit("window-ready");
+  console.log("宠物窗口 window-ready 事件已发送");
 });
 
 // 获取上次的位置
@@ -254,10 +255,12 @@ onMounted(async () => {
   // 监听来自登录窗口的登录信息
   try {
     unlistenFn = await listen("login-info", async (event) => {
+      console.log("宠物窗口接收到登录信息:", event.payload);
       const { token, userInfo } = event.payload;
       // 存储登录信息到本地
       sessionStorage.setItem("token", token);
       sessionStorage.setItem("userInfo", JSON.stringify(userInfo));
+      console.log("宠物窗口登录信息已保存");
     });
   } catch (error) {
     console.error("事件监听设置失败:", error);
@@ -355,23 +358,34 @@ const closeContextMenu = () => {
 const isDragging = ref(false);
 let startX = 0;
 let startY = 0;
+let initialWindowX = 0;
+let initialWindowY = 0;
 let isUpdating = false;
-let scaleFactor = 1;
-
-tauriWindow.scaleFactor().then((factor) => {
-  scaleFactor = factor;
-});
+let savePositionTimer = null;
+let animationFrameId = null;
 
 // 鼠标按下时触发
-const startDrag = (e) => {
+const startDrag = async (e) => {
   // 如果是右键点击，不启动拖拽
   if (e.button === 2) {
     return;
   }
   
+  console.log("开始拖拽");
   isDragging.value = true;
+  
+  // 记录鼠标起始位置
   startX = e.clientX;
   startY = e.clientY;
+  
+  // 记录窗口起始位置
+  const position = await tauriWindow.innerPosition();
+  initialWindowX = position.x;
+  initialWindowY = position.y;
+  
+  console.log("起始鼠标位置:", { x: startX, y: startY });
+  console.log("起始窗口位置:", { x: initialWindowX, y: initialWindowY });
+  
   document.addEventListener("mousemove", handleDrag);
   document.addEventListener("mouseup", stopDrag);
 
@@ -383,32 +397,80 @@ const startDrag = (e) => {
 };
 
 // 鼠标移动时更新窗口位置
-
-const handleDrag = async (e) => {
-  if (!isDragging.value || isUpdating) return;
-  const dx = e.clientX - startX;
-  const dy = e.clientY - startY;
-  isUpdating = true;
-  const position = await tauriWindow.innerPosition();
-  const newX = position.x + dx;
-  const newY = position.y + dy;
-  const newPosition = new LogicalPosition(newX, newY);
-  // 更新窗口位置
-  await tauriWindow.setPosition(newPosition);
-
-  await saveWindowPosition(windowId, newPosition); // 保存位置
-
-  // 更新起始点（防止累计误差），在位置更新之后立即进行
-  startX = e.clientX - dx;
-  startY = e.clientY - dy;
-  isUpdating = false;
+const handleDrag = (e) => {
+  if (!isDragging.value) return;
+  
+  // 取消之前的动画帧
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+  }
+  
+  // 使用 requestAnimationFrame 来确保流畅的拖动
+  animationFrameId = requestAnimationFrame(async () => {
+    if (!isDragging.value || isUpdating) return;
+    
+    isUpdating = true;
+    
+    try {
+      // 计算鼠标移动的距离
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      
+      // 计算新的窗口位置
+      const newX = initialWindowX + dx;
+      const newY = initialWindowY + dy;
+      
+      const newPosition = new LogicalPosition(newX, newY);
+      
+      // 更新窗口位置
+      await tauriWindow.setPosition(newPosition);
+      
+      // 使用防抖来减少位置保存频率
+      if (savePositionTimer) {
+        clearTimeout(savePositionTimer);
+      }
+      savePositionTimer = setTimeout(async () => {
+        await saveWindowPosition(windowId, newPosition);
+      }, 100); // 100ms 防抖
+      
+    } catch (error) {
+      console.error("拖拽更新位置失败:", error);
+    } finally {
+      isUpdating = false;
+    }
+  });
 };
+
 // 停止拖拽
-const stopDrag = () => {
+const stopDrag = async () => {
+  if (!isDragging.value) return;
+  
   isDragging.value = false;
-  console.log("Dragging stopped");
+  console.log("拖拽结束");
+  
   document.removeEventListener("mousemove", handleDrag);
-  document.removeEventListener("mouseup", stopDrag); // 解绑自身
+  document.removeEventListener("mouseup", stopDrag);
+
+  // 取消动画帧
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+
+  // 清除防抖定时器并立即保存最终位置
+  if (savePositionTimer) {
+    clearTimeout(savePositionTimer);
+    savePositionTimer = null;
+  }
+  
+  // 保存最终位置
+  try {
+    const finalPosition = await tauriWindow.innerPosition();
+    await saveWindowPosition(windowId, finalPosition);
+    console.log("最终位置已保存:", finalPosition);
+  } catch (error) {
+    console.error("保存最终位置失败:", error);
+  }
 
   // 重置用户控制状态并重新启动自动播放
   animationState.isUserControlled = false;
@@ -426,6 +488,18 @@ const stopDrag = () => {
 onUnmounted(() => {
   document.removeEventListener("mousemove", handleDrag);
   document.removeEventListener("mouseup", stopDrag);
+  
+  // 清理位置保存定时器
+  if (savePositionTimer) {
+    clearTimeout(savePositionTimer);
+    savePositionTimer = null;
+  }
+  
+  // 清理动画帧
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
 });
 
 const image = new Image();
@@ -440,35 +514,32 @@ image.onerror = (event) => {
 // 动态加载宠物图片
 async function loadPetImage() {
   try {
-    // 使用preloadImagesFromDirectory加载默认图片
-    if (!defaultPetSrc.value) {
-      const petImagesObj = await preloadImagesFromDirectory('media');
-
-      // 获取默认宠物图片
-      const defaultPetName = 'shimeji_Germouser';
-      console.log('petImagesObj:', petImagesObj[defaultPetName]);
-      if (petImagesObj[defaultPetName]) {
-        defaultPetSrc.value = petImagesObj[defaultPetName].img.src;
-        console.log('Loaded default image:', defaultPetSrc.value);
-      } else {
-        console.error('Default pet image not found');
-        return;
-      }
-    }
+    console.log("开始加载宠物图片...");
+    
+    // 直接使用默认宠物图片路径
+    const defaultPetName = 'shimeji_Germouser';
+    const defaultImagePath = `/media/${defaultPetName}.png`;
+    
+    console.log("设置默认图片路径:", defaultImagePath);
+    defaultPetSrc.value = defaultImagePath;
 
     // 获取用户选择的宠物图片
     const savedPetSrc = localStorage.getItem('selectedPet');
     if (savedPetSrc) {
       selectedPetSrc.value = savedPetSrc;
-      console.log('Using saved pet image:', selectedPetSrc.value);
+      console.log('使用保存的宠物图片:', selectedPetSrc.value);
     }
 
     // 使用用户选择的图片或默认图片
     const imagePath = selectedPetSrc.value || defaultPetSrc.value;
-    console.log('Setting image source to:', imagePath);
+    console.log('最终图片路径:', imagePath);
+    
+    // 设置图片源
     image.src = imagePath;
+    
+    console.log("宠物图片加载完成");
   } catch (error) {
-    console.error('Failed to load pet image:', error);
+    console.error('加载宠物图片失败:', error);
   }
 }
 
@@ -476,31 +547,25 @@ async function loadPetImage() {
 async function updateFrame() {
   const defaultPetName = 'shimeji_Germouser';
   try {
-    // 确保默认图片已加载
+    console.log("更新帧，当前状态:", currentPetStatus.value);
+    
+    // 确保默认图片已设置
     if (!defaultPetSrc.value) {
-      const petImagesObj = await preloadImagesFromDirectory('media');
-      // 获取默认宠物图片
-
-      if (petImagesObj[defaultPetName]) {
-        defaultPetSrc.value = petImagesObj[defaultPetName].img.src;
-      } else {
-        console.error('Default pet image not found');
-        return;
-      }
+      defaultPetSrc.value = `/media/${defaultPetName}.png`;
     }
 
     // 从路径中提取宠物名称
     var name = localStorage.getItem('selectedPetName');
     if (!name) {
-      name = defaultPetName
+      name = defaultPetName;
     }
-    console.log("Loading frame for:", name, "Current status:", currentPetStatus.value);
+    console.log("加载配置文件:", name);
 
     const config = await loadConfigFile(name);
-    console.log("config", config);
+    console.log("配置文件:", config);
     loadPetFrame(image, config, currentPetStatus.value);
   } catch (error) {
-    console.error('Failed to update frame:', error);
+    console.error('更新帧失败:', error);
   }
 }
 function loadPetFrame(image, config, status) {
