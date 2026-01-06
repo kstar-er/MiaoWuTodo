@@ -980,6 +980,7 @@ const originalWindowSize = ref(null);
 const isWindowExpanded = ref(false);
 const noAnim = ref(false);
 const isClosing = ref(false);
+var dw =0;
 
 // 打开 任务弹窗-进行编辑/新增
 const computeDrawerSide = async () => {
@@ -1006,15 +1007,14 @@ const expandMainWindowForDrawer = async () => {
     const win = getCurrentWindow();
     const currentPos = await win.innerPosition();
     const currentSize = await win.innerSize();
+    console.log("currentSize：",currentSize)
     // 初始化原始尺寸与位置（仅第一次记录）
     if (!originalWindowPos.value || !originalWindowSize.value) {
       originalWindowPos.value = { x: currentPos.x, y: currentPos.y };
       originalWindowSize.value = { width: currentSize.width, height: currentSize.height };
     }
-    // 计算抽屉宽度，限制在最大 620px 或屏幕宽度的 80%（取较小值）
-    const maxDrawer = 620;
-    const screenWidth = window.innerWidth || 1920;
-    const dw = Math.min(maxDrawer, Math.floor(screenWidth * 1.8));
+
+    dw = Math.floor(currentSize.width * 1.8);
     drawerSize.value = dw + 'px';
     console.log("计算抽屉宽度 dw", dw);
     const basePos = originalWindowPos.value;
@@ -1042,9 +1042,6 @@ const restoreMainWindow = async () => {
     const targetWidth = originalWindowSize.value.width;
     console.log("计算当前窗口的targetWidth", targetWidth);
     // 重新计算抽屉宽度（与展开时保持一致）
-    const maxDrawer = 620;
-    const screenWidth = window.innerWidth || 1920;
-    const dw = Math.min(maxDrawer, Math.floor(screenWidth * 0.8));
     const targetX = drawerDirection.value === 'ltr' ? currentPos.x + dw : currentPos.x;
     await win.setSize(new LogicalSize(targetWidth, currentSize.height));
     await win.setPosition(new LogicalPosition(targetX, currentPos.y));
