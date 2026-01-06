@@ -981,20 +981,27 @@ const isWindowExpanded = ref(false);
 const noAnim = ref(false);
 const isClosing = ref(false);
 var dw =0;
+var scaleFactor = 1
 
 // 打开 任务弹窗-进行编辑/新增
 const computeDrawerSide = async () => {
   try {
     const win = getCurrentWindow();
+    scaleFactor = await win.scaleFactor()
     // 若已有原始位置，则基于原始位置判断，避免窗口移动后方向切换
     const pos = originalWindowPos.value || await win.innerPosition();
     const size = originalWindowSize.value || await win.innerSize();
+    console.log("缩放因子:", scaleFactor);
     console.log("计算当前window的pos", pos)
     console.log("计算当前窗口的的size",  await win.innerSize())
-    const screenWidth = window.screen?.width || 1920;
-    console.log("计算当前window的screen", window.screen?.width)
+    
+    // 对获取到的位置和尺寸先除以缩放因子
+    const adjustedPos = originalWindowPos.value || { x: pos.x / scaleFactor, y: pos.y / scaleFactor };
+    const adjustedSize = originalWindowSize.value || { width: size.width / scaleFactor, height: size.height / scaleFactor };
+    
+    const screenWidth = window.screen?.width ;
     console.log("计算当前窗口的screenWidth", screenWidth)
-    const screenCenterX = (pos.x + size.width / 2);
+    const screenCenterX = (adjustedPos.x + adjustedSize.width / 2);
     // 窗口中心在屏幕左侧 -> 从右侧打开；在右侧 -> 从左侧打开
     drawerDirection.value = screenCenterX < (screenWidth / 2) ? 'rtl' : 'ltr';
   } catch (e) {
@@ -1008,13 +1015,18 @@ const expandMainWindowForDrawer = async () => {
     const currentPos = await win.innerPosition();
     const currentSize = await win.innerSize();
     console.log("currentSize：",currentSize)
+    
+    // 对获取到的位置和尺寸先除以缩放因子
+    const adjustedCurrentPos = { x: currentPos.x / scaleFactor, y: currentPos.y / scaleFactor };
+    const adjustedCurrentSize = { width: currentSize.width / scaleFactor, height: currentSize.height / scaleFactor };
+    
     // 初始化原始尺寸与位置（仅第一次记录）
     if (!originalWindowPos.value || !originalWindowSize.value) {
-      originalWindowPos.value = { x: currentPos.x, y: currentPos.y };
-      originalWindowSize.value = { width: currentSize.width, height: currentSize.height };
+      originalWindowPos.value = { x: adjustedCurrentPos.x, y: adjustedCurrentPos.y };
+      originalWindowSize.value = { width: adjustedCurrentSize.width, height: adjustedCurrentSize.height };
     }
 
-    dw = Math.floor(currentSize.width * 1.8);
+    dw = Math.floor(adjustedCurrentSize.width * 1.8);
     drawerSize.value = dw + 'px';
     console.log("计算抽屉宽度 dw", dw);
     const basePos = originalWindowPos.value;
@@ -1022,7 +1034,7 @@ const expandMainWindowForDrawer = async () => {
     // 基于原始尺寸计算目标（幂等）
     const targetWidth = baseSize.width + dw;
     const targetX = drawerDirection.value === 'ltr' ? basePos.x - dw : basePos.x;
-    if (currentSize.width !== targetWidth || currentPos.x !== targetX) {
+    if (adjustedCurrentSize.width !== targetWidth || adjustedCurrentPos.x !== targetX) {
       await win.setSize(new LogicalSize(targetWidth, baseSize.height));
       await win.setPosition(new LogicalPosition(targetX, basePos.y));
     }
@@ -1039,12 +1051,17 @@ const restoreMainWindow = async () => {
     // 使用当前展开状态下的位置与尺寸，按抽屉宽度收缩，避免跳回原位置
     const currentPos = await win.innerPosition();
     const currentSize = await win.innerSize();
+    
+    // 对获取到的位置和尺寸先除以缩放因子
+    const adjustedCurrentPos = { x: currentPos.x / scaleFactor, y: currentPos.y / scaleFactor };
+    const adjustedCurrentSize = { width: currentSize.width / scaleFactor, height: currentSize.height / scaleFactor };
+    
     const targetWidth = originalWindowSize.value.width;
     console.log("计算当前窗口的targetWidth", targetWidth);
     // 重新计算抽屉宽度（与展开时保持一致）
-    const targetX = drawerDirection.value === 'ltr' ? currentPos.x + dw : currentPos.x;
-    await win.setSize(new LogicalSize(targetWidth, currentSize.height));
-    await win.setPosition(new LogicalPosition(targetX, currentPos.y));
+    const targetX = drawerDirection.value === 'ltr' ? adjustedCurrentPos.x + dw : adjustedCurrentPos.x;
+    await win.setSize(new LogicalSize(targetWidth, adjustedCurrentSize.height));
+    await win.setPosition(new LogicalPosition(targetX, adjustedCurrentPos.y));
   } catch (e) {
     console.error('还原主窗口失败:', e);
   } finally {
