@@ -65,7 +65,7 @@ const setInitialPosition = async () => {
     position.value.x =
       windowWidth - iconParams.value.iconWidth - 10;
     position.value.y =
-      windowHeight - iconParams.value.iconHeight - 10;
+      windowHeight - iconParams.value.iconHeight - 50;
   }
 };
 

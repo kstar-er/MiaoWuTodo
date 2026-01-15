@@ -1,74 +1,72 @@
 <template>
   <div class="weekly-report-template">
     <!-- 搜索和操作栏 -->
-    <div class="action-bar">
+    <div class="search-bar">
       <el-input
         v-model="searchQuery"
-        placeholder="搜索模板名称"
+        placeholder="搜索周报标题或内容"
         clearable
         @clear="onClearSearch"
         @keyup.enter="doSearch"
-        style="width: 200px; margin-right: 10px;"
       />
       <el-button type="primary" @click="doSearch">搜索</el-button>
-      <el-button type="success" @click="handleAddTemplate">新增模板</el-button>
+      <!-- <el-button type="success" @click="handleAddTemplate">新增模板</el-button> -->
     </div>
+    <el-divider class="content-divider" />
 
     <!-- 模板列表 -->
-    <div class="template-list scrollable-content">
-      <div v-if="templates.length === 0" class="empty-state">
-        <EmptyState text="暂无周报模板" />
-      </div>
-      <div v-else>
-        <el-card
-          v-for="template in templates"
-          :key="template.id"
-          class="template-card"
-          @click="handleItemClick(template)"
-        >
-          <template #header>
-            <div class="card-header">
-              <span class="template-name">{{ template.templateType || '未命名模板' }}</span>
-              <el-tag :type="template.enabled ? 'success' : 'info'" size="small">
-                {{ template.enabled ? '启用' : '禁用' }}
-              </el-tag>
+    <div v-if="templates.length === 0" class="empty-state">
+      <EmptyState text="暂无周报模板" />
+    </div>
+    <div class="template-list" v-else>
+      <el-card
+        v-for="template in templates"
+        :key="template.id"
+        class="template-card"
+        @click="handleItemClick(template)"
+      >
+        <template #header>
+          <div class="card-header">
+            <span class="template-name">{{ template.templateType || '未命名模板' }}</span>
+            <el-tag :type="template.enabled ? 'success' : 'info'" size="small">
+              {{ template.enabled ? '启用' : '禁用' }}
+            </el-tag>
+          </div>
+        </template>
+        <div class="card-content">
+          <div class="template-info">
+            <div class="info-row">
+              <span class="label">报告类型：</span>
+              <span>{{ getReportTypeLabel(template.reportType) }}</span>
             </div>
-          </template>
-          <div class="card-content">
-            <div class="template-info">
-              <div class="info-row">
-                <span class="label">报告类型：</span>
-                <span>{{ getReportTypeLabel(template.reportType) }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">模板格式：</span>
-                <span>{{ getTemplateFormatLabel(template.templateFormat) }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">语言：</span>
-                <span>{{ getLanguageLabel(template.language) }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">调度类型：</span>
-                <span>{{ getScheduleTypeLabel(template.scheduleType) }}</span>
-              </div>
+            <div class="info-row">
+              <span class="label">模板格式：</span>
+              <span>{{ getTemplateFormatLabel(template.templateFormat) }}</span>
             </div>
-            <div class="template-meta">
-              <span>创建时间：{{ formatDate(template.createTime) }}</span>
-              <span>更新时间：{{ formatDate(template.updateTime) }}</span>
+            <div class="info-row">
+              <span class="label">语言：</span>
+              <span>{{ getLanguageLabel(template.language) }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">调度类型：</span>
+              <span>{{ getScheduleTypeLabel(template.scheduleType) }}</span>
             </div>
           </div>
-        </el-card>
-      </div>
+          <div class="template-meta">
+            <span>创建时间：{{ formatDate(template.createTime) }}</span>
+            <span>更新时间：{{ formatDate(template.updateTime) }}</span>
+          </div>
+        </div>
+      </el-card>
     </div>
   </div>
-
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import EmptyState from "../../../public/components/EmptyState.vue";
 import { getReportConfigs, saveReportConfig } from "@/utils/reportManagement/index.js";
+import { getGroupList } from "../../../utils/groupManagement";
 
 const emit = defineEmits(['item-click']);
 
@@ -189,6 +187,27 @@ const initData = async () => {
   }
 };
 
+
+const groupList = ref([])
+const initGroupList = async () => {
+  const res = await getGroupList({pageNum: 1, pageSize: 999, groupName: ''})
+  if (res.code === 200) {
+    if (res.data.total > 0) {
+      groupList.value = res.data.records.map(item => {
+        return {
+          ...item,
+          value: item.id,
+          label: item.groupName
+        }
+      })
+    } else {
+      groupList.value = []
+    }
+  } else {
+    groupList.value = []
+  }
+}
+
 defineExpose({ initData });
 
 onMounted(() => {
@@ -198,18 +217,41 @@ onMounted(() => {
 
 <style lang="less" scoped>
 .weekly-report-template {
-  .action-bar {
+  .search-bar {
+    padding: 5px;
+    padding-bottom: 0px;
     display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
+    justify-content: center;
     align-items: center;
+    gap: 8px;
+    
+    .el-button {
+      position: relative;
+      
+      &.sort-active {
+        background-color: var(--el-color-primary);
+        color: white;
+        border-color: var(--el-color-primary);
+        
+        &:hover {
+          background-color: var(--el-color-primary-light-3);
+          border-color: var(--el-color-primary-light-3);
+        }
+      }
+    }
+  }
+
+  .empty-state {
+    height: calc(100vh - 178px);
   }
 
   .template-list {
-    max-height: calc(100vh - 200px);
+    height: calc(100vh - 194px);
     overflow-y: auto;
+    padding: 8px;
 
     .template-card {
+      --el-card-padding: 5px;
       margin-bottom: 10px;
       cursor: pointer;
       transition: all 0.3s ease;
@@ -223,6 +265,7 @@ onMounted(() => {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        padding: 5px 5px 0px 5px;
 
         .template-name {
           font-weight: bold;
@@ -244,6 +287,7 @@ onMounted(() => {
               color: #8b4513;
               font-weight: 500;
               min-width: 70px;
+              text-align: right;
             }
           }
         }

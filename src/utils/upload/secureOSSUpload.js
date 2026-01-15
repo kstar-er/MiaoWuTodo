@@ -209,3 +209,13 @@ export async function uploadAvatarToOSS(file) {
 export async function uploadTaskImageToOSS(file) {
   return await uploadImageToOSS(file, 'images/task/')
 }
+
+
+/**
+ * 上传周报图片
+ * @param {File|Blob} file - 任务图片文件
+ * @returns {Promise<Object>} 上传结果
+ */
+export async function uploadReportImageToOSS(file) {
+  return await uploadImageToOSS(file, 'images/report/')
+}
