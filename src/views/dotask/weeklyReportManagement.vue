@@ -291,6 +291,7 @@ onUnmounted(() => {
 .weekly-report-container {
   width: 100%;
   max-width: 360px;
+  text-align: center;
   flex: 0 0 auto;
 }
 

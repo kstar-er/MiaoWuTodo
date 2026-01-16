@@ -414,15 +414,6 @@
             />
           </div>
 
-          <!-- <div v-if="item.element === 'markdown'" class="markdown-editor">
-            <MilkdownEditor
-              v-model="myformData[item.key]"
-              :height="item.height || 400"
-              :placeholder="item.placeholder || `请输入${item.title}`"
-              @change="(value) => handleMarkdownChange(item.key, value)"
-            />
-          </div> -->
-
           <div v-if="item.element === 'html'" class="html-editor">
             <CodeEditor
               v-model="myformData[item.key]"

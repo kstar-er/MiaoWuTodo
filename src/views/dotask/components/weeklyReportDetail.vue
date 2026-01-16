@@ -78,11 +78,12 @@
           </el-form-item>
         </template>
 
-        <template #textAreaAppend v-if="formData.type === 'template' && formData.templateFormat === 'markdown'">
+        <template #textAreaAppend v-if="formData.type === 'template'">
           <el-form-item
             label="可用模板"
             prop="templateId"
-            style="width:100%;"
+            style="width: 100%;"
+            class="full-width"
           >
             <template #label>
               <el-popover
@@ -92,7 +93,7 @@
               >
                 <template #reference>
                   <el-icon style="color: #d47549" size="18">
-                    <User />
+                    <FolderOpened />
                   </el-icon>
                 </template>
                 <template #default>
@@ -101,7 +102,34 @@
               </el-popover>
             </template>
 
-            <el-select
+            <div class="template-card-container">
+              <div
+                v-for="tmpl in templateList"
+                :key="tmpl.id"
+                class="template-card"
+                @click="handleTemplateSelect(tmpl.id)"
+                :class="{ selected: formData.templateId === tmpl.id }"
+              >
+                <!-- 图标 -->
+                <img
+                  v-if="!tmpl.isMore"
+                  src="@/assets/images/template.png"
+                  alt="文档"
+                  class="template-icon"
+                />
+                <img
+                  v-else
+                  src="@/assets/images/more.png"
+                  alt="更多"
+                  class="template-icon"
+                />
+
+                <!-- 名称 -->
+                <span class="template-name">{{ tmpl.name }}</span>
+              </div>
+            </div>
+
+            <!-- <el-select
               v-model="templateId"
               placeholder="选择通用模板"
               clearable
@@ -113,7 +141,7 @@
                 :label="tmpl.name"
                 :value="tmpl.id"
               />
-            </el-select>
+            </el-select> -->
           </el-form-item>
         </template>
       </publicIconForm>
@@ -127,7 +155,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import publicIconForm from "../../components/public/publicIconForm.vue";
 import customDragWindow from "../../components/public/customDragWindow.vue";
-import { createReport, saveReportConfig } from "@/utils/reportManagement/index.js";
+import { createReport, saveReportConfig, getReportTemplate } from "@/utils/reportManagement/index.js";
 import commonTemplates from "../../components/commonTemplates";
 
 const myClient = ref();
@@ -174,6 +202,8 @@ onMounted(async () => {
   } else if (props.inlineData) {
     await initInlineData(props.inlineData);
   }
+
+  await initReportTemplate()
 });
 
 const initDataSource = async (event) => {
@@ -213,6 +243,22 @@ const initInlineData = async (data) => {
     loading.value = false;
   }
 };
+
+/**
+ * 初始化周报模板列表数据
+ */
+const templateList = ref([])
+const initReportTemplate = async () => {
+    // {
+    //   id: 999,
+    //   name: '更多模板',
+    //   isMore: true
+    // }
+  // const res = await getReportTemplate()
+  // if (res.code === 200) {
+  //   templateList.value = res.rows || []
+  // }
+}
 
 // 表单配置
 const detailForm = ref({
@@ -367,25 +413,25 @@ const setupFormByData = (data) => {
           },
         ],
         fullWidth: false,
-        change: (val) => {
-          formData.value.templateFormat = val;
+        // change: (val) => {
+        //   formData.value.templateFormat = val;
 
-          if (val === 'markdown') {
-            detailForm.value.formEditorEl[0].element = 'markdown'
-          } else if (val === 'html') {
-            detailForm.value.formEditorEl[0].element = 'html'
-          } else {
-            detailForm.value.formEditorEl[0].element = 'input'
-          }
+        //   if (val === 'markdown') {
+        //     detailForm.value.formEditorEl[0].element = 'markdown'
+        //   } else if (val === 'html') {
+        //     detailForm.value.formEditorEl[0].element = 'html'
+        //   } else {
+        //     detailForm.value.formEditorEl[0].element = 'input'
+        //   }
 
-          formData.value.description = ''
+        //   formData.value.description = ''
 
-          nextTick(() => {
-            if (ruleFormRef.value) {
-              ruleFormRef.value.updateFormData(formData.value);
-            }
-          });
-        }
+        //   nextTick(() => {
+        //     if (ruleFormRef.value) {
+        //       ruleFormRef.value.updateFormData(formData.value);
+        //     }
+        //   });
+        // }
       },
       {
         title: "内容格式",
@@ -469,8 +515,6 @@ const setupFormByData = (data) => {
 
           const index = detailForm.value.formSelectEl.findIndex(item => item.key === 'createTemplateType')
           if (index !== -1) {
-
-            console.log(index)
             if (val === 'group') {
               detailForm.value.formSelectEl[index].fullWidth = false
             } else {
@@ -556,26 +600,26 @@ const setupFormByData = (data) => {
     detailForm.value.formTextAreaEl = [];
 
     detailForm.value.formEditorEl = [
-      {
-        title: "模板描述",
-        key: "description",
-        element: "markdown",
-        illustrate: "模板描述",
-        icon: "ChatDotRound",
-        color: "#d47549",
-        size: "18",
-        type: "textarea",
-        minRows: 8,
-        maxRows: 12,
-        placeholder: "请输入模板描述",
-        // config: {
-        //   menus: [ "code", "head", "bold", "fontSize", "fontName", "italic", "underline", "strikeThrough", "indent", "lineHeight",
-        //     "foreColor", "backColor", "link", "list", "todo", "justify", "emoticon", "image", "splitLine", "undo", "redo"
-        //   ]
-        // },
-        // height: 300,
-        fullWidth: true
-      }
+      // {
+      //   title: "模板描述",
+      //   key: "description",
+      //   element: "markdown",
+      //   illustrate: "模板描述",
+      //   icon: "ChatDotRound",
+      //   color: "#d47549",
+      //   size: "18",
+      //   type: "textarea",
+      //   minRows: 8,
+      //   maxRows: 12,
+      //   placeholder: "请输入模板描述",
+      //   config: {
+      //     menus: [ "code", "head", "bold", "fontSize", "fontName", "italic", "underline", "strikeThrough", "indent", "lineHeight",
+      //       "foreColor", "backColor", "link", "list", "todo", "justify", "emoticon", "image", "splitLine", "undo", "redo"
+      //     ]
+      //   },
+      //   height: 300,
+      //   fullWidth: true
+      // }
     ];
 
     // 编辑模式
@@ -588,13 +632,13 @@ const setupFormByData = (data) => {
       }
 
       // 回显周报模板格式
-      if (data.templateFormat === 'markdown') {
-        detailForm.value.formEditorEl[0].element = 'markdown'
-      } else if (data.templateFormat === 'html') {
-        detailForm.value.formEditorEl[0].element = 'html'
-      } else {
-        detailForm.value.formEditorEl[0].element = 'input'
-      }
+      // if (data.templateFormat === 'markdown') {
+      //   detailForm.value.formEditorEl[0].element = 'markdown'
+      // } else if (data.templateFormat === 'html') {
+      //   detailForm.value.formEditorEl[0].element = 'html'
+      // } else {
+      //   detailForm.value.formEditorEl[0].element = 'input'
+      // }
     }
   } else {
     // 周报详情
@@ -636,8 +680,8 @@ const setupFormByData = (data) => {
         color: "#d47549",
         size: "18",
         options: [
-          { label: "个人", value: "个人" },
-          { label: "团队", value: "团队" },
+          { label: "个人", value: "personal" },
+          { label: "团队", value: "group" },
         ],
         rules: [
           {
@@ -698,15 +742,23 @@ const handleChangeGroup = (val) => {
  */
 const templateId = ref(null)
 const handleTemplateSelect = (id) => {
-  const selectedTemplate = commonTemplates.find(t => t.id === id);
-  if (selectedTemplate) {
-    formData.value.description = selectedTemplate.content;
-    nextTick(() => {
-      if (ruleFormRef.value) {
-        ruleFormRef.value.updateFormData(formData.value);
-      }
-    });
-  }
+  formData.value.templateId = id;
+
+  nextTick(() => {
+    if (ruleFormRef.value) {
+      ruleFormRef.value.updateFormData(formData.value);
+    }
+  });
+
+  // const selectedTemplate = commonTemplates.find(t => t.id === id);
+  // if (selectedTemplate) {
+  //   formData.value.description = selectedTemplate.content;
+  //   nextTick(() => {
+  //     if (ruleFormRef.value) {
+  //       ruleFormRef.value.updateFormData(formData.value);
+  //     }
+  //   });
+  // }
 };
 
 
@@ -779,6 +831,50 @@ const handleDeleteItem = (itemData) => {
       text-shadow: 2px 3px 1px #8b451330;
     }
   }
+}
+
+.template-card-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  // justify-content: space-between;
+  .template-card {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border: 1px solid #ebeef5;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    width: calc(25% - 4px);
+    &:hover {
+      border-color: #d47549;
+      background-color: #f8f9fa;
+      transform: translateY(-4px);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .template-icon {
+      width: 24px;
+      margin-right: 8px;
+    }
+
+    .template-name {
+      font-size: 14px;
+      color: #303133;
+    }
+  }
+
+  .selected {
+    border-color: #d47549;
+    background-color: #f5f7fa;
+  }
+}
+
+.full-width {
+  grid-column: span 2;
 }
 
 :deep(.w-e-full-screen-editor) {

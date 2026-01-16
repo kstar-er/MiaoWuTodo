@@ -36,6 +36,15 @@ export function saveReportConfig(configData) {
 }
 
 /**
+ * 获取周报模板列表
+ * @param {Object} params - 请求参数
+ * @returns {Promise} 返回操作结果
+ */
+export function getReportTemplate() {
+  return pbRequest.get('/eam/reports/template')
+}
+
+/**
  * 根据endDate对周报列表进行分组
  * @param {Array} reports - 周报列表
  * @returns {Object} 按endDate分组的对象，键为endDate，值为该endDate下的周报数组
