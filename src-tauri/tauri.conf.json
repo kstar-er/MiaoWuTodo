@@ -65,10 +65,10 @@
     "macOS": {
       "frameworks": [],
       "minimumSystemVersion": "",
-      "exceptionDomain": "",
+      "exceptionDomain": "*",
       "signingIdentity": null,
       "providerShortName": null,
-      "entitlements": null
+        "entitlements": "src-tauri/entitlements.plist",
     },
     "windows": {
       "certificateThumbprint": null,
