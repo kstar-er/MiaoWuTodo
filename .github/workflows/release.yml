@@ -14,8 +14,7 @@ jobs:
       matrix:
         platform: [macos-latest] # 支持macOS和Windows平台
     runs-on: ${{ matrix.platform }} # 根据矩阵选择运行器
-    env:
-      
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
