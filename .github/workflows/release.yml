@@ -34,15 +34,6 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$APPLE_CERTIFICATE_PASSWORD" build.keychain
           rm certificate.p12
 
-      # 将 APPLE_API_KEY Secret 内容写入 .p8 文件
-      - name: Create AuthKey file from Secret
-        if: runner.os == 'macOS'
-        run: |
-          echo '${{ secrets.APPLE_API_KEY_CONTENT }}' > AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
-        # 或者如果 Secret 是直接复制文件内容，上述命令通常可行。
-        # 确保生成的文件名和路径与 APPLE_API_KEY 变量匹配。
-
-      # 设置环境变量以供 Tauri Action 使用
 
       - name: verify certificate
         if: runner.os == 'macOS'

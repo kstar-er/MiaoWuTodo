@@ -1,0 +1,244 @@
+name: Publish MiaoWuTodo
+
+on:
+  push:
+    tags:
+      - 'v*' # 推送 v 开头的 tag 时触发工作流
+
+jobs:
+  build-and-sign:
+    permissions:
+      contents: write # 赋予 GITHUB_TOKEN 写入 Release 的权限
+    strategy:
+      fail-fast: false # 一个平台失败不影响其他平台继续构建
+      matrix:
+        include:
+          - platform: macos-latest
+            os: macOS
+            target: universal-apple-darwin
+          - platform: windows-latest
+            os: Windows
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Build frontend
+        run: npm run build
+
+      # macOS 证书配置
+      - name: Import Apple Certificate
+        if: matrix.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "🔐 导入Apple开发者证书..."
+          echo $APPLE_CERTIFICATE | base64 --decode > certificate.p12
+          security create-keychain -p "$APPLE_CERTIFICATE_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$APPLE_CERTIFICATE_PASSWORD" build.keychain
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$APPLE_CERTIFICATE_PASSWORD" build.keychain
+          rm certificate.p12
+          echo "✅ 证书导入完成"
+
+      - name: Create Apple API Key file
+        if: matrix.os == 'macOS'
+        run: |
+          echo "📝 创建Apple API Key文件..."
+          echo '${{ secrets.APPLE_API_KEY_CONTENT }}' > AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+          echo "✅ API Key文件创建完成"
+
+      - name: Verify Apple Certificate
+        if: matrix.os == 'macOS'
+        run: |
+          echo "🔍 验证证书..."
+          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
+          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
+          echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
+          echo "✅ 找到证书: $CERT_ID"
+
+      # 构建未签名的应用
+      - name: Build Tauri app (unsigned)
+        run: |
+          echo "🔨 开始构建Tauri应用..."
+          cd src-tauri
+          cargo tauri build --target ${{ matrix.target }} --verbose
+          echo "✅ 应用构建完成"
+
+      # macOS 签名流程
+      - name: Sign macOS app
+        if: matrix.os == 'macOS'
+        run: |
+          echo "✍️ 开始签名macOS应用..."
+          
+          # 找到构建的app文件
+          APP_PATH=$(find src-tauri/target/${{ matrix.target }}/release/bundle/macos -name "*.app" | head -1)
+          echo "📱 应用路径: $APP_PATH"
+          
+          # 签名应用
+          echo "🔐 签名应用..."
+          codesign --force --options runtime --sign "${{ env.CERT_ID }}" --verbose "$APP_PATH"
+          
+          # 验证签名
+          echo "🔍 验证签名..."
+          codesign --verify --verbose "$APP_PATH"
+          spctl --assess --verbose "$APP_PATH"
+          
+          echo "✅ macOS应用签名完成"
+
+      # 创建DMG并签名 (macOS)
+      - name: Create and sign DMG
+        if: matrix.os == 'macOS'
+        run: |
+          echo "📦 创建DMG文件..."
+          
+          APP_PATH=$(find src-tauri/target/${{ matrix.target }}/release/bundle/macos -name "*.app" | head -1)
+          APP_NAME=$(basename "$APP_PATH" .app)
+          DMG_PATH="src-tauri/target/${{ matrix.target }}/release/bundle/macos/${APP_NAME}.dmg"
+          
+          # 创建DMG
+          hdiutil create -volname "$APP_NAME" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG_PATH"
+          
+          # 签名DMG
+          echo "✍️ 签名DMG..."
+          codesign --force --sign "${{ env.CERT_ID }}" "$DMG_PATH"
+          
+          # 验证DMG签名
+          echo "🔍 验证DMG签名..."
+          codesign --verify --verbose "$DMG_PATH"
+          
+          echo "✅ DMG创建和签名完成"
+
+      # 公证 (macOS)
+      - name: Notarize macOS app
+        if: matrix.os == 'macOS'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          echo "📋 开始公证流程..."
+          
+          DMG_PATH=$(find src-tauri/target/${{ matrix.target }}/release/bundle/macos -name "*.dmg" | head -1)
+          
+          # 上传公证
+          echo "⬆️ 上传应用进行公证..."
+          xcrun notarytool submit "$DMG_PATH" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          
+          # 装订公证票据
+          echo "📎 装订公证票据..."
+          xcrun stapler staple "$DMG_PATH"
+          
+          # 验证公证
+          echo "🔍 验证公证..."
+          xcrun stapler validate "$DMG_PATH"
+          spctl --assess --type open --context context:primary-signature "$DMG_PATH"
+          
+          echo "✅ 公证完成"
+
+      # Windows 签名 (如果有证书)
+      - name: Sign Windows executable
+        if: matrix.os == 'Windows' && secrets.WINDOWS_CERTIFICATE != ''
+        run: |
+          echo "✍️ 签名Windows应用..."
+          # 这里可以添加Windows代码签名逻辑
+          # 需要配置Windows证书相关的secrets
+          echo "⚠️ Windows签名功能待配置"
+
+      # 收集构建产物
+      - name: Collect build artifacts
+        run: |
+          echo "📦 收集构建产物..."
+          mkdir -p artifacts
+          
+          if [ "${{ matrix.os }}" = "macOS" ]; then
+            # 复制macOS产物
+            find src-tauri/target/${{ matrix.target }}/release/bundle -name "*.dmg" -exec cp {} artifacts/ \;
+            find src-tauri/target/${{ matrix.target }}/release/bundle -name "*.app" -exec cp -r {} artifacts/ \;
+          elif [ "${{ matrix.os }}" = "Windows" ]; then
+            # 复制Windows产物
+            find src-tauri/target/${{ matrix.target }}/release/bundle -name "*.msi" -exec cp {} artifacts/ \;
+            find src-tauri/target/${{ matrix.target }}/release/bundle -name "*.exe" -exec cp {} artifacts/ \;
+          fi
+          
+          echo "📋 构建产物列表:"
+          ls -la artifacts/
+
+      # 上传构建产物
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-artifacts
+          path: artifacts/
+
+  # 创建Release
+  create-release:
+    needs: build-and-sign
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Display structure of downloaded files
+        run: |
+          echo "📋 下载的文件结构:"
+          ls -la release-artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: 'MiaoWuTodo ${{ github.ref_name }}'
+          body: |
+            ## MiaoWuTodo ${{ github.ref_name }}
+            
+            ### 下载说明
+            - **macOS**: 下载 `.dmg` 文件
+            - **Windows**: 下载 `.msi` 或 `.exe` 文件
+            
+            ### 更新内容
+            请查看提交历史了解详细更新内容。
+            
+            ---
+            构建时间: ${{ github.run_id }}
+          files: release-artifacts/**/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
