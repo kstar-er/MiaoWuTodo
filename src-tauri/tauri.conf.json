@@ -64,7 +64,7 @@
     "longDescription": "",
     "macOS": {
       "exceptionDomain": "*",
-      "entitlements": "src-tauri/entitlements.plist"
+      "entitlements": "entitlements.plist"
     },
     "windows": {
       "certificateThumbprint": null,
