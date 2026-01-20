@@ -3,6 +3,22 @@
 本指南将帮助你在 Mac 上为 MiaoWuTodo 项目配置 GitHub Release
 本指南将帮助你在 Mac 上生成、导出和上传 MiaoWuTodo 项目所需的 GitHub Secrets 环境变量。
 
+## 关于 Apple 公证的重要说明
+
+**为什么需要公证？**
+
+Apple 公证（Notarization）是 macOS 10.15+ 系统的安全要求：
+
+1. **用户体验**: 未公证的应用会显示"无法验证开发者"的警告，用户需要手动绕过安全设置
+2. **分发要求**: 通过网络分发的 macOS 应用必须经过公证
+3. **系统兼容**: 新版本 macOS 对未公证应用的限制越来越严格
+
+**公证流程**:
+1. 代码签名 (使用开发者证书)
+2. 上传到 Apple 进行扫描 (使用 API Key)
+3. Apple 验证后返回公证票据
+4. 将票据附加到应用包中
+
 ## 需要配置的环境变量
 
 根据你的 `release.yml` 文件，需要配置以下 GitHub Secrets：
@@ -14,20 +30,24 @@
 - `APPLE_ID` - Apple ID 邮箱
 - `APPLE_ID_PASSWORD` - Apple ID 密码 (建议使用 App-specific password)
 - `APPLE_PASSWORD` - Apple ID 密码 (同上)
-- `APPLE_TEAM_ID` - Apple 开发者团队 ID
-- `APPLE_API_KEY_CONTENT` - Apple API Key 文件内容 (可选)
-- `APPLE_API_KEY_ID` - Apple API Key ID (可选)
+- `APPLE_TEAM_ID` - Apple 开发者团队 ID (**同时用作 API Issuer**)
+- `APPLE_API_KEY_CONTENT` - Apple API Key 文件内容 (**必需，用于公证**)
+- `APPLE_API_KEY_ID` - Apple API Key ID (**必需，用于公证**)
+
+**注意**: `APPLE_API_ISSUER` 在 GitHub Actions 中自动使用 `APPLE_TEAM_ID` 的值，无需单独配置。
 
 ### 2. 简化配置说明
 
-对于基本的 Tauri 应用代码签名，**最核心的变量是**：
+对于 Tauri 应用的完整签名和公证，**所有以下变量都是必需的**：
 - `APPLE_CERTIFICATE` (必需)
 - `APPLE_CERTIFICATE_PASSWORD` (必需)
 - `APPLE_ID` (必需)
 - `APPLE_ID_PASSWORD` (必需)
 - `APPLE_TEAM_ID` (必需)
+- `APPLE_API_KEY_CONTENT` (必需，用于公证)
+- `APPLE_API_KEY_ID` (必需，用于公证)
 
-API Key 相关的变量 (`APPLE_API_KEY_CONTENT` 和 `APPLE_API_KEY_ID`) 主要用于特定的 Apple 服务，如果你的应用不需要这些服务，可以先尝试不配置这些变量。
+**重要说明**: Apple 公证是 macOS 应用分发的必需步骤。没有公证的应用在用户下载后会显示安全警告，影响用户体验。
 
 ## 详细配置步骤
 
@@ -59,15 +79,42 @@ API Key 相关的变量 (`APPLE_API_KEY_CONTENT` 和 `APPLE_API_KEY_ID`) 主要�
    cat certificate_base64.txt
    ```
 
-### 步骤 2: 获取 Apple API Key
+### 步骤 2: 获取 Apple API Key (必需，用于公证)
 
-2. **获取 API Key 信息**
+1. **登录 Apple Developer Portal**
+   - 访问 https://developer.apple.com/account/
+   - 使用你的 Apple ID 登录
+
+2. **创建 API Key**
+   - 进入 "Certificates, Identifiers & Profiles"
+   - 在左侧菜单选择 "Keys"
+   - 点击 "+" 创建新的 API Key
+   - 输入 Key Name (例如: "MiaoWuTodo Notarization Key")
+   - 勾选 "App Store Connect API" 权限
+   - 点击 "Continue" 然后 "Register"
+
+3. **下载 API Key 文件**
+   - 创建完成后，**立即下载** .p8 文件 (只能下载一次!)
+   - 记录显示的 Key ID (10位字符，如: ABCD123456)
+   - 文件名格式: `AuthKey_ABCD123456.p8`
+
+4. **获取 API Key 信息**
    ```bash
    # 获取 API Key 文件内容并保存到文件
-   cat /path/to/AuthKey_XXXXXXXXXX.p8 > api_key_content.txt
+   cat AuthKey_S4WMHL3ATR.p8 > api_key_content.txt
    # 查看文件内容
    cat api_key_content.txt
-   # 记录 Key ID (文件名中的 XXXXXXXXXX 部分)
+   # 记录 Key ID (文件名中的 ABCD123456 部分)
+   ```
+
+   **重要提示**: 
+   - API Key 文件只能下载一次，请妥善保存
+   - 如果丢失，需要重新创建新的 API Key
+   - 确保文件内容包含完整的头部和尾部：
+   ```
+   -----BEGIN PRIVATE KEY-----
+   [key content]
+   -----END PRIVATE KEY-----
    ```
 
 ### 步骤 3: 获取其他必要信息
@@ -125,10 +172,12 @@ API Key 相关的变量 (`APPLE_API_KEY_CONTENT` 和 `APPLE_API_KEY_ID`) 主要�
    | `APPLE_ID_PASSWORD` | [App专用密码] | App-specific password |
    | `APPLE_PASSWORD` | [App专用密码] | 同上 |
    | `APPLE_TEAM_ID` | XXXXXXXXXX | 10位团队ID |
-   | `APPLE_API_KEY_CONTENT` | [api_key_content.txt中的内容或空字符串] | .p8文件的完整内容 (可选) |
-   | `APPLE_API_KEY_ID` | [YYYYYYYYYY或空字符串] | API Key的ID (可选) |
+   | `APPLE_API_KEY_CONTENT` | [api_key_content.txt中的内容] | .p8文件的完整内容 (**必需**) |
+   | `APPLE_API_KEY_ID` | ABCD123456 | API Key的ID (**必需**) |
 
-   **注意**: `APPLE_SIGNING_IDENTITY` 不需要手动配置，它会在 GitHub Actions 运行时自动从导入的证书中提取。
+   **注意**: 
+   - `APPLE_SIGNING_IDENTITY` 不需要手动配置，它会在 GitHub Actions 运行时自动从导入的证书中提取
+   - `APPLE_API_KEY_CONTENT` 和 `APPLE_API_KEY_ID` 是公证必需的，不能省略
 
 ### 步骤 5: 验证配置
 
@@ -138,7 +187,10 @@ API Key 相关的变量 (`APPLE_API_KEY_CONTENT` 和 `APPLE_API_KEY_ID`) 主要�
    security find-identity -v -p codesigning
    
    # 验证 API Key 格式
-   cat AuthKey_XXXXXXXXXX.p8
+   cat AuthKey_ABCD123456.p8
+   
+   # 验证 API Key 权限 (需要安装 Xcode Command Line Tools)
+   xcrun altool --validate-app -f /path/to/app.dmg -t osx -u "your-apple-id" -p "app-specific-password" --primary-bundle-id "com.kstar.miaowutodo"
    ```
 
 2. **推送测试标签**
@@ -146,6 +198,18 @@ API Key 相关的变量 (`APPLE_API_KEY_CONTENT` 和 `APPLE_API_KEY_ID`) 主要�
    # 创建并推送测试标签
    git tag v1.0.3-test
    git push origin v1.0.3-test
+   ```
+
+3. **验证公证状态**
+   
+   构建完成后，可以验证应用是否已正确公证：
+   ```bash
+   # 下载构建的 .dmg 文件后
+   spctl -a -vvv -t install /path/to/MiaoWuTodo.dmg
+   
+   # 成功的输出应该包含:
+   # /path/to/MiaoWuTodo.dmg: accepted
+   # source=Notarized Developer ID
    ```
 
 ## 常见问题解决
@@ -165,6 +229,13 @@ security create-keychain -p "password" build.keychain
 [key content]
 -----END PRIVATE KEY-----
 ```
+
+**如果 API Key 丢失或损坏**:
+1. 登录 Apple Developer Portal
+2. 进入 "Certificates, Identifiers & Profiles" → "Keys"
+3. 找到对应的 Key，点击 "Revoke" 撤销
+4. 重新创建新的 API Key
+5. 更新 GitHub Secrets 中的 `APPLE_API_KEY_CONTENT` 和 `APPLE_API_KEY_ID`
 
 ### 问题 3: 团队ID获取
 ```bash

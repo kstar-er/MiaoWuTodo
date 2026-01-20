@@ -15,8 +15,7 @@ jobs:
         platform: [macos-latest] # 支持macOS和Windows平台
     runs-on: ${{ matrix.platform }} # 根据矩阵选择运行器
     env:
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -71,8 +70,13 @@ jobs:
           # macOS签名相关环境变量
           APPLE_CERTIFICATE: ${{ runner.os == 'macOS' && secrets.APPLE_CERTIFICATE || '' }}
           APPLE_CERTIFICATE_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
-          APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && secrets.APPLE_SIGNING_IDENTITY || '' }}
+          APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && env.CERT_ID || '' }}
           APPLE_TEAM_ID: ${{ runner.os == 'macOS' && secrets.APPLE_TEAM_ID || '' }}
+  
+          # Apple API Key (必需，用于公证)
+          APPLE_API_ISSUER: ${{ runner.os == 'macOS' && secrets.APPLE_API_ISSUER || '' }}
+          APPLE_API_KEY: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY || '' }}
+          APPLE_API_KEY_PATH: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY_ID || '' }}
 
         with:
           tagName: ${{ github.ref_name }} # 使用触发工作流的 tag 名称
