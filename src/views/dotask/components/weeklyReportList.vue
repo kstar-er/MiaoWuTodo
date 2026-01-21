@@ -12,11 +12,13 @@
       <el-button @click="doSearch">搜索</el-button>
     </div>
 
-    <!-- 新增：按截止日期筛选的下拉菜单 -->
-    <el-dropdown @command="handleDropdownSelect" style="margin: 8px 0;">
+    <el-divider class="content-divider" />
+
+    <!-- 按截止日期筛选的下拉菜单 -->
+    <el-dropdown @command="handleDropdownSelect" style="margin: 8px 0; cursor: pointer; transition: all 0.3ms ease;">
       <span class="dropdown-trigger">
         <el-icon><ArrowDown /></el-icon>
-        <span>按截止日期筛选</span>
+        <span>按截止日期定位</span>
       </span>
       <template #dropdown>
         <el-dropdown-menu>
@@ -32,16 +34,11 @@
       </template>
     </el-dropdown>
 
-    <el-divider class="content-divider" />
-
     <!-- 周报列表，按endDate分组 -->
     <div v-if="Object.keys(groupedReports).length === 0" class="empty-state">
       <EmptyState text="暂无周报数据" />
     </div>
     <div class="scrollable-content" v-else>
-      <!-- el-dropdown-mune-->
-
-
       <div
         v-for="(reports, endDate) in groupedReports"
         :key="endDate"
@@ -71,14 +68,21 @@
             <template #header>
               <div class="card-header">
                 <span class="report-title">{{ report.title }}</span>
-                <span class="report-date">{{ formatDate(report.startDate) }} 至 {{ formatDate(report.endDate) }}</span>
+                
+                 <div class="navigate">
+                  <el-tooltip content="查看报告具体数据" effect="dark">
+                    <img src="/navigate.png"
+                      class="img-btn"
+                      alt="查看周报"
+                      @click.stop="viewHtmlReport(report)"
+                    />
+                  </el-tooltip>
+                </div>
               </div>
             </template>
+
             <div class="card-content">
-              <!-- <div class="report-author">
-                提交人：{{ report.author || report.userId }}
-              </div> -->
-              <div class="report-summary">{{ report.content ? report.content.substring(0, 100) + '...' : '暂无内容' }}</div>
+              <div class="report-summary" v-html="renderShortMarkdown(report.content)"></div>
             </div>
 
             <template #footer>
@@ -94,8 +98,11 @@
                     <UserFilled />
                   </el-icon>
                   <div class="author-text">
-                    {{ report.author || report.userId }}
+                    {{ usernameMap[report.userId] || report.userId }}
                   </div>
+                </div>
+                <div class="report-date">
+                  <span>{{ formatDate(report.startDate) }} 至 {{ formatDate(report.endDate) }}</span>
                 </div>
               </div>
             </template>
@@ -107,10 +114,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, watch, getCurrentInstance } from "vue";
 import EmptyState from "@/public/components/EmptyState.vue";
 import { queryReports, groupReportsByEndDate } from "@/utils/reportManagement/index.js";
 import { ArrowUpBold } from "@element-plus/icons-vue";
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { createWin } from "../../../multiwins/action";
+import { marked } from "marked";
+
+const { proxy } = getCurrentInstance();
 
 const emit = defineEmits(['item-click']);
 
@@ -153,7 +165,7 @@ const handleDropdownSelect = (command) => {
   if (command === 'all') {
     // 展开所有分组
     Object.keys(groupedReports.value).forEach(endDate => {
-      expandedGroups.value[endDate] = true;
+      expandedGroups.value[endDate] = false;
     });
   } else {
     // 只展开指定 endDate，其余收起
@@ -221,16 +233,106 @@ const initData = async () => {
   }
 };
 
+/**
+ * 使用 marked 轻量级渲染（关闭 HTML、脚本等安全选项）
+ * @param text 报告的内容 
+ */
+const renderShortMarkdown = (text) => {
+  if (!text) return '暂无内容';
+  const shortText = text.substring(0, 50);
+  return marked(shortText, {
+    breaks: true,
+    gfm: true,
+    sanitize: true,
+    smartLists: true,
+  });
+};
+
+// 跳转到 report.html 并传递 content 数据
+const viewHtmlReport = async (report) => {
+  try {
+    // 1. 解析 dataJson
+    let data = JSON.parse(report.dataJson)
+
+    let team = ''
+    if (report.reportType === 'group') {
+      team = report.groupName
+    } else if(report.reportType === 'project') {
+      team = report.projectName
+    } else {
+      team = report.userName
+    }
+
+    // 2. 构造完整数据
+    const parseData = {
+      title: report.title,
+      reportStartDate: report.startDate,
+      reportEndDate: report.endDate,
+      generationTime: report.generationTime,
+      teamName: team,
+      ...data
+    }
+
+    // 3. 避免url过长，存入本地存储
+    const jsonContent = JSON.stringify(parseData)
+    const key = `weekly_report_${Date.now()}_${Math.random().toString(36)}`;
+    localStorage.setItem(key, jsonContent);
+
+    // 4. 获取模板路径并拼接完整 OSS 地址
+    const templatePath = report.contentFormat;
+    if (!templatePath) {
+      proxy.$message.warning('该报告未指定模板');
+      return;
+    }
+
+    // oss完整地址--直接访问html文件
+    const ossHost = 'https://baiaidu.com';
+    const fullUrl = `${ossHost}/${templatePath}`;
+
+    // 方式一：新标签页打开
+    // const url = `/report.html?key=${key}`;
+    window.open(`/report.html?ossUrl=${encodeURIComponent(fullUrl)}&key=${key}`, '_blank');
+
+    // 方式二: 用tauri的插件打开
+    // await openUrl(`/report.html?ossUrl=${encodeURIComponent(fullUrl)}&key=${key}`);
+
+    // 方式三: 用窗口打开--缺点: 这个只能打开一个周报窗口
+    // const winLabel = 'report_preview';
+
+    //  try {
+    //   await closeWindow(winLabel);
+    // } catch (e) {}
+
+    // await createWin({
+    //   label: winLabel, // 动态标签避免重复
+    //   title: '周报预览',
+    //   url: `/report.html?ossUrl=${encodeURIComponent(fullUrl)}&key=${key}`,
+    //   width: 900,
+    //   height: 700,
+    //   resizable: true,
+    //   center: true,
+    //   decorations: true, // 显示标题栏以便关闭
+    //   theme: 'Light',
+    //   visible: true
+    // });
+  } catch (err) {
+    console.error(err)
+    proxy.$message.error('无法解析报告内容');
+  }
+};
+
 defineExpose({ initData });
 
 const userAvatarsMap = ref({}); // 用户头像
+const usernameMap = ref({}); // 用户名
 onMounted(() => {
   initData();
 
-  // 头像处理
+  // 头像、用户名处理
   const avatars = localStorage.getItem('userAvatars');
+  const usernames = localStorage.getItem('userIdUsernameMap')
   userAvatarsMap.value = avatars ? JSON.parse(avatars) : {};
-
+  usernameMap.value = usernames ? JSON.parse(usernames) : {};
 });
 </script>
 
@@ -316,29 +418,42 @@ onMounted(() => {
       }
 
       .card-header {
+        width: 100%;
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 1px 5px 0px 5px;
 
         .report-title {
+          display: flex;
+          justify-content: flex-start;
+          width: 90%;
           font-weight: bold;
           color: #8b4513;
         }
 
-        .report-date {
-          font-size: 12px;
-          color: #999;
+        .navigate {
+          width: 10%;
+          padding-right: 5px;
+          display: flex;
+          align-items: center;
+          .img-btn {
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            padding: 3px;
+            background-color: #ebe7e1;
+            transition: all 0.3s ease;
+          }
+          .img-btn:hover {
+            background-color: #e0e0ff;
+            transform: scale(1.2) rotate(10deg);
+            filter: hue-rotate(45deg) brightness(1.2);
+          }
         }
       }
 
       .card-content {
-        // .report-author {
-        //   font-size: 14px;
-        //   color: #666;
-        //   margin-bottom: 8px;
-        // }
-
         .report-summary {
           min-height: 40px;
           font-size: 14px;
@@ -353,7 +468,7 @@ onMounted(() => {
 
       .card-footer {
         display: flex;
-        justify-content: center;
+        justify-content: space-between;
         .report-author {
           display: flex;
           align-items: center;
@@ -372,6 +487,10 @@ onMounted(() => {
             color: #666;
             margin-left: 5px;
           }
+        }
+        .report-date {
+          font-size: 12px;
+          color: #999;
         }
       }
     }

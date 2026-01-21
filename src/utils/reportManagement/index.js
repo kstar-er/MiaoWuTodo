@@ -45,6 +45,14 @@ export function getReportTemplate() {
 }
 
 /**
+ * 手动快速生成周报
+ */
+export async function createReportQuickly(configId) {
+  const { data: { code, data, message } } = await pbRequest.post(`/eam/reportsConfig/config/${configId}`)
+  return code === 200 ? { code, data } : message
+}
+
+/**
  * 根据endDate对周报列表进行分组
  * @param {Array} reports - 周报列表
  * @returns {Object} 按endDate分组的对象，键为endDate，值为该endDate下的周报数组
@@ -58,19 +66,6 @@ export function groupReportsByEndDate(reports) {
       grouped[endDate] = []
     }
     grouped[endDate].push(report)
-    grouped[endDate].push(report)
-    grouped[endDate].push(report)
-    grouped[endDate].push(report)
   })
-  grouped['2026-01-12'] = [{
-    content: '周报内容内容内容内容内容',
-    title: '标题',
-    author: '提交人'
-  }]
-  grouped['2026-01-14'] = [{
-    content: '周报内容内容内容内容内容周报内容内容内容内容内容周报内容内容内容内容内容周报内容内容内容内容内容周报内容内容内容内容内容周报内容内容内容内容内容周报内容内容内容内容内容周报内容内容内容内容内容周报内容内容内容内容内容周报内容内容内容内容内容周报内容内容内容内容内容周报内容内容内容内容内容',
-    title: '标题',
-    author: '提交人'
-  }]
   return grouped
 }

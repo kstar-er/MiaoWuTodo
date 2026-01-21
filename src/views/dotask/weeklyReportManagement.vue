@@ -46,6 +46,7 @@ import WeeklyReportList from "./components/weeklyReportList.vue";
 import WeeklyReportTemplate from "./components/weeklyReportTemplate.vue";
 import WeeklyReportDetail from "./components/weeklyReportDetail.vue";
 import { getGroupList } from "@/utils/groupManagement/index.js";
+import { getProject } from "@/utils/taskManagement/index.js";
 
 const loading = ref(false);
 const activeTab = ref('reportList');
@@ -157,13 +158,10 @@ const restoreMainWindow = async () => {
 
 const openDetailDrawer = async (item) => {
   console.log('openDetailDrawer called with item:', item);
-  if (item.type === 'template') {
-    inlineDetailData.value = {
-      ...item,
-      groupList: groupList.value
-    }
-  } else {
-    inlineDetailData.value = item;
+  inlineDetailData.value = {
+    ...item,
+    groupList: groupList.value,
+    projectList: projectList.value
   }
   console.log('inlineDetailData.value set to:', inlineDetailData.value);
   await computeDrawerSide();
@@ -210,7 +208,7 @@ const openTemplateDetail = (action, data, extra) => {
     type: 'template', // 标识为模板类型
     templateType: '',
     description: '',
-    reportType: 'weekly',
+    reportType: 'personal',
     templateFormat: 'markdown',
     contentFormat: 'detailed',
     language: 'zh-CN',
@@ -231,6 +229,9 @@ const openTemplateDetail = (action, data, extra) => {
   openDetailDrawer(newTemplate);
 };
 
+/**
+ * 获取团队列表
+ */
 const groupList = ref([])
 const initGroupList = async () => {
   const res = await getGroupList({pageNum: 1, pageSize: 999, groupName: ''})
@@ -251,10 +252,34 @@ const initGroupList = async () => {
   }
 }
 
+/**
+ * 获取项目列表
+ */
+const projectList = ref([])
+const initProjectList = async () => {
+  const res = await getProject({pageNum: 1, pageSize: 999})
+  if (res.code === 200) {
+    if (res.total > 0) {
+      projectList.value = res.rows.map(item => {
+        return {
+          ...item,
+          value: item.id,
+          label: item.projectName
+        }
+      })
+    } else {
+      projectList.value = []
+    }
+  } else {
+    projectList.value = []
+  }
+}
+
 const initData = async () => {
   loading.value = true;
   // 初始化数据
   initGroupList() // 获取群组列表
+  initProjectList() // 获取项目列表
   setTimeout(() => {
     loading.value = false;
   }, 500);

@@ -353,6 +353,8 @@
               </el-tooltip>
             </template>
           </el-input>
+
+          <div v-if="item.element === 'markdown'" class="markdown-preview" v-html="myformData[item.key]"></div>
         </el-form-item>
 
         <slot name="textAreaAppend" />
@@ -417,8 +419,9 @@
           <div v-if="item.element === 'html'" class="html-editor">
             <CodeEditor
               v-model="myformData[item.key]"
-              :language="'html'"
+              :language="item.language || 'html'"
               :placeholder="item.placeholder ? item.placeholder : `请输入${item.title}`"
+              :theme="item.theme || 'dark'"
               @input="item.onInput"
             />
           </div>
@@ -563,7 +566,8 @@
     </div>
     <div class="footer-btn">
       <!-- 保存按钮 -->
-      <el-tooltip 
+      <el-tooltip
+        v-if="showSaveButton"
         content="保存" 
         placement="top" 
         :show-after="800"
@@ -606,7 +610,8 @@
       </el-tooltip>
 
       <!-- 日志按钮 -->
-      <el-tooltip 
+      <el-tooltip
+        v-if="showLogButton"
         content="查看日志" 
         placement="top" 
         :show-after="800"
@@ -790,6 +795,18 @@ const _props = defineProps({
   drawerDirection: {
     type: String,
     default: 'rtl'
+  },
+
+  // 保存按钮
+  showSaveButton: {
+    type: Boolean,
+    default: true
+  },
+
+  // 日志按钮
+  showLogButton: {
+    type: Boolean,
+    default: true
   },
 });
 
@@ -1099,42 +1116,6 @@ const handleDateChange = (key, value, type) => {
     myformData.value[key] = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   }
 }
-
-
-/**
- * Markdown 工具栏配置（可根据需求精简）
- */
-const defaultMarkdownToolbarOptions = ref({
-  bold: true,        // 粗体
-  italic: true,      // 斜体
-  header: true,      // 标题
-  underline: true,   // 下划线
-  strikethrough: true, // 删除线
-  mark: true,        // 标记
-  superscript: false,
-  subscript: false,
-  quote: true,       // 引用
-  ol: true,          // 有序列表
-  ul: true,          // 无序列表
-  link: true,        // 链接
-  imagelink: true,   // 图片
-  code: true,        // 代码块
-  table: true,       // 表格
-  fullscreen: true,  // 全屏
-  readmodel: true,   // 阅读模式
-  htmlcode: true,    // 源码模式
-  help: true,        // 帮助
-  undo: true,        // 撤销
-  redo: true,        // 重做
-  trash: true,       // 清空
-  save: false,
-  navigation: true,  // 导航目录
-  alignleft: true,   // 左对齐
-  aligncenter: true, // 居中
-  alignright: true,  // 右对齐
-  subfield: true,    // 单双栏模式
-  preview: true      // 预览
-})
 </script>
 
 <style lang="less" scoped>
@@ -1430,5 +1411,46 @@ const defaultMarkdownToolbarOptions = ref({
   .delete-btn {
     transition: all 0.2s ease;
   }
+}
+
+.html-editor {
+  width: 100%;
+}
+
+// markdown渲染区
+.markdown-preview {
+  border: 1px solid #e9e9e9;
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 4px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.4;
+  color: #333;
+}
+
+/* 标题样式 */
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3 {
+  color: #d47549;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+/* 列表样式 */
+.markdown-preview ul,
+.markdown-preview ol {
+  margin-left: 20px;
+  margin-bottom: 1em;
+}
+
+/* 代码块样式 */
+.markdown-preview pre {
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  padding: 10px;
+  overflow-x: auto;
+  font-family: 'Courier New', monospace;
+  margin: 1em 0;
 }
 </style>

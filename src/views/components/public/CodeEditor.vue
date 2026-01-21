@@ -1,17 +1,16 @@
 <template>
   <div class="code-editor">
-    <ClientOnly>
-      <codemirror
-        v-model:value="props.value"
-        :autofocus="true"
-        :placeholder="placeholder"
-        :indent-with-tab="true"
-        :tabSize="4"
-        :lineWrapping="true"
-        :style="{ height: '300px', border: '1px solid #ddd', borderRadius: '4px' }"
-        :extensions="extensions"
-      />
-    </ClientOnly>
+    <!-- 使用导入的 Codemirror 组件 -->
+    <Codemirror
+      v-model:value="props.value"
+      :autofocus="true"
+      :placeholder="placeholder"
+      :indent-with-tab="true"
+      :tabSize="4"
+      :lineWrapping="true"
+      :style="{ height: '300px', border: '1px solid #ddd', borderRadius: '4px' }"
+      :extensions="extensions"
+    />
   </div>
 </template>
 
@@ -20,6 +19,8 @@ import { ref, computed, watch } from 'vue';
 import { javascript } from '@codemirror/lang-javascript';
 import { html } from '@codemirror/lang-html';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { EditorView } from '@codemirror/view'; // 用于自定义视图配置
+import { Codemirror } from 'vue-codemirror'; // 引入组件
 
 const props = defineProps({
   value: { type: String, default: '' },
@@ -30,7 +31,7 @@ const props = defineProps({
 
 const emit = defineEmits(['input']);
 
-// 根据语言选择语法高亮
+// 语法高亮语言扩展
 const extensions = computed(() => {
   const langs = {
     html: html(),
@@ -38,16 +39,10 @@ const extensions = computed(() => {
     js: javascript()
   };
   const lang = langs[props.language] || html();
-  return [lang, props.theme === 'dark' ? oneDark : null];
+  return [lang, props.theme === 'dark' ? oneDark : []];
 });
 
 watch(() => props.value, (newVal) => {
-  // 外部更新时同步
-}, { immediate: true });
+  emit('input', newVal);
+});
 </script>
-
-<style scoped>
-.code-editor {
-  width: 100%;
-}
-</style>

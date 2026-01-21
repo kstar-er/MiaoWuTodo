@@ -1,4 +1,5 @@
 import { pbRequest } from '../../public/pbRequest/index.js'
+import OSS from 'ali-oss';
 import CryptoJS from 'crypto-js'
 
 /**
@@ -127,13 +128,13 @@ export async function uploadToOSS(file, uploadPath = 'images/', options = {}) {
     formData.append('success_action_status', '200')
     formData.append('key', finalKey)
     formData.append('policy', credentials.policy)
-      // 按 demo.html 的字段命名
-      formData.append('x-oss-signature', credentials.signature)
-      formData.append('x-oss-signature-version', 'OSS4-HMAC-SHA256')
-      formData.append('x-oss-credential',  credentials.xossCredential)
-  
-      formData.append('x-oss-date',  credentials.xossDate)
-      formData.append('x-oss-security-token', credentials.securityToken )
+    // 按 demo.html 的字段命名
+    formData.append('x-oss-signature', credentials.signature)
+    formData.append('x-oss-signature-version', 'OSS4-HMAC-SHA256')
+    formData.append('x-oss-credential',  credentials.xossCredential)
+
+    formData.append('x-oss-date',  credentials.xossDate)
+    formData.append('x-oss-security-token', credentials.securityToken )
 
     if (file && file.type) {
       formData.append('Content-Type', options.contentType || file.type)
@@ -219,3 +220,52 @@ export async function uploadTaskImageToOSS(file) {
 export async function uploadReportImageToOSS(file) {
   return await uploadImageToOSS(file, 'images/report/')
 }
+
+/**
+ * 上传周报模板
+ */
+
+/**
+ * 创建OSS
+ * @returns 
+ */
+export const createOSSClient = async () => {
+  try{
+    // 1. 获取上传凭证
+    const tokenResponse = await getOSSUploadToken('template/')
+    if (tokenResponse.code !== 200) {
+      throw new Error(tokenResponse.message || '获取上传凭证失败')
+    }
+
+    const credentials = tokenResponse.data
+
+    return new OSS({
+      region:'oss-cn-hangzhou',
+      stsToken: credentials.securityToken,
+      accessKeyId: credentials.accessKeyId,
+      accessKeySecret: credentials.accessKeySecret,
+      bucket: credentials.bucketName,
+      endpoint: credentials.endpoint,
+      uploadPath: credentials.uploadPath, // template/用户id
+      secure: true,
+
+      // 🔁 自动刷新 STS 凭证
+      refreshSTSToken: async () => {
+        const res = await getOSSUploadToken('template/')
+        if (res.code !== 200) {
+          throw new Error('无法刷新STS Token')
+        }
+        const newCreds = res.data
+        return {
+          accessKeyId: newCreds.accessKeyId,
+          accessKeySecret: newCreds.accessKeySecret,
+          stsToken: newCreds.securityToken
+        }
+      },
+    });
+
+  } catch (error) {
+    console.error('创建oss失败', error)
+    throw error;
+  }
+};

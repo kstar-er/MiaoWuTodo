@@ -24,6 +24,7 @@
       <publicIconForm
         ref="ruleFormRef"
         :label-width="'90px'"
+        :show-save-button="showSaveButton"
         :form-data="formData"
         :form-input-el="detailForm.formInputEl"
         :form-select-el="detailForm.formSelectEl"
@@ -38,12 +39,12 @@
         @input-done="detailForm.inputDone"
         @delete-item="handleDeleteItem"
       >
-        <template #selectAppend v-if="formData.type === 'template'">
+        <template #selectAppend>
           <el-form-item
-            label="小组"
+            label="团队/项目"
             prop="groupId"
             style="width:100%;"
-            v-if="formData.createTemplateType === 'group'"
+            v-if="formData.reportType === 'group' || formData.reportType === 'project'"
           >
             <template #label>
               <el-popover
@@ -53,16 +54,18 @@
               >
                 <template #reference>
                   <el-icon style="color: #d47549" size="18">
-                    <User />
+                    <User v-if="formData.reportType === 'group'"/>
+                    <List v-else/>
                   </el-icon>
                 </template>
                 <template #default>
-                  该模板的所属小组
+                  该模板的所属{{formData.reportType === 'group' ? '团队' : '项目' }}
                 </template>
               </el-popover>
             </template>
 
             <el-select
+              v-if="formData.reportType === 'group'"
               v-model="formData.groupId"
               placeholder="请选择该模板的所属团队"
               clearable
@@ -75,13 +78,28 @@
                 :value="item.value"
               />
             </el-select>
+
+            <el-select
+              v-if="formData.reportType === 'project'"
+              v-model="formData.projectId"
+              placeholder="请选择该模板的所属项目"
+              clearable
+              @change="handleChangeProject"
+            >
+              <el-option
+                v-for="item in formData.projectList"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
           </el-form-item>
         </template>
 
         <template #textAreaAppend v-if="formData.type === 'template'">
           <el-form-item
             label="可用模板"
-            prop="templateId"
+            prop="contentFormat"
             style="width: 100%;"
             class="full-width"
           >
@@ -97,7 +115,7 @@
                   </el-icon>
                 </template>
                 <template #default>
-                  快速选择可用模板，或自行编辑
+                  快速选择可用模板（重复点击某个模板即可取消选中）
                 </template>
               </el-popover>
             </template>
@@ -108,7 +126,7 @@
                 :key="tmpl.id"
                 class="template-card"
                 @click="handleTemplateSelect(tmpl.id)"
-                :class="{ selected: formData.templateId === tmpl.id }"
+                :class="{ selected: formData.contentFormat === tmpl.id }"
               >
                 <!-- 图标 -->
                 <img
@@ -128,20 +146,6 @@
                 <span class="template-name">{{ tmpl.name }}</span>
               </div>
             </div>
-
-            <!-- <el-select
-              v-model="templateId"
-              placeholder="选择通用模板"
-              clearable
-              @change="handleTemplateSelect"
-            >
-              <el-option
-                v-for="tmpl in commonTemplates"
-                :key="tmpl.id"
-                :label="tmpl.name"
-                :value="tmpl.id"
-              />
-            </el-select> -->
           </el-form-item>
         </template>
       </publicIconForm>
@@ -150,13 +154,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from "vue";
+import { ref, onMounted, watch, nextTick, getCurrentInstance } from "vue";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import publicIconForm from "../../components/public/publicIconForm.vue";
 import customDragWindow from "../../components/public/customDragWindow.vue";
-import { createReport, saveReportConfig, getReportTemplate } from "@/utils/reportManagement/index.js";
-import commonTemplates from "../../components/commonTemplates";
+import { createReport, saveReportConfig } from "@/utils/reportManagement/index.js";
+import { createOSSClient } from "../../../utils/upload/secureOSSUpload";
+import { marked } from "marked";
+
+const { proxy } = getCurrentInstance();
 
 const myClient = ref();
 const props = defineProps({
@@ -174,6 +181,7 @@ const props = defineProps({
   }
 });
 const emitInline = defineEmits(["inlineClose", "inlineSaved"]);
+const showSaveButton = ref(false)
 const formData = ref({});
 const ruleFormRef = ref(null);
 const loading = ref(false);
@@ -209,13 +217,10 @@ onMounted(async () => {
 const initDataSource = async (event) => {
   const { data, emitWin } = event.payload;
   emit_win = emitWin;
-  formData.value = data;
-
-  // 周报模板--编辑
-  if (data.type === 'template' && data.id) {
-    let createType = data.groupId ? 'group' : 'person'
-    formData.value.createTemplateType = createType
+  if (data.type !== 'template') {
+    data.renderedContent = marked(data.content)
   }
+  formData.value = {...data};
 
   // 根据数据设置表单字段
   setupFormByData(data);
@@ -227,13 +232,12 @@ const initDataSource = async (event) => {
 const initInlineData = async (data) => {
   loading.value = true;
   try {
+    if (data.type !== 'template') {
+      data.renderedContent = marked(data.content)
+    }
+
     formData.value = { ...data };
     
-    // 周报模板--编辑
-    if (data.type === 'template' && data.id) {
-      let createType = data.groupId ? 'group' : 'person'
-      formData.value.createTemplateType = createType
-    }
     // console.log('initInlineData - data.type:', data.type);
     setupFormByData(data);
     nextTick(() => {
@@ -249,15 +253,52 @@ const initInlineData = async (data) => {
  */
 const templateList = ref([])
 const initReportTemplate = async () => {
-    // {
-    //   id: 999,
-    //   name: '更多模板',
-    //   isMore: true
-    // }
-  // const res = await getReportTemplate()
-  // if (res.code === 200) {
-  //   templateList.value = res.rows || []
-  // }
+  // 对应 OSS 中的“目录”，先默认拿public下的公共模板
+  // 等后续扩展成用户自定义，再拿： 公共模板 + 用户自定义模板 “template/用户id”
+  const prefix = 'template/public/';
+
+  let client;
+  try {
+    client = await createOSSClient(); // ✅ 必须 await
+    if (!client || client.success === false) {
+      throw new Error('OSS客户端创建失败');
+    }
+  } catch (error) {
+    console.error('创建OSS客户端失败:', error);
+    proxy.$message.error('模板列表加载失败，请稍后重试');
+    return;
+  }
+
+  try {
+    const result = await client.list({ prefix, delimiter: '/' });
+    
+    if (result.objects) {
+      console.log("result.objects---", result.objects)
+      const templates = result.objects
+        .filter(file => !file.name.endsWith('/')) // 排除目录，只获取目录下的文件列表
+        .map(file => ({
+          id: file.name,
+          name: file.name.split('/').pop().replace(/\.(md|html|txt)$/, ''),
+          isMore: false,
+          lastModified: file.lastModified,
+          size: file.size
+        }));
+
+      // 添加“更多模板”选项---后续扩展成用户自定义新增模板
+      // templates.push({
+      //   id: 'more',
+      //   name: '更多模板',
+      //   isMore: true
+      // });
+
+      templateList.value = templates;
+
+      console.log("templateList---", templateList.value)
+    }
+  } catch (error) {
+    console.error('加载OSS模板列表失败:', error);
+    proxy.$message.error('模板列表加载失败');
+  }
 }
 
 // 表单配置
@@ -285,22 +326,7 @@ const detailForm = ref({
   formTimeAndNumber: [],
   formSelectEl: [],
   formSwitchEl: [],
-  formTextAreaEl: [
-    // {
-    //   title: "周报模板",
-    //   key: "content",
-    //   element: "input",
-    //   illustrate: "周报模板内容",
-    //   icon: "ChatDotRound",
-    //   color: "#d47549",
-    //   size: "18",
-    //   type: "textarea",
-    //   minRows: 8,
-    //   maxRows: 12,
-    //   placeholder: "请输入周报模板",
-    //   fullWidth: true
-    // },
-  ],
+  formTextAreaEl: [],
   formPasteImageEl: [
     {
       title: "",
@@ -315,24 +341,33 @@ const detailForm = ref({
     if (params.type === 'template') {
       // 保存模板配置
       try {
-        if (params.createTemplateType === 'person') {
+        if (params.reportType === 'person') {
+          if (params.groupId) delete params.groupId;
+          if (params.projectId) delete params.projectId;
+        }
+
+        if (params.reportType === 'group') {
+          if (params.projectId) delete params.projectId;
+        }
+
+        if (params.reportType === 'project') {
           if (params.groupId) delete params.groupId;
         }
 
-        delete params.createTemplateType;
         delete params.groupList;
+        delete params.projectList;
         
         // 获取用户信息
         const userInfo = JSON.parse(sessionStorage.getItem('userInfo'));
         params.userId = userInfo.userId || null;
         
         console.log("提交参数---", params)
-        // const response = await saveReportConfig(params);
-        // if (response.data.code === 200) {
-        //   console.log('模板保存成功');
-        // } else {
-        //   console.error('模板保存失败:', response.data.msg);
-        // }
+        const response = await saveReportConfig(params);
+        if (response.data.code === 200) {
+          console.log('模板保存成功');
+        } else {
+          console.error('模板保存失败:', response.data.msg);
+        }
       } catch (error) {
         console.error('模板保存异常:', error);
       }
@@ -355,11 +390,9 @@ const detailForm = ref({
 
 // 根据数据类型设置表单字段
 const setupFormByData = (data) => {
-  console.log('setupFormByData called with data:', data);
-  console.log('data.type:', data.type);
-  
   if (data.type === 'template') {
-    console.log('Setting up template form fields');
+    // 保存按钮是否显示
+    showSaveButton.value = true
     // 模板详情
     detailForm.value.formInputEl[0].title = "模板名称";
     detailForm.value.formInputEl[0].key = "templateType";
@@ -368,29 +401,6 @@ const setupFormByData = (data) => {
     
     // 设置模板配置的特定字段
     detailForm.value.formSelectEl = [
-      {
-        title: "报告类型",
-        key: "reportType",
-        element: "select",
-        type: "default",
-        illustrate: "选择报告类型",
-        icon: "Document",
-        color: "#d47549",
-        size: "18",
-        options: [
-          { label: "周报", value: "weekly" },
-          { label: "月报", value: "monthly" },
-          { label: "季报", value: "quarterly" },
-        ],
-        rules: [
-          {
-            required: true,
-            message: "该项不能为空",
-            trigger: "blur",
-          },
-        ],
-        fullWidth: false
-      },
       {
         title: "模板格式",
         key: "templateFormat",
@@ -434,22 +444,6 @@ const setupFormByData = (data) => {
         // }
       },
       {
-        title: "内容格式",
-        key: "contentFormat",
-        element: "select",
-        type: "default",
-        illustrate: "选择内容格式",
-        icon: "Edit",
-        color: "#d47549",
-        size: "18",
-        options: [
-          { label: "简洁", value: "brief" },
-          { label: "详细", value: "detailed" },
-          { label: "图表", value: "chart" },
-        ],
-        fullWidth: false
-      },
-      {
         title: "语言",
         key: "language",
         element: "select",
@@ -481,54 +475,58 @@ const setupFormByData = (data) => {
         fullWidth: false
       },
       {
-        title: "调度类型",
+        title: "周期类型",
         key: "scheduleType",
         element: "select",
         type: "default",
-        illustrate: "选择调度类型",
+        illustrate: "选择周期类型",
         icon: "Clock",
         color: "#d47549",
         size: "18",
         options: [
           { label: "手动", value: "manual" },
-          { label: "每周", value: "weekly" },
-          { label: "每月", value: "monthly" },
+          { label: "周报", value: "weekly" },
+          { label: "月报", value: "monthly" },
         ],
         fullWidth: false
       },
       {
-        title: "模板类型",
-        key: "createTemplateType",
+        title: "报告类型",
+        key: "reportType",
         element: "select",
         type: "default",
-        illustrate: "选择模板类型（个人/团队）",
-        icon: "Avatar",
+        illustrate: "选择报告类型（个人/团队/项目）",
+        icon: "Document",
         color: "#d47549",
         size: "18",
         options: [
-          { label: "个人模板", value: "person" },
-          { label: "团队模板", value: "group" }
+          { label: "个人", value: "personal" },
+          { label: "团队", value: "group" },
+          { label: "项目", value: "project" }
         ],
-        fullWidth: true,
+        rules: [
+          {
+            required: true,
+            message: "该项不能为空",
+            trigger: "blur",
+          },
+        ],
+        fullWidth: false,
         change: (val) => {
-          formData.value.createTemplateType = val;
+          formData.value.reportType = val;
 
-          const index = detailForm.value.formSelectEl.findIndex(item => item.key === 'createTemplateType')
+          const index = detailForm.value.formTimeAndNumber.findIndex(item => item.key === 'autoGenerateTime')
           if (index !== -1) {
-            if (val === 'group') {
-              detailForm.value.formSelectEl[index].fullWidth = false
+            if (val === 'personal') {
+              detailForm.value.formTimeAndNumber[index].fullWidth = true
             } else {
-              detailForm.value.formSelectEl[index].fullWidth = true
+              detailForm.value.formTimeAndNumber[index].fullWidth = false
             }
           }
-          
-          nextTick(() => {
-            if (ruleFormRef.value) {
-              ruleFormRef.value.updateFormData(formData.value);
-            }
-          });
+
+          updateForm({reportType: val})
         }
-      },
+      }
     ];
 
     detailForm.value.formTimeAndNumber = [
@@ -552,7 +550,7 @@ const setupFormByData = (data) => {
         icon: "Clock",
         color: "#d47549",
         size: "18",
-        fullWidth: false,
+        fullWidth: true,
         format: 'HH:mm:ss'
       },
     ];
@@ -624,12 +622,18 @@ const setupFormByData = (data) => {
 
     // 编辑模式
     if (data.id) {
-      // 如果是团队模板
-      if (data.groupId) {
-        detailForm.value.formSelectEl[6].fullWidth = false
-      } else {
-        detailForm.value.formSelectEl[6].fullWidth = true
+
+      // 如果是 团队/项目
+      // 配合fullWidth，让表单显示更合理
+      const index = detailForm.value.formTimeAndNumber.findIndex(item => item.key === 'autoGenerateTime')
+      if (index !== -1) {
+        if (data.reportType === 'personal') {
+          detailForm.value.formTimeAndNumber[index].fullWidth = true
+        } else {
+          detailForm.value.formTimeAndNumber[index].fullWidth = false
+        }
       }
+      
 
       // 回显周报模板格式
       // if (data.templateFormat === 'markdown') {
@@ -641,6 +645,8 @@ const setupFormByData = (data) => {
       // }
     }
   } else {
+    // 保存按钮是否显示
+    showSaveButton.value = false
     // 周报详情
     detailForm.value.formInputEl[0].title = "周报标题";
     detailForm.value.formInputEl[0].key = "title";
@@ -671,17 +677,18 @@ const setupFormByData = (data) => {
     ];
     detailForm.value.formSelectEl = [
       {
-        title: "周报类型",
-        key: "reportType",
+        title: "周期类型",
+        key: "scheduleType",
         element: "select",
         type: "default",
-        illustrate: "个人或团队周报",
-        icon: "User",
+        illustrate: "手动/周/月",
+        icon: "Clock",
         color: "#d47549",
         size: "18",
         options: [
-          { label: "个人", value: "personal" },
-          { label: "团队", value: "group" },
+          { label: "手动", value: "manual" },
+          { label: "周报", value: "weekly" },
+          { label: "月报", value: "monthly" },
         ],
         rules: [
           {
@@ -692,13 +699,41 @@ const setupFormByData = (data) => {
         ],
         fullWidth: false
       },
+      {
+        title: "周报类型",
+        key: "reportType",
+        element: "select",
+        type: "default",
+        illustrate: "个人周报/团队周报/项目周报",
+        icon: "Document",
+        color: "#d47549",
+        size: "18",
+        options: [
+          { label: "个人", value: "personal" },
+          { label: "团队", value: "group" },
+          { label: "项目", value: "project" }
+        ],
+        rules: [
+          {
+            required: true,
+            message: "该项不能为空",
+            trigger: "blur",
+          },
+        ],
+        fullWidth: false,
+        change: (val) => {
+          formData.value.reportType = val;
+
+          updateForm({reportType: val})
+        }
+      },
     ];
     // 清空模板相关字段
     detailForm.value.formSwitchEl = [];
     detailForm.value.formTextAreaEl = [{
       title: "周报内容",
-      key: "content",
-      element: "input",
+      key: "renderedContent",
+      element: "markdown",
       illustrate: "周报内容",
       icon: "ChatDotRound",
       color: "#d47549",
@@ -723,42 +758,43 @@ const setupFormByData = (data) => {
 };
 
 /**
- * 个人模板/团队模板
+ * 个人/团队/项目
  * @param val 选择的模板类型
  */
 const handleChangeGroup = (val) => {
   formData.value.groupId = val
 
-  console.log("change", val)
-  nextTick(() => {
-    if (ruleFormRef.value) {
-      ruleFormRef.value.updateFormData(formData.value);
-    }
-  });
+  updateForm({
+    groupId: val
+  })
 }
+
+/**
+ * 个人/团队/项目
+ * @param val 选择的模板类型
+ */
+const handleChangeProject = (val) => {
+  formData.value.projectId = val
+
+  updateForm({
+    projectId: val
+  })
+}
+
 
 /**
  * 选择通用模板--markdown
  */
-const templateId = ref(null)
 const handleTemplateSelect = (id) => {
-  formData.value.templateId = id;
-
-  nextTick(() => {
-    if (ruleFormRef.value) {
-      ruleFormRef.value.updateFormData(formData.value);
-    }
-  });
-
-  // const selectedTemplate = commonTemplates.find(t => t.id === id);
-  // if (selectedTemplate) {
-  //   formData.value.description = selectedTemplate.content;
-  //   nextTick(() => {
-  //     if (ruleFormRef.value) {
-  //       ruleFormRef.value.updateFormData(formData.value);
-  //     }
-  //   });
-  // }
+  if (formData.value.contentFormat === id) {
+    formData.value.contentFormat = ''
+  } else {
+    formData.value.contentFormat = id;
+  }
+  
+  updateForm({
+    contentFormat: formData.value.contentFormat
+  })
 };
 
 
@@ -795,6 +831,17 @@ const handleDeleteItem = (itemData) => {
   // 这里可以调用删除API，然后关闭窗口
   hideWin();
 };
+
+/**
+ * 更新某个值
+ */
+const updateForm = (params) => {
+  nextTick(() => {
+    if (ruleFormRef.value) {
+      ruleFormRef.value.updateInput(params);
+    }
+  });
+}
 </script>
 
 <style lang="less" scoped>
@@ -838,6 +885,7 @@ const handleDeleteItem = (itemData) => {
   flex-wrap: wrap;
   gap: 8px;
   // justify-content: space-between;
+  width: calc(25% - 4px);
   .template-card {
     display: flex;
     align-items: center;
@@ -848,7 +896,7 @@ const handleDeleteItem = (itemData) => {
     transition: all 0.2s ease;
     background-color: #fff;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    width: calc(25% - 4px);
+    
     &:hover {
       border-color: #d47549;
       background-color: #f8f9fa;

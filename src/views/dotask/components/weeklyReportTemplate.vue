@@ -48,13 +48,26 @@
               <span>{{ getLanguageLabel(template.language) }}</span>
             </div>
             <div class="info-row">
-              <span class="label">调度类型：</span>
+              <span class="label">周期类型：</span>
               <span>{{ getScheduleTypeLabel(template.scheduleType) }}</span>
             </div>
           </div>
+
+          <div class="footer-actions">
+            <el-tooltip content="根据该报告配置快速生成周报/月报" effect="dark">
+              <img src="/generate.png"
+                class="img-btn"
+                alt="生成周报"
+                style="width: 18px; height: 18px;"
+                @click.stop="handleGenerateReport(template)"
+              />
+            </el-tooltip>
+          </div>
           <div class="template-meta">
-            <span>创建时间：{{ formatDate(template.createTime) }}</span>
-            <span>更新时间：{{ formatDate(template.updateTime) }}</span>
+            <div class="footer-time">
+              <span>创建时间：{{ formatDate(template.createTime) }}</span>
+              <span>更新时间：{{ formatDate(template.updateTime) }}</span>
+            </div>
           </div>
         </div>
       </el-card>
@@ -63,10 +76,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, getCurrentInstance } from "vue";
 import EmptyState from "../../../public/components/EmptyState.vue";
-import { getReportConfigs, saveReportConfig } from "@/utils/reportManagement/index.js";
+import { getReportConfigs, saveReportConfig, createReportQuickly } from "@/utils/reportManagement/index.js";
 import { getGroupList } from "../../../utils/groupManagement";
+
+const { proxy } = getCurrentInstance()
 
 const emit = defineEmits(['item-click']);
 
@@ -110,9 +125,9 @@ const handleAddTemplate = () => {
 // 辅助函数：格式化显示标签
 const getReportTypeLabel = (type) => {
   const map = {
-    'weekly': '周报',
-    'monthly': '月报',
-    'quarterly': '季报'
+    'personal': '个人',
+    'group': '团队',
+    'project': '项目'
   };
   return map[type] || type || '-';
 };
@@ -160,6 +175,19 @@ const handleItemClick = (template) => {
   };
   emit('item-click', templateData);
 };
+
+/**
+ * 根据点击的周报配置，快速生成一个周报
+ * @param template 周报配置
+ */
+const handleGenerateReport = async (template) => {
+  const res = await createReportQuickly(template.id)
+  console.log("res", res)
+  if (res.code === 200) {
+    console.log("res", res)
+    proxy.$message.success(`生成报告: ${res.data.title} 成功!`)
+  }
+}
 
 const initData = async () => {
   loading.value = true;
@@ -276,11 +304,12 @@ onMounted(() => {
 
       .card-content {
         .template-info {
-          margin-bottom: 10px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
           
           .info-row {
             display: flex;
-            margin-bottom: 5px;
             font-size: 13px;
             
             .label {
@@ -292,13 +321,32 @@ onMounted(() => {
           }
         }
 
+        .footer-actions {
+            display: flex;
+            justify-content: flex-end;
+            padding: 2px;
+            .img-btn {
+              cursor: pointer;
+              padding: 5px;
+              background-color: #ebe7e1;
+              transition: all 0.3s ease;
+            }
+            .img-btn:hover {
+              background-color: #e0e0ff;
+              transform: scale(1.3) rotate(10deg);
+              filter: hue-rotate(45deg) brightness(1.2);
+            }
+          }
+
         .template-meta {
-          font-size: 12px;
-          color: #999;
-          display: flex;
-          justify-content: space-between;
-          border-top: 1px solid #f0f0f0;
           padding-top: 8px;
+          border-top: 1px solid #f0f0f0;
+          .footer-time {
+            font-size: 12px;
+            color: #999;
+            display: flex;
+            justify-content: space-between;
+          }
         }
       }
     }
