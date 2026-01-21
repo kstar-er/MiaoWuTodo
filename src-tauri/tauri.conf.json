@@ -65,7 +65,7 @@
     "macOS": {
       "exceptionDomain": "*",
       "entitlements": "entitlements.plist"
-    },
+    },  
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
