@@ -416,7 +416,7 @@
             />
           </div>
 
-          <div v-if="item.element === 'html'" class="html-editor">
+          <!-- <div v-if="item.element === 'html'" class="html-editor">
             <CodeEditor
               v-model="myformData[item.key]"
               :language="item.language || 'html'"
@@ -424,7 +424,7 @@
               :theme="item.theme || 'dark'"
               @input="item.onInput"
             />
-          </div>
+          </div> -->
         </el-form-item>
 
         <!-- 粘贴或点击（点击可同时选多张） 上传图片 -->
@@ -672,7 +672,7 @@ import { Edit, Plus, Delete, Picture, Check, Close, Document, ArrowLeft, ArrowRi
 import { getTaskLogs } from "../../../utils/taskManagement/index.js";
 import { uploadTaskImageToOSS } from "../../../utils/upload/secureOSSUpload.js";
 import RichTextEditor from './RichTextEditor.vue';
-import CodeEditor from './CodeEditor.vue';
+// import CodeEditor from './CodeEditor.vue';
 //import MilkdownEditor from './MilkdownEditor.vue';
 
 const { proxy } = getCurrentInstance();
