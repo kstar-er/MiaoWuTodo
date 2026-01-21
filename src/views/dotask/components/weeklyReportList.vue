@@ -70,7 +70,7 @@
                 <span class="report-title">{{ report.title }}</span>
                 
                  <div class="navigate">
-                  <el-tooltip content="查看报告具体数据" effect="dark">
+                  <el-tooltip content="查看具体报告" effect="dark">
                     <img src="/navigate.png"
                       class="img-btn"
                       alt="查看周报"
@@ -82,7 +82,22 @@
             </template>
 
             <div class="card-content">
-              <div class="report-summary" v-html="renderShortMarkdown(report.content)"></div>
+              <div class="template-info">
+                <div class="info-row">
+                  <span class="label">报告类型：</span>
+                  <el-tag :type="getReportTypeTagType(report.reportType)">{{ getReportTypeLabel(report.reportType) }}</el-tag>
+                </div>
+
+                <div class="info-row">
+                  <span class="label">{{ report.reportType === 'group' ? '团队' : (report.reportType === 'project' ? '项目' : '个人') }}：</span>
+                  <span>{{ report.reportType === 'group' ? report.groupName : (report.reportType === 'project' ? report.projectName : report.userName) }}</span>
+                </div>
+
+                <div class="info-row">
+                  <span class="label">周期类型：</span>
+                  <span>{{ getScheduleTypeLabel(report.scheduleType) }}</span>
+                </div>
+              </div>
             </div>
 
             <template #footer>
@@ -120,7 +135,6 @@ import { queryReports, groupReportsByEndDate } from "@/utils/reportManagement/in
 import { ArrowUpBold } from "@element-plus/icons-vue";
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { createWin } from "../../../multiwins/action";
-import { marked } from "marked";
 
 const { proxy } = getCurrentInstance();
 
@@ -233,21 +247,6 @@ const initData = async () => {
   }
 };
 
-/**
- * 使用 marked 轻量级渲染（关闭 HTML、脚本等安全选项）
- * @param text 报告的内容 
- */
-const renderShortMarkdown = (text) => {
-  if (!text) return '暂无内容';
-  const shortText = text.substring(0, 50);
-  return marked(shortText, {
-    breaks: true,
-    gfm: true,
-    sanitize: true,
-    smartLists: true,
-  });
-};
-
 // 跳转到 report.html 并传递 content 数据
 const viewHtmlReport = async (report) => {
   try {
@@ -319,6 +318,34 @@ const viewHtmlReport = async (report) => {
     console.error(err)
     proxy.$message.error('无法解析报告内容');
   }
+};
+
+// 辅助函数：格式化显示标签
+const getReportTypeLabel = (type) => {
+  const map = {
+    'personal': '个人',
+    'group': '团队',
+    'project': '项目'
+  };
+  return map[type] || type || '-';
+};
+
+const getReportTypeTagType = (type) => {
+  const tagMap = {
+    'personal': 'primary',     // 蓝色
+    'group': 'success',     // 绿色
+    'project': 'warning'    // 橙色
+  };
+  return tagMap[type] || 'info';
+};
+
+const getScheduleTypeLabel = (type) => {
+  const map = {
+    'manual': '手动',
+    'weekly': '每周',
+    'monthly': '每月'
+  };
+  return map[type] || type || '-';
 };
 
 defineExpose({ initData });
@@ -408,7 +435,7 @@ onMounted(() => {
     .report-card {
       --el-card-padding: 5px;
       margin-bottom: 10px;
-      cursor: pointer;
+      cursor: default;
       transition: all 0.3s ease;
 
       &:hover {
@@ -454,15 +481,22 @@ onMounted(() => {
       }
 
       .card-content {
-        .report-summary {
-          min-height: 40px;
-          font-size: 14px;
-          color: #333;
-          line-height: 1.5;
-          display: -webkit-box;
-          -webkit-line-clamp: 3;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
+        .template-info {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          
+          .info-row {
+            display: flex;
+            font-size: 13px;
+            
+            .label {
+              color: #8b4513;
+              font-weight: 500;
+              min-width: 70px;
+              text-align: right;
+            }
+          }
         }
       }
 
