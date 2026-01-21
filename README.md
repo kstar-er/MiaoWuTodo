@@ -43,3 +43,7 @@ npm run tauri build --no-log
   oss路径：https://guoqinghh5.oss-cn-shanghai.aliyuncs.com
 5.下载oss路径中的软件包，重新安装测试功能完整性
 5.修改更新日志，将更新内容以及部署路径更新上去。
+
+Mac签名命令：codesign  -s "Developer ID Application: kaixing zheng (VQ4L622F58)" MiaoWuTodo.app
+查看当前证书的哈希值：security find-identity -v -p codesigning
+验证证书信任链：security verify-cert -c  "Developer ID Application: kaixing zheng (VQ4L622F58)"

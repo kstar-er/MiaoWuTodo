@@ -417,12 +417,15 @@ export async function createPreviewImageWin(win) {
  */
 export async function createWinPetWin() {
   console.log("开始创建宠物窗口...");
+  const scale = (typeof window !== "undefined" && window.devicePixelRatio) ? window.devicePixelRatio : 1;
+  const widthScaled = Math.max(64, Math.round(64 * scale));
+  const heightScaled = Math.max(160, Math.round(160 * scale));
   await createWin({
     url: "index.html#/pet",
     label: "pet",
     title: "桌面宠物",
-    width: 32,
-    height: 160,
+    width: widthScaled,
+    height: heightScaled,
     resizable: false,
     center: false,
     visible: true,
