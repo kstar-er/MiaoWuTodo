@@ -36,6 +36,23 @@ export function saveReportConfig(configData) {
 }
 
 /**
+ * 获取周报模板列表
+ * @param {Object} params - 请求参数
+ * @returns {Promise} 返回操作结果
+ */
+export function getReportTemplate() {
+  return pbRequest.get('/eam/reports/template')
+}
+
+/**
+ * 手动快速生成周报
+ */
+export async function createReportQuickly(configId) {
+  const { data: { code, data, message } } = await pbRequest.post(`/eam/reportsConfig/config/${configId}`)
+  return code === 200 ? { code, data } : message
+}
+
+/**
  * 根据endDate对周报列表进行分组
  * @param {Array} reports - 周报列表
  * @returns {Object} 按endDate分组的对象，键为endDate，值为该endDate下的周报数组

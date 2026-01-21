@@ -533,6 +533,16 @@ const addOrEditTask = reactive({
       fullWidth: false,
       valueFormat: 'YYYY-MM-DD HH:mm:ss'
     },
+    {
+      title: "花费天数",
+      key: "spentDays",
+      element: "number",
+      illustrate: "任务花费天数（天）",
+      icon: "Timer",
+      color: "#d47549",
+      size: "18",
+      fullWidth: false
+    },
   ],
   formSelectEl: [
     {

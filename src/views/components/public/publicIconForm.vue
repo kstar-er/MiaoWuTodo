@@ -161,6 +161,8 @@
           />
         </el-form-item>
 
+        <slot name="selectAppend" />
+
         <el-form-item
           v-for="item in formTimeAndNumber"
           :key="item.key"
@@ -265,6 +267,8 @@
           />
         </el-form-item>
 
+        <slot name="timeAndNumberAppend" />
+
         <!-- 开关字段 -->
         <el-form-item
           v-for="item in formSwitchEl"
@@ -349,6 +353,78 @@
               </el-tooltip>
             </template>
           </el-input>
+
+          <div v-if="item.element === 'markdown'" class="markdown-preview" v-html="myformData[item.key]"></div>
+        </el-form-item>
+
+        <slot name="textAreaAppend" />
+
+        <el-form-item
+          v-for="item in formEditorEl"
+          :key="item.key"
+          :label="item.title"
+          :rules="item.rules"
+          :prop="item.key"
+          :class="{'full-width': item.fullWidth}"
+          class="form-item"
+        >
+          <template #label>
+            <el-popover
+              v-if="item.illustrate"
+              placement="top"
+              width="300"
+              :hide-after="0"
+            >
+              <template #reference>
+                <el-icon :style="`color: ${item.color ? item.color : 'orange'}`" :size="item.size ? item.size : ''">
+                  <component :is="item.icon ? item.icon : Warning" />
+                </el-icon>
+              </template>
+              <template #default>
+                {{ item.illustrate }}
+              </template>
+            </el-popover>
+            <div v-if="!item.icon">{{ item.title }}</div>
+          </template>
+          
+          <el-input
+            v-if="item.element === 'input'"
+            v-model="myformData[item.key]"
+            :type="item.type"
+            :placeholder="item.placeholder ? item.placeholder : `请输入${item.title}`"
+            :disabled="item.type === 'dialog' || item.disabled"
+            :autosize="{ minRows: item.minRows ? item.minRows : 3, maxRows: item.maxRows ? item.maxRows : 6 }"
+            clearable
+          >
+            <template v-if="item.type === 'dialog'" #append>
+              <el-tooltip content="点击编辑内容">
+                <el-button @click="emitOpenDialog(item.key)">
+                  <el-icon><Edit /></el-icon>
+                </el-button>
+              </el-tooltip>
+            </template>
+          </el-input>
+
+          <div v-if="item.element === 'richtext'" class="richtext-editor">
+            <RichTextEditor
+              v-model="myformData[item.key]"
+              :mode="item.element"
+              :placeholder="item.placeholder ? item.placeholder : `请输入${item.title}`"
+              :height="item.height || 400"
+              :config="item.config || {}"
+              @input="item.onInput"
+            />
+          </div>
+
+          <div v-if="item.element === 'html'" class="html-editor">
+            <CodeEditor
+              v-model="myformData[item.key]"
+              :language="item.language || 'html'"
+              :placeholder="item.placeholder ? item.placeholder : `请输入${item.title}`"
+              :theme="item.theme || 'dark'"
+              @input="item.onInput"
+            />
+          </div>
         </el-form-item>
 
         <!-- 粘贴或点击（点击可同时选多张） 上传图片 -->
@@ -490,7 +566,8 @@
     </div>
     <div class="footer-btn">
       <!-- 保存按钮 -->
-      <el-tooltip 
+      <el-tooltip
+        v-if="showSaveButton"
         content="保存" 
         placement="top" 
         :show-after="800"
@@ -533,7 +610,8 @@
       </el-tooltip>
 
       <!-- 日志按钮 -->
-      <el-tooltip 
+      <el-tooltip
+        v-if="showLogButton"
         content="查看日志" 
         placement="top" 
         :show-after="800"
@@ -593,6 +671,9 @@ import { ref, getCurrentInstance, onMounted, onUnmounted } from "vue";
 import { Edit, Plus, Delete, Picture, Check, Close, Document, ArrowLeft, ArrowRight, Warning } from "@element-plus/icons-vue";
 import { getTaskLogs } from "../../../utils/taskManagement/index.js";
 import { uploadTaskImageToOSS } from "../../../utils/upload/secureOSSUpload.js";
+import RichTextEditor from './RichTextEditor.vue';
+import CodeEditor from './CodeEditor.vue';
+//import MilkdownEditor from './MilkdownEditor.vue';
 
 const { proxy } = getCurrentInstance();
 
@@ -670,6 +751,14 @@ const _props = defineProps({
     },
   },
 
+  // 更多功能的编辑器
+  formEditorEl: {
+    type: Array,
+    default: () => {
+      return [];
+    },
+  },
+
   isLimits: {
     type: Boolean,
     default: false,
@@ -706,6 +795,18 @@ const _props = defineProps({
   drawerDirection: {
     type: String,
     default: 'rtl'
+  },
+
+  // 保存按钮
+  showSaveButton: {
+    type: Boolean,
+    default: true
+  },
+
+  // 日志按钮
+  showLogButton: {
+    type: Boolean,
+    default: true
   },
 });
 
@@ -1015,11 +1116,11 @@ const handleDateChange = (key, value, type) => {
     myformData.value[key] = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   }
 }
-
 </script>
 
 <style lang="less" scoped>
 @import "../../../assets/global.less";
+
 .form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -1310,5 +1411,46 @@ const handleDateChange = (key, value, type) => {
   .delete-btn {
     transition: all 0.2s ease;
   }
+}
+
+.html-editor {
+  width: 100%;
+}
+
+// markdown渲染区
+.markdown-preview {
+  border: 1px solid #e9e9e9;
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 4px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.4;
+  color: #333;
+}
+
+/* 标题样式 */
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3 {
+  color: #d47549;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+/* 列表样式 */
+.markdown-preview ul,
+.markdown-preview ol {
+  margin-left: 20px;
+  margin-bottom: 1em;
+}
+
+/* 代码块样式 */
+.markdown-preview pre {
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  padding: 10px;
+  overflow-x: auto;
+  font-family: 'Courier New', monospace;
+  margin: 1em 0;
 }
 </style>

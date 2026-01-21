@@ -16,7 +16,8 @@
     "apply_friend_group",
     "create_edit_group",
     "notificationPopup",
-    "group_member_detail"
+    "group_member_detail",
+    "report_preview"
   ],
   "permissions": [
     "core:default",
@@ -108,6 +109,8 @@
     "core:window:allow-unminimize",
     "fs:default",
     "dialog:default",
+    "opener:allow-open-url",
+    "opener:default",
     {
       "identifier": "fs:scope",
       "allow": [ { "path": "$APPDATA/*" },{ "path": "$DESKTOP/**" },{ "path": "$DOWNLOAD/**" }]

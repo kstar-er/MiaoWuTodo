@@ -1,0 +1,52 @@
+<!-- public/report.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>周报预览</title>
+  <link rel="icon" href="/icon.ico" />
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <iframe id="remoteFrame"></iframe>
+  <script>
+    // 从 URL 参数中获取 key 和 ossUrl
+    const urlParams = new URLSearchParams(window.location.search);
+    const key = urlParams.get('key');
+    const ossUrl = urlParams.get('ossUrl');
+
+    console.log(key, ossUrl)
+
+    const frame = document.getElementById('remoteFrame');
+
+    frame.onload = function () {
+        const data = localStorage.getItem(key);
+        if (data && frame.contentWindow) {
+        try {
+            frame.contentWindow.postMessage(JSON.parse(data), '*'); // 发送数据
+            localStorage.removeItem(key); // 一次性使用
+        } catch (e) {
+            console.error("发送消息失败", e);
+        }
+        }
+    };
+
+    if (ossUrl) {
+        frame.src = decodeURIComponent(ossUrl);
+    }
+  </script>
+</body>
+</html>

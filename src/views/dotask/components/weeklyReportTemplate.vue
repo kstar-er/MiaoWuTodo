@@ -1,74 +1,87 @@
 <template>
   <div class="weekly-report-template">
     <!-- 搜索和操作栏 -->
-    <div class="action-bar">
+    <div class="search-bar">
       <el-input
         v-model="searchQuery"
-        placeholder="搜索模板名称"
+        placeholder="搜索周报标题或内容"
         clearable
         @clear="onClearSearch"
         @keyup.enter="doSearch"
-        style="width: 200px; margin-right: 10px;"
       />
       <el-button type="primary" @click="doSearch">搜索</el-button>
-      <el-button type="success" @click="handleAddTemplate">新增模板</el-button>
+      <!-- <el-button type="success" @click="handleAddTemplate">新增模板</el-button> -->
     </div>
+    <el-divider class="content-divider" />
 
     <!-- 模板列表 -->
-    <div class="template-list scrollable-content">
-      <div v-if="templates.length === 0" class="empty-state">
-        <EmptyState text="暂无周报模板" />
-      </div>
-      <div v-else>
-        <el-card
-          v-for="template in templates"
-          :key="template.id"
-          class="template-card"
-          @click="handleItemClick(template)"
-        >
-          <template #header>
-            <div class="card-header">
-              <span class="template-name">{{ template.templateType || '未命名模板' }}</span>
-              <el-tag :type="template.enabled ? 'success' : 'info'" size="small">
-                {{ template.enabled ? '启用' : '禁用' }}
-              </el-tag>
+    <div v-if="templates.length === 0" class="empty-state">
+      <EmptyState text="暂无周报模板" />
+    </div>
+    <div class="template-list" v-else>
+      <el-card
+        v-for="template in templates"
+        :key="template.id"
+        class="template-card"
+        @click="handleItemClick(template)"
+      >
+        <template #header>
+          <div class="card-header">
+            <span class="template-name">{{ template.templateType || '未命名模板' }}</span>
+            <el-tag :type="template.enabled ? 'success' : 'info'" size="small">
+              {{ template.enabled ? '启用' : '禁用' }}
+            </el-tag>
+          </div>
+        </template>
+        <div class="card-content">
+          <div class="template-info">
+            <div class="info-row">
+              <span class="label">报告类型：</span>
+              <span>{{ getReportTypeLabel(template.reportType) }}</span>
             </div>
-          </template>
-          <div class="card-content">
-            <div class="template-info">
-              <div class="info-row">
-                <span class="label">报告类型：</span>
-                <span>{{ getReportTypeLabel(template.reportType) }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">模板格式：</span>
-                <span>{{ getTemplateFormatLabel(template.templateFormat) }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">语言：</span>
-                <span>{{ getLanguageLabel(template.language) }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">调度类型：</span>
-                <span>{{ getScheduleTypeLabel(template.scheduleType) }}</span>
-              </div>
+            <div class="info-row">
+              <span class="label">模板格式：</span>
+              <span>{{ getTemplateFormatLabel(template.templateFormat) }}</span>
             </div>
-            <div class="template-meta">
+            <div class="info-row">
+              <span class="label">语言：</span>
+              <span>{{ getLanguageLabel(template.language) }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">周期类型：</span>
+              <span>{{ getScheduleTypeLabel(template.scheduleType) }}</span>
+            </div>
+          </div>
+
+          <div class="footer-actions">
+            <el-tooltip content="根据该报告配置快速生成周报/月报" effect="dark">
+              <img src="/generate.png"
+                class="img-btn"
+                alt="生成周报"
+                style="width: 18px; height: 18px;"
+                @click.stop="handleGenerateReport(template)"
+              />
+            </el-tooltip>
+          </div>
+          <div class="template-meta">
+            <div class="footer-time">
               <span>创建时间：{{ formatDate(template.createTime) }}</span>
               <span>更新时间：{{ formatDate(template.updateTime) }}</span>
             </div>
           </div>
-        </el-card>
-      </div>
+        </div>
+      </el-card>
     </div>
   </div>
-
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, getCurrentInstance } from "vue";
 import EmptyState from "../../../public/components/EmptyState.vue";
-import { getReportConfigs, saveReportConfig } from "@/utils/reportManagement/index.js";
+import { getReportConfigs, saveReportConfig, createReportQuickly } from "@/utils/reportManagement/index.js";
+import { getGroupList } from "../../../utils/groupManagement";
+
+const { proxy } = getCurrentInstance()
 
 const emit = defineEmits(['item-click']);
 
@@ -112,9 +125,9 @@ const handleAddTemplate = () => {
 // 辅助函数：格式化显示标签
 const getReportTypeLabel = (type) => {
   const map = {
-    'weekly': '周报',
-    'monthly': '月报',
-    'quarterly': '季报'
+    'personal': '个人',
+    'group': '团队',
+    'project': '项目'
   };
   return map[type] || type || '-';
 };
@@ -163,6 +176,19 @@ const handleItemClick = (template) => {
   emit('item-click', templateData);
 };
 
+/**
+ * 根据点击的周报配置，快速生成一个周报
+ * @param template 周报配置
+ */
+const handleGenerateReport = async (template) => {
+  const res = await createReportQuickly(template.id)
+  console.log("res", res)
+  if (res.code === 200) {
+    console.log("res", res)
+    proxy.$message.success(`生成报告: ${res.data.title} 成功!`)
+  }
+}
+
 const initData = async () => {
   loading.value = true;
   try {
@@ -189,6 +215,27 @@ const initData = async () => {
   }
 };
 
+
+const groupList = ref([])
+const initGroupList = async () => {
+  const res = await getGroupList({pageNum: 1, pageSize: 999, groupName: ''})
+  if (res.code === 200) {
+    if (res.data.total > 0) {
+      groupList.value = res.data.records.map(item => {
+        return {
+          ...item,
+          value: item.id,
+          label: item.groupName
+        }
+      })
+    } else {
+      groupList.value = []
+    }
+  } else {
+    groupList.value = []
+  }
+}
+
 defineExpose({ initData });
 
 onMounted(() => {
@@ -198,18 +245,41 @@ onMounted(() => {
 
 <style lang="less" scoped>
 .weekly-report-template {
-  .action-bar {
+  .search-bar {
+    padding: 5px;
+    padding-bottom: 0px;
     display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
+    justify-content: center;
     align-items: center;
+    gap: 8px;
+    
+    .el-button {
+      position: relative;
+      
+      &.sort-active {
+        background-color: var(--el-color-primary);
+        color: white;
+        border-color: var(--el-color-primary);
+        
+        &:hover {
+          background-color: var(--el-color-primary-light-3);
+          border-color: var(--el-color-primary-light-3);
+        }
+      }
+    }
+  }
+
+  .empty-state {
+    height: calc(100vh - 178px);
   }
 
   .template-list {
-    max-height: calc(100vh - 200px);
+    height: calc(100vh - 194px);
     overflow-y: auto;
+    padding: 8px;
 
     .template-card {
+      --el-card-padding: 5px;
       margin-bottom: 10px;
       cursor: pointer;
       transition: all 0.3s ease;
@@ -223,6 +293,7 @@ onMounted(() => {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        padding: 5px 5px 0px 5px;
 
         .template-name {
           font-weight: bold;
@@ -233,28 +304,49 @@ onMounted(() => {
 
       .card-content {
         .template-info {
-          margin-bottom: 10px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
           
           .info-row {
             display: flex;
-            margin-bottom: 5px;
             font-size: 13px;
             
             .label {
               color: #8b4513;
               font-weight: 500;
               min-width: 70px;
+              text-align: right;
             }
           }
         }
 
+        .footer-actions {
+            display: flex;
+            justify-content: flex-end;
+            padding: 2px;
+            .img-btn {
+              cursor: pointer;
+              padding: 5px;
+              background-color: #ebe7e1;
+              transition: all 0.3s ease;
+            }
+            .img-btn:hover {
+              background-color: #e0e0ff;
+              transform: scale(1.3) rotate(10deg);
+              filter: hue-rotate(45deg) brightness(1.2);
+            }
+          }
+
         .template-meta {
-          font-size: 12px;
-          color: #999;
-          display: flex;
-          justify-content: space-between;
-          border-top: 1px solid #f0f0f0;
           padding-top: 8px;
+          border-top: 1px solid #f0f0f0;
+          .footer-time {
+            font-size: 12px;
+            color: #999;
+            display: flex;
+            justify-content: space-between;
+          }
         }
       }
     }

@@ -37,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch, onUnmounted } from "vue";
 import FloatIcon from "./components/dragFloatBtn.vue"; // 拖拽按钮
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalSize, LogicalPosition } from "@tauri-apps/api/window";
@@ -45,6 +45,8 @@ import loadingAnimation from "../components/public/loadingAnimation.vue";
 import WeeklyReportList from "./components/weeklyReportList.vue";
 import WeeklyReportTemplate from "./components/weeklyReportTemplate.vue";
 import WeeklyReportDetail from "./components/weeklyReportDetail.vue";
+import { getGroupList } from "@/utils/groupManagement/index.js";
+import { getProject } from "@/utils/taskManagement/index.js";
 
 const loading = ref(false);
 const activeTab = ref('reportList');
@@ -156,7 +158,11 @@ const restoreMainWindow = async () => {
 
 const openDetailDrawer = async (item) => {
   console.log('openDetailDrawer called with item:', item);
-  inlineDetailData.value = item;
+  inlineDetailData.value = {
+    ...item,
+    groupList: groupList.value,
+    projectList: projectList.value
+  }
   console.log('inlineDetailData.value set to:', inlineDetailData.value);
   await computeDrawerSide();
   await expandMainWindowForDrawer();
@@ -187,6 +193,14 @@ const handleInlineClose = async () => {
   }
 };
 
+// 监听detailDrawerVisible，如果是false，就恢复窗口
+watch(detailDrawerVisible, async (visible) => {
+  if (!visible) {
+    if (isClosing.value) return; // 已在 handleInlineClose 中处理
+    await restoreMainWindow();
+  }
+});
+
 const openTemplateDetail = (action, data, extra) => {
   // 构建新增模板的数据对象
   const newTemplate = {
@@ -194,7 +208,7 @@ const openTemplateDetail = (action, data, extra) => {
     type: 'template', // 标识为模板类型
     templateType: '',
     description: '',
-    reportType: 'weekly',
+    reportType: 'personal',
     templateFormat: 'markdown',
     contentFormat: 'detailed',
     language: 'zh-CN',
@@ -215,9 +229,57 @@ const openTemplateDetail = (action, data, extra) => {
   openDetailDrawer(newTemplate);
 };
 
+/**
+ * 获取团队列表
+ */
+const groupList = ref([])
+const initGroupList = async () => {
+  const res = await getGroupList({pageNum: 1, pageSize: 999, groupName: ''})
+  if (res.code === 200) {
+    if (res.data.total > 0) {
+      groupList.value = res.data.records.map(item => {
+        return {
+          ...item,
+          value: item.id,
+          label: item.groupName
+        }
+      })
+    } else {
+      groupList.value = []
+    }
+  } else {
+    groupList.value = []
+  }
+}
+
+/**
+ * 获取项目列表
+ */
+const projectList = ref([])
+const initProjectList = async () => {
+  const res = await getProject({pageNum: 1, pageSize: 999})
+  if (res.code === 200) {
+    if (res.total > 0) {
+      projectList.value = res.rows.map(item => {
+        return {
+          ...item,
+          value: item.id,
+          label: item.projectName
+        }
+      })
+    } else {
+      projectList.value = []
+    }
+  } else {
+    projectList.value = []
+  }
+}
+
 const initData = async () => {
   loading.value = true;
   // 初始化数据
+  initGroupList() // 获取群组列表
+  initProjectList() // 获取项目列表
   setTimeout(() => {
     loading.value = false;
   }, 500);
@@ -227,6 +289,16 @@ defineExpose({ initData });
 
 onMounted(() => {
   initData();
+});
+
+/**
+ * 组件卸载
+ * 如果是在打开内联详情窗口的情况下，切换主页面，则需恢复窗口
+ */
+onUnmounted(() => {
+  if (detailDrawerVisible.value) {
+    restoreMainWindow()
+  }
 });
 </script>
 
@@ -238,12 +310,13 @@ onMounted(() => {
   flex-direction: column;
   justify-content: flex-start;
   align-items: flex-start;
-  text-align: center;
+  // text-align: center;
 }
 
 .weekly-report-container {
   width: 100%;
   max-width: 360px;
+  text-align: center;
   flex: 0 0 auto;
 }
 
@@ -270,4 +343,25 @@ onMounted(() => {
 .inline-detail-panel.show { width: var(--drawer-size, 620px); transform: translateX(0); opacity: 1; visibility: visible; pointer-events: auto; }
 
 :root { --drawer-size: 620px; }
+
+:deep(.el-tabs__content) {
+  margin: 0px 3px !important;
+}
+
+:deep(.el-tabs__nav-scroll) {
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+:deep(.el-tabs__item) {
+  text-align: center !important;
+}
+
+:deep(.el-tabs__active-bar) {
+  background-color: #7c3c00 !important;
+}
+
+:deep(.el-tabs__header) {
+  margin: 0 0 2px 5px !important;
+}
 </style>

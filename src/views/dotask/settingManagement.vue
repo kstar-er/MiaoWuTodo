@@ -284,7 +284,7 @@ const router = useRouter();
 const userInfo = ref({});
 const initData = async () => {
   console.log("---加载数据---");
-  userInfo.value = JSON.parse(sessionStorage.getItem('userInfo')).user;
+  userInfo.value = JSON.parse(sessionStorage.getItem('userInfo'));
   if (localStorage.getItem("isShowToolTip")) {
     useToolTip.value = localStorage.getItem("isShowToolTip");
   }

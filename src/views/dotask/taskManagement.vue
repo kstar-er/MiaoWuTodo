@@ -1629,6 +1629,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  restoreMainWindow()
   unlistenFn?.();
   unlistenFn1?.();
   unlistenFn2?.();
@@ -1640,7 +1641,6 @@ onUnmounted(() => {
       container.removeEventListener("scroll", handleScroll);
     }
   });
-  restoreMainWindow()
 });
 
 /**
