@@ -7,7 +7,7 @@
       <!-- 标签页切换：周报查看和周报模板管理 -->
       <el-tabs v-model="activeTab" type="card" class="sticky-tabs" @tab-change="handleTabChange">
         <el-tab-pane label="周报查看" name="reportList">
-          <WeeklyReportList ref="reportListRef" @item-click="handleItemClick" />
+          <WeeklyReportList ref="reportListRef" />
         </el-tab-pane>
         <el-tab-pane label="周报模板管理" name="templateManagement">
           <WeeklyReportTemplate ref="templateRef" @item-click="handleItemClick" />
