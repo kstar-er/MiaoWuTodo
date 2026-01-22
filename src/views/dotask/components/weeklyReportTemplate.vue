@@ -37,19 +37,20 @@
           <div class="template-info">
             <div class="info-row">
               <span class="label">报告类型：</span>
-              <span>{{ getReportTypeLabel(template.reportType) }}</span>
+              <el-tag :type="getReportTypeTagType(template.reportType)">{{ getReportTypeLabel(template.reportType) }}</el-tag>
             </div>
             <div class="info-row">
               <span class="label">模板格式：</span>
               <span>{{ getTemplateFormatLabel(template.templateFormat) }}</span>
             </div>
             <div class="info-row">
-              <span class="label">语言：</span>
-              <span>{{ getLanguageLabel(template.language) }}</span>
-            </div>
-            <div class="info-row">
               <span class="label">周期类型：</span>
               <span>{{ getScheduleTypeLabel(template.scheduleType) }}</span>
+            </div>
+            <div class="info-row" v-if="template.scheduleType !== 'manual'">
+              <span class="label">生成日：</span>
+              <span v-if="template.scheduleType === 'monthly'">{{ getWeeklyLabel(template.generateDay) }}</span>
+              <span v-else>{{ template.generateDay }}号</span>
             </div>
           </div>
 
@@ -132,6 +133,16 @@ const getReportTypeLabel = (type) => {
   return map[type] || type || '-';
 };
 
+// 标签颜色
+const getReportTypeTagType = (type) => {
+  const tagMap = {
+    'personal': 'primary',     // 蓝色
+    'group': 'success',     // 绿色
+    'project': 'warning'    // 橙色
+  };
+  return tagMap[type] || 'info';
+};
+
 const getTemplateFormatLabel = (format) => {
   const map = {
     'markdown': 'Markdown',
@@ -157,6 +168,19 @@ const getScheduleTypeLabel = (type) => {
   };
   return map[type] || type || '-';
 };
+
+const getWeeklyLabel = (val) => {
+  const map = {
+    1: '周一',
+    2: '周二',
+    3: '周三',
+    4: '周四',
+    5: '周五',
+    6: '周六',
+    7: '周日'
+  };
+  return map[val] || val || '-';
+}
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-';

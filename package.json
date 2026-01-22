@@ -13,6 +13,7 @@
     "build-verbose": "SET RUST_BACKTRACE=1 && tauri build --debug --verbose"
   },
   "dependencies": {
+    "@codemirror/lang-html": "^6.4.11",
     "@element-plus/icons-vue": "^2.0.10",
     "@tauri-apps/api": "^2.9.1",
     "@tauri-apps/plugin-dialog": "^2.2.0",
@@ -22,6 +23,7 @@
     "ali-oss": "^6.23.0",
     "axios": "^1.7.9",
     "crypto-js": "^4.2.0",
+    "echarts": "^6.0.0",
     "element-plus": "^2.5.0",
     "marked": "^17.0.1",
     "nprogress": "^0.2.0",

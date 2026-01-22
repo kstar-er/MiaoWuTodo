@@ -96,6 +96,46 @@
           </el-form-item>
         </template>
 
+        <template #timeAndNumberAppend>
+          <div class="full-width">
+            <div class="switch-container">
+              <el-form-item
+                v-for="(item, index) in formSwitchEl"
+                :key="index"
+                :label="item.title"
+                :rules="item.rules"
+                :prop="item.key"
+                class="switch-item"
+              >
+                <template #label>
+                  <el-popover
+                    v-if="item.illustrate"
+                    placement="top"
+                    width="300"
+                    :hide-after="0"
+                  >
+                    <template #reference>
+                      <el-icon :style="`color: ${item.color ? item.color : 'orange'}`" :size="item.size ? item.size : ''">
+                        <component :is="item.icon ? item.icon : 'Warning'" />
+                      </el-icon>
+                    </template>
+                    <template #default>
+                      {{ item.illustrate }}
+                    </template>
+                  </el-popover>
+                  <div v-if="!item.icon">{{ item.title }}</div>
+                </template>
+                <el-switch
+                  v-model="formData[item.key]"
+                  :disabled="item.disabled"
+                  inline-prompt
+                  @change="item.change"
+                />
+              </el-form-item>
+            </div>
+          </div>
+        </template>
+
         <template #textAreaAppend v-if="formData.type === 'template'">
           <el-form-item
             label="可用模板"
@@ -388,6 +428,43 @@ const detailForm = ref({
   },
 });
 
+const formSwitchEl = [{
+  title: "包含指标",
+  key: "includeMetrics",
+  element: "switch",
+  illustrate: "是否包含数据指标",
+  color: "#d47549",
+  size: "18",
+  fullWidth: false
+},
+{
+  title: "包含建议",
+  key: "includeSuggestions",
+  element: "switch",
+  illustrate: "是否包含改进建议",
+  color: "#d47549",
+  size: "18",
+  fullWidth: false
+},
+{
+  title: "自动生成",
+  key: "autoGenerate",
+  element: "switch",
+  illustrate: "是否自动生成报告",
+  color: "#d47549",
+  size: "18",
+  fullWidth: false
+},
+{
+  title: "启用配置",
+  key: "enabled",
+  element: "switch",
+  illustrate: "是否启用当前配置",
+  color: "#d47549",
+  size: "18",
+  fullWidth: false
+}]
+
 // 根据数据类型设置表单字段
 const setupFormByData = (data) => {
   if (data.type === 'template') {
@@ -444,37 +521,6 @@ const setupFormByData = (data) => {
         // }
       },
       {
-        title: "语言",
-        key: "language",
-        element: "select",
-        type: "default",
-        illustrate: "选择语言",
-        icon: "ChatDotRound",
-        color: "#d47549",
-        size: "18",
-        options: [
-          { label: "中文", value: "zh-CN" },
-          { label: "英文", value: "en-US" },
-        ],
-        fullWidth: false
-      },
-      {
-        title: "详细程度",
-        key: "detailLevel",
-        element: "select",
-        type: "default",
-        illustrate: "选择详细程度",
-        icon: "List",
-        color: "#d47549",
-        size: "18",
-        options: [
-          { label: "简要", value: "brief" },
-          { label: "标准", value: "standard" },
-          { label: "详细", value: "detailed" },
-        ],
-        fullWidth: false
-      },
-      {
         title: "周期类型",
         key: "scheduleType",
         element: "select",
@@ -488,7 +534,61 @@ const setupFormByData = (data) => {
           { label: "周报", value: "weekly" },
           { label: "月报", value: "monthly" },
         ],
-        fullWidth: false
+        fullWidth: false,
+        change: (val) => {
+          formData.value.scheduleType = val;
+
+          // 生成日的下标
+          const index = detailForm.value.formSelectEl.findIndex(item => item.key === 'generateDay')
+
+          if (val === 'manual') {
+            formData.value.generateDay = null
+            formData.value.autoGenerateTime = null
+            detailForm.value.formTimeAndNumber = []
+            detailForm.value.formSelectEl.splice(index, 1)
+
+            updateForm({scheduleType: val, generateDay: null, autoGenerateTime: null})
+          } else if (val !== 'manual') {
+            
+            if (index === -1) {
+              detailForm.value.formSelectEl.push({
+                title: "生成日",
+                key: "generateDay",
+                element: "select",
+                options: [],
+                illustrate: "周/月生成日（1-31）",
+                icon: "Calendar",
+                color: "#d47549",
+                size: "18",
+                min: 1,
+                max: 31,
+                fullWidth: false
+              })
+            }
+
+            // 动态更新 generateDay 字段
+            updateGenerateDayField(val);
+
+            if (formData.value.id && detailForm.value.formTimeAndNumber.length === 0) {
+              detailForm.value.formTimeAndNumber.push(
+                {
+                  title: "自动生成时间",
+                  key: "autoGenerateTime",
+                  element: "time",
+                  illustrate: "自动生成时间",
+                  icon: "Clock",
+                  color: "#d47549",
+                  size: "18",
+                  fullWidth: false,
+                  format: 'HH:mm:ss'
+                }
+              )
+            }
+            formData.value.generateDay = null
+
+            updateForm({scheduleType: val, generateDay: null})
+          }
+        },
       },
       {
         title: "报告类型",
@@ -515,85 +615,15 @@ const setupFormByData = (data) => {
         change: (val) => {
           formData.value.reportType = val;
 
-          const index = detailForm.value.formTimeAndNumber.findIndex(item => item.key === 'autoGenerateTime')
-          if (index !== -1) {
-            if (val === 'personal') {
-              detailForm.value.formTimeAndNumber[index].fullWidth = true
-            } else {
-              detailForm.value.formTimeAndNumber[index].fullWidth = false
-            }
-          }
-
           updateForm({reportType: val})
         }
       }
     ];
 
-    detailForm.value.formTimeAndNumber = [
-      {
-        title: "生成日",
-        key: "generateDay",
-        element: "number",
-        illustrate: "周/月生成日（1-31）",
-        icon: "Calendar",
-        color: "#d47549",
-        size: "18",
-        min: 1,
-        max: 31,
-        fullWidth: false
-      },
-      {
-        title: "自动生成时间",
-        key: "autoGenerateTime",
-        element: "time",
-        illustrate: "自动生成时间",
-        icon: "Clock",
-        color: "#d47549",
-        size: "18",
-        fullWidth: true,
-        format: 'HH:mm:ss'
-      },
-    ];
+    detailForm.value.formTimeAndNumber = [];
 
     // 添加开关选项
-    detailForm.value.formSwitchEl = [
-      {
-        title: "包含指标",
-        key: "includeMetrics",
-        element: "switch",
-        illustrate: "是否包含数据指标",
-        color: "#d47549",
-        size: "18",
-        fullWidth: false
-      },
-      {
-        title: "包含建议",
-        key: "includeSuggestions",
-        element: "switch",
-        illustrate: "是否包含改进建议",
-        color: "#d47549",
-        size: "18",
-        fullWidth: false
-      },
-      {
-        title: "自动生成",
-        key: "autoGenerate",
-        element: "switch",
-        illustrate: "是否自动生成报告",
-        color: "#d47549",
-        size: "18",
-        fullWidth: false
-      },
-      {
-        title: "启用配置",
-        key: "enabled",
-        element: "switch",
-        illustrate: "是否启用当前配置",
-        color: "#d47549",
-        size: "18",
-        fullWidth: false
-      },
-    ];
+    detailForm.value.formSwitchEl = [];
 
     detailForm.value.formTextAreaEl = [];
 
@@ -622,19 +652,42 @@ const setupFormByData = (data) => {
 
     // 编辑模式
     if (data.id) {
-
-      // 如果是 团队/项目
-      // 配合fullWidth，让表单显示更合理
-      const index = detailForm.value.formTimeAndNumber.findIndex(item => item.key === 'autoGenerateTime')
-      if (index !== -1) {
-        if (data.reportType === 'personal') {
-          detailForm.value.formTimeAndNumber[index].fullWidth = true
-        } else {
-          detailForm.value.formTimeAndNumber[index].fullWidth = false
+      if (data.scheduleType === 'manual') {
+        detailForm.value.formTimeAndNumber = []
+      } else {
+        const index = detailForm.value.formSelectEl.findIndex(item => item.key === 'generateDay')
+        if (index === -1) {
+          detailForm.value.formSelectEl.push({
+            title: "生成日",
+            key: "generateDay",
+            element: "select",
+            options: [],
+            illustrate: "周/月生成日（1-31）",
+            icon: "Calendar",
+            color: "#d47549",
+            size: "18",
+            min: 1,
+            max: 31,
+            fullWidth: false
+          })
         }
+        // 自动生成时间--显示
+        detailForm.value.formTimeAndNumber.push({
+          title: "自动生成时间",
+          key: "autoGenerateTime",
+          element: "time",
+          illustrate: "自动生成时间",
+          icon: "Clock",
+          color: "#d47549",
+          size: "18",
+          fullWidth: false,
+          format: 'HH:mm:ss'
+        })
       }
-      
 
+      // 初始化 generateDay 字段
+      updateGenerateDayField(data.scheduleType);
+      
       // 回显周报模板格式
       // if (data.templateFormat === 'markdown') {
       //   detailForm.value.formEditorEl[0].element = 'markdown'
@@ -755,6 +808,38 @@ const setupFormByData = (data) => {
       ruleFormRef.value.updateFormData(formData.value);
     }
   });
+};
+
+// 新增：动态更新 generateDay 字段
+const updateGenerateDayField = (type) => {
+  // 从 formSelectEl 中获取item
+
+  if (type === "manual") return
+
+  const index = detailForm.value.formSelectEl.findIndex(item => item.key === 'generateDay')
+  if (index === -1) return
+
+  if (type === "weekly") {
+    detailForm.value.formSelectEl[index].options = [
+      { label: "周一", value: 1 },
+      { label: "周二", value: 2 },
+      { label: "周三", value: 3 },
+      { label: "周四", value: 4 },
+      { label: "周五", value: 5 },
+      { label: "周六", value: 6 },
+      { label: "周日", value: 7 }
+    ]
+  } else if (type === "monthly") {
+    let options = []
+    for (let i = 1; i <= 31; i++) {
+      options.push({
+        label: i + "号",
+        value: i,
+      });
+    }
+    // 月报：选择 1~31 号
+    detailForm.value.formSelectEl[index].options = options
+  }
 };
 
 /**
@@ -923,6 +1008,16 @@ const updateForm = (params) => {
 
 .full-width {
   grid-column: span 2;
+}
+
+.switch-container {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.switch-item {
+  flex: 1 1 calc(50% - 5px); /* 每行两个，自动适应宽度 */
+  min-width: 200px; /* 防止过窄 */
 }
 
 :deep(.w-e-full-screen-editor) {
