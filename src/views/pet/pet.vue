@@ -1,7 +1,7 @@
 <template>
   <!-- 包裹整个宠物内容的可拖拽区域 -->
   <div class="content-area" @contextmenu="showContextMenu">
-    <div class="pet-body" @mousedown="startDrag">
+    <div class="pet-body" ref="petBodyRef" @mousedown="startDrag">
       <img :src="defaultPetSrc" alt="宠物" id="pet" />
       <canvas id="canvas" style="display: none"></canvas>
       
@@ -23,6 +23,7 @@
          <!-- 右键菜单 -->
      <ContextMenu 
        :visible="contextMenuVisible"
+       :petElement="petBodyRef"
        @close="closeContextMenu"
      />
   </div>
@@ -58,6 +59,9 @@ var outTimeCount = 0;
 
 // 右键菜单状态
 const contextMenuVisible = ref(false);
+
+// 宠物元素引用
+const petBodyRef = ref(null);
 
 // 从缓存加载消息
 const loadMessagesFromCache = () => {

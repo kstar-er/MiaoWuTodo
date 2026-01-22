@@ -28,7 +28,6 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue';
-import { Monitor, Switch, Plus, FolderAdd } from '@element-plus/icons-vue';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { createMainWin, createTaskWin, createProjectWin, createPetManagementWin, createTeskWin } from '@/multiwins/action';
 
@@ -64,55 +63,61 @@ const menuStyle = computed(() => ({
   transform: 'translateX(-50%)'
 }));
 
-// 动态计算菜单位置
-const calculateMenuPosition = () => {
+// 方案3：直接基于宠物元素位置计算菜单位置
+const calculateMenuPositionFromPet = () => {
   try {
-    // 获取窗口尺寸
-    const windowHeight = window.innerHeight;
-    const windowWidth = window.innerWidth;
+    // 如果传入了宠物元素引用，使用精确位置
+    if (props.petElement) {
+      const petRect = props.petElement.getBoundingClientRect();
+      const menuOffset = 0; // 宠物底部上方20px
+      const menuBottom = window.innerHeight - petRect.bottom + menuOffset;
+      menuPosition.value = {
+        bottom: `${Math.max(0, menuBottom)}px`, // 最小距离底部10px
+        left: '50%'
+      };
+      
+      console.log('基于宠物元素位置计算:', {
+        petRect: {
+          bottom: petRect.bottom,
+          left: petRect.left,
+          right: petRect.right,
+          width: petRect.width,
+          height: petRect.height,
+          innerHeight:  window.innerHeight
+        },
+        menuBottom,
+        finalPosition: menuPosition.value
+      });
+      return;
+    }
     
-    // 获取设备像素比（处理缩放）
-    const devicePixelRatio = window.devicePixelRatio || 1;
-    
-    // 假设宠物在窗口中心，高度约为窗口的40%
-    const petHeight = windowHeight ;
-    const petCenterY = windowHeight / 2;
-    
-    // 菜单应该在宠物底部偏上一点的位置
-    const menuOffsetFromPetBottom = 1 / devicePixelRatio; // 根据缩放调整偏移
-    const menuBottomPosition = windowHeight - (petCenterY + petHeight / 2 - menuOffsetFromPetBottom);
-    
-    // 转换为百分比或像素值
-    const bottomPercent = (menuBottomPosition / windowHeight) * 100;
-    
-    menuPosition.value = {
-      bottom: `${Math.max(0, Math.min(95, bottomPercent))}%`, // 限制在5%-95%之间
-      left: '50%'
-    };
-    
-    console.log('菜单位置计算:', {
-      windowHeight,
-      devicePixelRatio,
-      bottomPercent: bottomPercent.toFixed(2),
-      finalBottom: menuPosition.value.bottom
-    });
+   
   } catch (error) {
     console.error('计算菜单位置失败:', error);
-    // 回退到默认位置
+    // 最终回退到固定位置
     menuPosition.value = { bottom: '25%', left: '50%' };
   }
 };
 
 // 监听窗口大小变化和缩放变化
 const handleResize = () => {
-  calculateMenuPosition();
+  calculateMenuPositionFromPet();
 };
 
 // 监听visible变化，重新计算位置
 watch(() => props.visible, (newVisible) => {
   if (newVisible) {
     nextTick(() => {
-      calculateMenuPosition();
+      calculateMenuPositionFromPet();
+    });
+  }
+});
+
+// 监听petElement变化，重新计算位置
+watch(() => props.petElement, () => {
+  if (props.visible) {
+    nextTick(() => {
+      calculateMenuPositionFromPet();
     });
   }
 });
@@ -203,7 +208,7 @@ onMounted(() => {
   window.addEventListener('resize', handleResize);
   
   // 初始计算位置
-  calculateMenuPosition();
+  calculateMenuPositionFromPet();
 });
 
 onUnmounted(() => {
