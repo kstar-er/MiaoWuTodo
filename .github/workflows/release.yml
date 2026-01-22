@@ -20,7 +20,7 @@ jobs:
       # 检查AppStore可达性
       - name: Check network connectivity to Apple
         run: |
-        curl -I https://appstoreconnect.apple.com
+          curl -I https://appstoreconnect.apple.com
 
       - name: Checkout code
         uses: actions/checkout@v4
