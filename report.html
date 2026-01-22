@@ -37,7 +37,7 @@
         if (data && frame.contentWindow) {
         try {
             frame.contentWindow.postMessage(JSON.parse(data), '*'); // 发送数据
-            // localStorage.removeItem(key); // 一次性使用
+            localStorage.removeItem(key); // 一次性使用
         } catch (e) {
             console.error("发送消息失败", e);
         }
