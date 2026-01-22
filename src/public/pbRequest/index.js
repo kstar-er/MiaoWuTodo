@@ -31,7 +31,7 @@ const getTime = () => {
  * 创建请求实例
  */
 // 环境兼容 vite
-const isPro = import.meta.env.VITE_API_ENV === 'pro';
+const isPro = import.meta.env.VITE_APP_ENV === 'pro';
 const baseURL = isPro ? 'https://www.baiaidu.com:9822' : 'http://192.168.1.10:9820';
 // const baseURL =  'https://www.baiaidu.com:9822' ;
 

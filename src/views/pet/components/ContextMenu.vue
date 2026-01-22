@@ -2,6 +2,7 @@
   <div 
     v-if="visible" 
     class="context-menu"
+    :style="menuStyle"
     @click.stop
   >
     <div class="menu-item" @click="handleTaskBar">
@@ -26,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue';
 import { Monitor, Switch, Plus, FolderAdd } from '@element-plus/icons-vue';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { createMainWin, createTaskWin, createProjectWin, createPetManagementWin, createTeskWin } from '@/multiwins/action';
@@ -43,11 +44,78 @@ const props = defineProps({
   position: {
     type: Object,
     default: () => ({ x: 0, y: 0 })
+  },
+  petElement: {
+    type: Object,
+    default: null
   }
 });
 
 // 定义emits
 const emit = defineEmits(['close']);
+
+// 菜单位置状态
+const menuPosition = ref({ bottom: '25%', left: '50%' });
+
+// 计算菜单样式
+const menuStyle = computed(() => ({
+  bottom: menuPosition.value.bottom,
+  left: menuPosition.value.left,
+  transform: 'translateX(-50%)'
+}));
+
+// 动态计算菜单位置
+const calculateMenuPosition = () => {
+  try {
+    // 获取窗口尺寸
+    const windowHeight = window.innerHeight;
+    const windowWidth = window.innerWidth;
+    
+    // 获取设备像素比（处理缩放）
+    const devicePixelRatio = window.devicePixelRatio || 1;
+    
+    // 假设宠物在窗口中心，高度约为窗口的40%
+    const petHeight = windowHeight ;
+    const petCenterY = windowHeight / 2;
+    
+    // 菜单应该在宠物底部偏上一点的位置
+    const menuOffsetFromPetBottom = 1 / devicePixelRatio; // 根据缩放调整偏移
+    const menuBottomPosition = windowHeight - (petCenterY + petHeight / 2 - menuOffsetFromPetBottom);
+    
+    // 转换为百分比或像素值
+    const bottomPercent = (menuBottomPosition / windowHeight) * 100;
+    
+    menuPosition.value = {
+      bottom: `${Math.max(0, Math.min(95, bottomPercent))}%`, // 限制在5%-95%之间
+      left: '50%'
+    };
+    
+    console.log('菜单位置计算:', {
+      windowHeight,
+      devicePixelRatio,
+      bottomPercent: bottomPercent.toFixed(2),
+      finalBottom: menuPosition.value.bottom
+    });
+  } catch (error) {
+    console.error('计算菜单位置失败:', error);
+    // 回退到默认位置
+    menuPosition.value = { bottom: '25%', left: '50%' };
+  }
+};
+
+// 监听窗口大小变化和缩放变化
+const handleResize = () => {
+  calculateMenuPosition();
+};
+
+// 监听visible变化，重新计算位置
+watch(() => props.visible, (newVisible) => {
+  if (newVisible) {
+    nextTick(() => {
+      calculateMenuPosition();
+    });
+  }
+});
 
 // 关闭菜单
 const closeMenu = () => {
@@ -132,20 +200,23 @@ const handleClickOutside = (event) => {
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
   document.addEventListener('contextmenu', handleClickOutside);
+  window.addEventListener('resize', handleResize);
+  
+  // 初始计算位置
+  calculateMenuPosition();
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
   document.removeEventListener('contextmenu', handleClickOutside);
+  window.removeEventListener('resize', handleResize);
 });
 </script>
 
 <style lang="less" scoped>
 .context-menu {
   position: fixed;
-  bottom: 5px; /* 固定在宠物脚部位置，缩小10倍 */
-  left: 50%;
-  transform: translateX(-50%); /* 水平居中 */
+  /* 位置通过 JavaScript 动态计算 */
   background: #ffffff;
   border: 0.5px solid #e4e7ed; /* 边框缩小10倍 */
   border-radius: 10px; /* 圆角缩小10倍 */
