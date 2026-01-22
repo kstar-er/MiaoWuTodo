@@ -2,7 +2,6 @@ import { createApp } from "vue";
 import router from './router'
 import './assets/global.less'; // 全局css
 import App from "./App.vue";
-import * as echarts from 'echarts';
 
 // 引入组件库
 import ElementPlus from 'element-plus'
@@ -25,9 +24,7 @@ app.use(router)
 .use(ElementPlus, {
   locale: zhCn,
 })
-.mount("#app").then(() => {
-  window.echarts = echarts;
-});
+.mount("#app");
 
 // window.onSecondInstance = () => {
 //   // 调用 Rust 命令显示主窗口
