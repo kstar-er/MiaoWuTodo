@@ -110,9 +110,6 @@
                     <div class="metric-desc">涉及项目数 <br><small>(主要项目：{{mainProject}})</small></div>
                 </div>
             </div>
-            <p><strong>✨ 核心进展：</strong> {{topAchievement}}</p>
-            <p><strong>⚠️ 关键风险：</strong> {{criticalRisk}}</p>
-            <p><strong>📊 环比数据：</strong> 完成任务环比{{completedWow}}，新增任务环比{{newTasksWow}}</p>
         </section>
 
         <section class="section">
@@ -177,25 +174,14 @@
             </div>
         </section>
 
+        <!-- 最后显示周报分析内容 -->
         <section class="section">
-            <h2>📅 下周核心计划</h2>
-            <div class="next-plan">
-                <p><strong>📊 统计周期：</strong>第{{reportWeek}}周，统计{{reportDays}}天</p>
-                <p><strong>🎯 下周目标：</strong>{{nextWeekPlan}}</p>
-                <p><strong>📈 预期指标：</strong>{{nextWeekTargets}}</p>
-                <p><strong>⚠️ 关注重点：</strong>{{nextWeekFocus}}</p>
-            </div>
+            <div id="ai-analysis-content"></div>
         </section>
-
-        <div class="ai-note">
-            <p>💡 此报告由 {{systemName}} 自动生成，统计周期：{{reportStartDate}} 至 {{reportEndDate}}。</p>
-            <p>🌐 数据来源：{{dataSources}}</p>
-            <p>📝 备注：{{reportNotes}}</p>
-
-        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.0/marked.min.js"></script>
 
     <script>
 
@@ -223,6 +209,12 @@
                 if (jsonData.teamPerformance) {
                     renderTeamPerformance(jsonData.teamPerformance);
                 }
+
+                // 渲染ai报告
+                if (event.data.aiContent) {
+                    renderAIContent(event.data.aiContent)
+                }
+                
                 
                 // 隐藏加载状态，显示报告内容
                 document.getElementById('loading').style.display = 'none';
@@ -591,6 +583,58 @@
 
             container.innerHTML = tableHtml;
             console.log('团队表现数据渲染完成');
+        }
+
+        // 渲染ai生成的markdown格式内容
+        let marked = window.marked;
+
+        if (typeof marked === 'object' && typeof marked.parse === 'function') {
+            marked = marked.parse;
+        }
+
+        function renderAIContent(content) {
+            const aiContentContainer = document.getElementById('ai-analysis-content');
+            if (aiContentContainer && content) {
+                try {
+                    // 使用 marked 将 Markdown 转为 HTML
+                    const htmlContent = marked(content, {
+                        breaks: true,    // 支持换行
+                        gfm: true        // 启用 GitHub Flavored Markdown
+                    });
+
+                    aiContentContainer.innerHTML = htmlContent;
+
+                    // 手动增强样式
+                    const h2s = aiContentContainer.querySelectorAll('h2');
+                    h2s.forEach(h => {
+                        h.style.marginTop = '20px';
+                        h.style.marginBottom = '15px';
+                        h.style.borderBottom = '1px dashed #ddd';
+                    });
+
+                    const ps = aiContentContainer.querySelectorAll('p');
+                    ps.forEach(p => {
+                        p.style.marginTop = '12px';
+                        p.style.marginBottom = '5px';
+                    });
+
+                    // 添加任务项样式
+                    const lis = aiContentContainer.querySelectorAll('li');
+                    lis.forEach(li => {
+                        if (li.parentElement.tagName === 'UL') {
+                            li.style.padding = '8px 12px';
+                            li.style.marginBottom = '5px';
+                            li.style.background = '#f9f9f9';
+                            li.style.borderRadius = '6px';
+                            li.style.borderLeft = '3px solid #3498db';
+                            li.style.marginLeft = '2em';
+                        }
+                    });
+                } catch (err) {
+                    console.error('Markdown 渲染失败:', err);
+                    aiContentContainer.innerHTML = '<p style="color:red;">❌ Markdown 解析错误，请检查内容格式。</p>';
+                }
+            }
         }
 
         // 页面加载完成后执行

@@ -250,6 +250,7 @@ const initData = async () => {
 // 跳转到 report.html 并传递 content 数据
 const viewHtmlReport = async (report) => {
   try {
+    console.log("report", report)
     // 1. 解析 dataJson
     let data = JSON.parse(report.dataJson)
 
@@ -269,6 +270,7 @@ const viewHtmlReport = async (report) => {
       reportEndDate: report.endDate,
       generationTime: report.generationTime,
       teamName: team,
+      aiContent: report.content,
       ...data
     }
 
