@@ -55,12 +55,13 @@
           </div>
 
           <div class="footer-actions">
-            <el-tooltip content="根据该报告配置快速生成周报/月报" effect="dark">
+            <el-tooltip :content="template.isGenerating ? '报告正在生成...请勿重复多次点击' : '根据该报告配置快速生成周报/月报'" effect="dark">
               <img src="/generate.png"
                 class="img-btn"
                 alt="生成周报"
                 style="width: 18px; height: 18px;"
-                @click.stop="handleGenerateReport(template)"
+                :class="{ 'is-disabled': template.isGenerating }"
+                @click.stop="!template.isGenerating && handleGenerateReport(template)"
               />
             </el-tooltip>
           </div>
@@ -202,16 +203,30 @@ const handleItemClick = (template) => {
 
 /**
  * 根据点击的周报配置，快速生成一个周报
+ * 涉及ai生成内容，禁止10s内重复点击
+ * 加入 防抖+10s冷却
  * @param template 周报配置
  */
 const handleGenerateReport = async (template) => {
-  const res = await createReportQuickly(template.id)
-  console.log("res", res)
-  if (res.code === 200) {
-    console.log("res", res)
-    proxy.$message.success(`生成报告: ${res.data.title} 成功!`)
+  // 设置当前模板的生成状态
+  template.isGenerating = true;
+
+  try {
+    const res = await createReportQuickly(template.id);
+    if (res.code === 200) {
+      proxy.$message.success(`生成报告: ${res.data.title} 成功!`);
+    } else {
+      proxy.$message.error('生成失败，请稍后重试');
+    }
+  } catch (error) {
+    proxy.$message.error('生成过程中发生错误');
+  } finally {
+    // 10秒后恢复该按钮的可点击状态
+    setTimeout(() => {
+      template.isGenerating = false;
+    }, 10000);
   }
-}
+};
 
 const initData = async () => {
   loading.value = true;
@@ -226,7 +241,10 @@ const initData = async () => {
           (config.reportType && config.reportType.includes(searchQuery.value))
         );
       }
-      templates.value = configs;
+      templates.value = configs.map(config => ({
+        ...config,
+        isGenerating: false // 显示添加响应式字段
+      }));
     } else {
       console.error('获取周报配置列表失败:', response.data.msg);
       templates.value = [];
@@ -354,11 +372,19 @@ onMounted(() => {
               padding: 5px;
               background-color: #ebe7e1;
               transition: all 0.3s ease;
+              &:hover:not(.is-disabled) {
+                background-color: #e0e0ff;
+                transform: scale(1.3) rotate(10deg);
+                filter: hue-rotate(45deg) brightness(1.2);
+              }
             }
-            .img-btn:hover {
-              background-color: #e0e0ff;
-              transform: scale(1.3) rotate(10deg);
-              filter: hue-rotate(45deg) brightness(1.2);
+
+            .img-btn.is-disabled {
+              cursor: not-allowed;
+              opacity: 0.6;
+              transform: scale(1) rotate(0deg);
+              filter: none;
+              background-color: #e0e0e0;
             }
           }
 
