@@ -21,6 +21,7 @@
     <div class="card-body">
       <div class="card-body-main" @click="handleClick">
         <div class="card-body-left-actions" v-if="task.parentId === 0">
+          <!-- 新增子任务按钮 -->
           <el-tooltip placement="top" :show-after="200" effect="dark">
             <template #content>新增子任务</template>
             <el-button
@@ -52,6 +53,8 @@
             <div v-if="hasMoreExecutors" class="more-executors">+{{ moreCount }}</div>
           </div>
         </div>
+
+        <!-- 任务内容 -->
         <div class="card-body-content-wrapper">
           <slot name="card-body-content">
             <el-tooltip
@@ -72,6 +75,7 @@
           </slot>
         </div>
         
+        <!-- 右边操作按钮：主任务-next，子任务-finish -->
         <div class="card-body-actions">
           <!-- 主任务点击next -->
           <div v-if="task.parentId === 0 && !task.isFinalSchedule">
@@ -521,12 +525,10 @@ const onConfirmAddSubtask = () => {
   .card-body {
     cursor: default;
     // max-height: 85px;
-    display: grid;
     padding: 0px 3px;
     .card-body-main {
       display: flex;
       flex-direction: row;
-      justify-content: space-between;
       align-items: center;
       gap: 8px;
       min-height: 34px;
@@ -619,7 +621,7 @@ const onConfirmAddSubtask = () => {
 
     .card-body-content-wrapper {
       flex: 0 0 200px;
-      margin-left: 20px;
+      margin-left: 28px;
       min-width: 0;
     }
     .card-body-content {
@@ -782,7 +784,7 @@ const onConfirmAddSubtask = () => {
 }
 .subtask-container {
   // margin-left: 2ch; /* 两字符缩进 */
-  flex: 1;
+  width: 90%;;
 }
 .subtask-container :deep(.task_card) {
   --el-card-padding: 4px;
