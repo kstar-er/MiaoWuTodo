@@ -36,7 +36,7 @@ export function loadImagesFromDirectory(directory) {
       const imageModules = import.meta.glob('/src/assets/**/*.{png,jpg,jpeg,gif,svg}', { eager: true });
       
       // 过滤指定目录下的图片
-      const directoryPath = `/src/assets/${directory}/`;
+      const directoryPath = `${directory}`;
       
       // 处理每个匹配的图片模块
       Object.entries(imageModules).forEach(([path, module]) => {
