@@ -314,7 +314,7 @@
                             let text = node.textContent;
                             // 替换所有 {{variable}} 格式的变量
                             text = text.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-                                return data[key] !== undefined ? data[key] : match;
+                                return data[key] !== undefined ? (data[key] === null ? '-' : data[key]) : '-';
                             });
                             node.textContent = text;
                         }
@@ -326,7 +326,7 @@
                     Array.from(element.attributes).forEach(attr => {
                         let value = attr.value;
                         value = value.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-                            return data[key] !== undefined ? data[key] : match;
+                            return data[key] !== undefined ? (data[key] === null ? '-' : data[key]) : '-';
                         });
                         attr.value = value;
                     });
