@@ -377,7 +377,7 @@ onMounted(() => {
   }
 
   .scrollable-content {
-    height: calc(100vh - 194px);
+    height: calc(100vh - 226px);
     overflow-y: auto;
     margin: 8px;
 
