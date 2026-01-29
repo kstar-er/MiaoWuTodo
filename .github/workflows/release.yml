@@ -16,12 +16,6 @@ jobs:
     runs-on: ${{ matrix.platform }} # 根据矩阵选择运行器
 
     steps:
-
-      # 检查AppStore可达性
-      - name: Check network connectivity to Apple
-        run: |
-        curl -I https://appstoreconnect.apple.com
-
       - name: Checkout code
         uses: actions/checkout@v4
       
