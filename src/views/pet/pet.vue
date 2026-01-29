@@ -851,7 +851,6 @@ const openOverdueInMain = async () => {
 
 .content-area {
   width: 100vw;
-  height: 100vh;
   user-select: none;
   /* 防止文本选中 */
   overflow: visible; /* 允许右键菜单显示 */
