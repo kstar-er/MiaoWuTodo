@@ -1,0 +1,656 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; margin: 0; padding: 0; }
+        body { background-color: #f5f7fa; color: #333; padding: 20px; line-height: 1.6; }
+        .report-container { max-width: 1000px; margin: 20px auto; background: white; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); padding: 30px; }
+        header { border-bottom: 2px solid #eaeaea; padding-bottom: 20px; margin-bottom: 25px; }
+        h1 { color: #2c3e50; }
+        .meta { color: #7f8c8d; margin-top: 8px; font-size: 0.95em; }
+        .period { background: #e8f4fc; padding: 3px 8px; border-radius: 4px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin: 25px 0; }
+        .metric-card { background: #f8fafc; border-left: 4px solid #3498db; padding: 15px; border-radius: 6px; }
+        .metric-card.critical { border-left-color: #e74c3c; }
+        .metric-value { font-size: 2em; font-weight: bold; color: #2c3e50; }
+        .metric-desc { font-size: 0.9em; color: #666; margin-top: 5px; }
+        .section { margin: 30px 0; }
+        h2 { color: #34495e; padding-bottom: 10px; border-bottom: 1px dashed #ddd; margin-bottom: 15px; }
+        .task-list { list-style: none; }
+        .task-item { padding: 12px 15px; background: #f9f9f9; margin-bottom: 10px; border-radius: 8px; border: 1px solid #eee; }
+        .status { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.85em; margin-right: 10px; }
+        .status-done { background: #d5edda; color: #155724; }
+        .status-doing { background: #fff3cd; color: #856404; }
+        .status-blocked { background: #f8d7da; color: #721c24; }
+        .risk-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .risk-table th, .risk-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        .risk-table tr:hover { background-color: #f5f5f5; }
+        .tag-high { background: #f8d7da; color: #721c24; padding: 2px 8px; border-radius: 10px; font-size: 0.85em; }
+        .next-plan { background: #e8f6f3; padding: 15px; border-radius: 8px; margin-top: 10px; }
+        .ai-note { background: #fef9e7; border-left: 4px solid #f1c40f; padding: 15px; margin-top: 25px; font-style: italic; border-radius: 0 8px 8px 0; }
+        .expand-detail { color: #3498db; cursor: pointer; font-size: 0.9em; text-decoration: underline; margin-top: 8px; display: inline-block; }
+        .detail-content { display: none; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; }
+        .control-buttons { text-align: right; margin-bottom: 20px; }
+        .control-buttons button { background: #3498db; color: white; border: none; padding: 8px 16px; margin-left: 10px; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
+        .control-buttons button:hover { background: #2980b9; }
+        .loading { text-align: center; padding: 50px; color: #7f8c8d; }
+        @media print { .control-buttons { display: none; } }
+        .team-table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .team-table th, .team-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+        .team-table th { background: #f8f9fa; font-weight: 600; color: #2c3e50; }
+        .team-table tr:hover { background-color: #f8f9fa; }
+        .team-table tr:last-child td { border-bottom: none; }
+        .completion-bar { width: 100px; height: 8px; background: #ecf0f1; border-radius: 4px; overflow: hidden; display: inline-block; margin-right: 8px; }
+        .completion-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+        .completion-excellent { background: #27ae60; }
+        .completion-good { background: #f39c12; }
+        .completion-poor { background: #e74c3c; }
+        .performance-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; font-weight: 500; }
+        .badge-excellent { background: #d5edda; color: #155724; }
+        .badge-good { background: #fff3cd; color: #856404; }
+        .badge-poor { background: #f8d7da; color: #721c24; }
+        .team-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0; }
+        .team-stat-card { background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #3498db; }
+        .team-stat-value { font-size: 1.5em; font-weight: bold; color: #2c3e50; }
+        .team-stat-desc { font-size: 0.9em; color: #666; margin-top: 5px; }
+        .project-item { background: #f9f9f9; padding: 15px; margin-bottom: 12px; border-radius: 8px; border-left: 4px solid #9b59b6; }
+        .project-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .project-name { font-weight: 600; font-size: 1.05em; color: #2c3e50; }
+        .project-stats { font-size: 0.9em; color: #7f8c8d; }
+        .project-progress { width: 100%; height: 10px; background: #ecf0f1; border-radius: 5px; overflow: hidden; margin-top: 8px; }
+        .project-progress-fill { height: 100%; background: linear-gradient(90deg, #9b59b6, #8e44ad); transition: width 0.3s ease; }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <h2>📊 正在加载周报数据...</h2>
+        <p>请稍候，正在从 report.json 读取数据</p>
+    </div>
+    
+    <div class="report-container" id="report-content" style="display: none;">
+        <div class="control-buttons">
+            <!-- <button onclick="refreshData()">🔄 刷新数据</button> -->
+            <button onclick="exportToPDF()">📄 导出PDF</button>
+        </div>
+        
+        <header>
+            <h1>🤖 {{title}}</h1>
+            <p class="meta">生成周期: <span class="period">{{reportStartDate}} 至 {{reportEndDate}}</span> | 生成时间: {{generationTime}} | 团队: {{teamName}}</p>
+        </header>
+
+        <section class="section">
+            <h2>📈 核心数据摘要</h2>
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <div class="metric-value">{{completionRate}}%</div>
+                    <div class="metric-desc">任务完成率 <br><small>({{completedTasks}}/{{totalTasks}}项)</small></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">{{newTasks}}</div>
+                    <div class="metric-desc">新增任务数</div>
+                </div>
+                <div class="metric-card critical">
+                    <div class="metric-value">{{overdueTask}}</div>
+                    <div class="metric-desc">超时任务数</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">{{inProgressTasks}}</div>
+                    <div class="metric-desc">进行中任务 <br><small>(平均进度{{avgProgress}}%)</small></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">{{highPriorityTasks}}</div>
+                    <div class="metric-desc">高优先级任务 <br><small>(完成率{{highPriorityCompletionRate}}%)</small></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">{{projectCount}}</div>
+                    <div class="metric-desc">涉及项目数 <br><small>(主要项目：{{mainProject}})</small></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>🗂️ 本周工作详情</h2>
+            <h3>📋 任务分类统计</h3>
+            <ul class="task-list">
+                <li class="task-item">
+                    <span class="status status-done">✅ 已完成</span>
+                    <strong>{{completedTasks}}个任务</strong> - 按时完成{{onTimeCompleted}}个，延期完成{{lateCompleted}}个
+                </li>
+                <li class="task-item">
+                    <span class="status status-doing">🔄 进行中</span>
+                    <strong>{{inProgressTasks}}个任务</strong> - 平均进度{{avgProgress}}%，预计完成天数{{avgCompletionDays}}天
+                </li>
+                <li class="task-item">
+                    <span class="status status-blocked">⚠️ 超时任务</span>
+                    <strong>{{overdueTask}}个任务</strong> - 即将超时{{soonOverdueTasks}}个
+                </li>
+            </ul>
+
+            <h3>📊 团队成员详细表现</h3>
+            <div id="team-performance-table">
+                <!-- 团队表现表格将通过JavaScript动态生成 -->
+            </div>
+        </section>
+
+        <section class="section">
+            <!-- <h2>⚠️ 风险与问题跟踪</h2>
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <div class="metric-value">{{pendingReview}}</div>
+                    <div class="metric-desc">待审核任务</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">{{approvedTasks}}</div>
+                    <div class="metric-desc">审核通过任务</div>
+                </div>
+                <div class="metric-card critical">
+                    <div class="metric-value">{{rejectedTasks}}</div>
+                    <div class="metric-desc">审核驳回任务</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">{{approvalRate}}%</div>
+                    <div class="metric-desc">审核通过率</div>
+                </div>
+            </div> -->
+            <h2>📊 任务统计数据</h2>
+
+            <h3>📅 每日任务统计</h3>
+            <div id="daily-trend-chart" style="width: 100%; height: 350px;"></div>
+            
+            <h3>🔍 子任务统计</h3>
+            <ul class="task-list">
+                <li class="task-item">
+                    <strong>父任务：</strong>{{parentTasks}}个，子任务：{{subTasks}}个，子任务完成率：{{subTaskCompletionRate}}%
+                </li>
+            </ul>
+
+            <h3>📦 项目任务分布</h3>
+            <div id="project-distribution">
+                <!-- 项目分布将通过JavaScript动态生成 -->
+            </div>
+        </section>
+
+        <!-- 最后显示周报分析内容 -->
+        <section class="section">
+            <div id="ai-analysis-content"></div>
+        </section>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.0/marked.min.js"></script>
+
+    <script>
+
+        window.addEventListener('message', function (event) {
+            try {
+
+                const jsonData = event.data;
+                if (!jsonData || !jsonData.title) return;
+
+                // 收到数据后隐藏 loading，渲染模板
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('report-content').style.display = 'block';
+
+                renderTemplate(jsonData);
+                if (jsonData.dailyTrends || jsonData.projectDistribution) {
+
+                    const chartData = {
+                        dailyTrends: jsonData.dailyTrends || [],
+                        projectDistribution: jsonData.projectDistribution || []
+                    }
+                    renderCharts(chartData);
+                }
+                
+                // 渲染团队表现
+                if (jsonData.teamPerformance) {
+                    renderTeamPerformance(jsonData.teamPerformance);
+                }
+
+                // 渲染ai报告
+                if (event.data.aiContent) {
+                    renderAIContent(event.data.aiContent)
+                }
+                
+                
+                // 隐藏加载状态，显示报告内容
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('report-content').style.display = 'block';
+
+            } catch (error) {
+                console.error('加载报告数据失败:', error);
+                document.getElementById('loading').innerHTML = '<div style="text-align:center;padding:50px;color:#e74c3c;"><h2>❌ 数据加载失败</h2><p>错误信息: ' + error.message + '</p><button onclick="loadReportData()" style="background:#e74c3c;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;">重新加载</button></div>';
+            }
+        });
+
+        // 切换详情显示
+        function toggleDetail(element) {
+            const detail = element.nextElementSibling;
+            const isHidden = detail.style.display === 'none' || detail.style.display === '';
+            detail.style.display = isHidden ? 'block' : 'none';
+            element.textContent = isHidden ? '收起详情' : '查看详情';
+        }
+
+        function getJsonFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const key = urlParams.get('key');
+            if (key) {
+                try {
+                const data = localStorage.getItem(key);
+                if (data) {
+                   localStorage.removeItem(key); // 用完即删
+                    return JSON.parse(data);
+                }
+                }  catch (e) {
+                console.error("读取本地存储失败:", e);
+                return null;
+                }
+            }
+            return null;
+        }
+
+
+        // 从JSON文件加载数据并渲染模板
+        async function loadReportData() {
+            try {
+                const jsonData = getJsonFromUrl();
+
+                if (!jsonData) {
+                    document.getElementById('loading').innerHTML = '<h2>❌ 未找到报告数据</h2>';
+                    return;
+                }
+
+                // 显示加载状态
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('report-content').style.display = 'none';
+                
+                const reportData = {...jsonData};
+                
+                // 渲染模板
+                renderTemplate(reportData);
+                
+                // 渲染图表数据
+                if (jsonData.dailyTrends || jsonData.projectDistribution) {
+
+                    const chartData = {
+                        dailyTrends: jsonData.dailyTrends || [],
+                        projectDistribution: jsonData.projectDistribution || []
+                    }
+                    console.log("准备渲染图表：", chartData)
+                    renderCharts(chartData);
+                }
+                
+                // 渲染团队表现
+                if (jsonData.teamPerformance) {
+                    renderTeamPerformance(jsonData.teamPerformance);
+                }
+                
+                // 隐藏加载状态，显示报告内容
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('report-content').style.display = 'block';
+                
+                console.log('周报数据加载成功:', reportData);
+                
+            } catch (error) {
+                console.error('加载报告数据失败:', error);
+                document.getElementById('loading').innerHTML = '<div style="text-align:center;padding:50px;color:#e74c3c;"><h2>❌ 数据加载失败</h2><p>错误信息: ' + error.message + '</p><button onclick="loadReportData()" style="background:#e74c3c;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;">重新加载</button></div>';
+            }
+        }
+
+        // 模板渲染函数
+        function renderTemplate(data) {
+            console.log('周报模板数据渲染:', data);
+            // 获取所有包含变量的元素
+            const elements = document.querySelectorAll('*');
+            
+            elements.forEach(element => {
+                // 处理文本内容中的变量
+                if (element.childNodes.length > 0) {
+                    element.childNodes.forEach(node => {
+                        if (node.nodeType === Node.TEXT_NODE) {
+                            let text = node.textContent;
+                            // 替换所有 {{variable}} 格式的变量
+                            text = text.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+                                return data[key] !== undefined ? data[key] : match;
+                            });
+                            node.textContent = text;
+                        }
+                    });
+                }
+                
+                // 处理属性中的变量（如title等）
+                if (element.attributes) {
+                    Array.from(element.attributes).forEach(attr => {
+                        let value = attr.value;
+                        value = value.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+                            return data[key] !== undefined ? data[key] : match;
+                        });
+                        attr.value = value;
+                    });
+                }
+            });
+        }
+
+        // 渲染图表数据（可选，如果需要图表展示）
+        function renderCharts(chartData) {
+            console.log('图表数据:', chartData);
+            
+            // 渲染项目分布
+            if (chartData.projectDistribution) {
+                renderProjectDistribution(chartData.projectDistribution);
+            }
+
+            // 渲染每日统计表格
+            if (chartData.dailyTrends) {
+                renderDailyTrends(chartData.dailyTrends);
+            }
+        }
+
+        // 渲染项目分布
+        function renderProjectDistribution(projectData) {
+            const container = document.getElementById('project-distribution');
+            if (!container || !projectData || projectData.length === 0) {
+                return;
+            }
+
+            let html = '';
+            projectData.forEach((project, index) => {
+                const completionRate = (project.completed / project.tasks * 100).toFixed(1);
+                const inProgress = project.tasks - project.completed;
+                
+                // 项目颜色
+                const colors = ['#9b59b6', '#3498db', '#e74c3c', '#f39c12', '#27ae60'];
+                const color = colors[index % colors.length];
+
+                html += `
+                    <div class="project-item" style="border-left-color: ${color};">
+                        <div class="project-header">
+                            <div class="project-name">📁 ${project.projectName}</div>
+                            <div class="project-stats">
+                                <span style="color: #27ae60; font-weight: 600;">✓ ${project.completed}</span> / 
+                                <span style="color: #7f8c8d;">${project.tasks} 任务</span> | 
+                                <span style="color: #f39c12;">进行中 ${inProgress}</span>
+                            </div>
+                        </div>
+                        <div class="project-progress">
+                            <div class="project-progress-fill" style="width: ${completionRate}%; background: ${color};"></div>
+                        </div>
+                        <div style="margin-top: 5px; font-size: 0.85em; color: #7f8c8d;">
+                            完成率: <strong style="color: ${color};">${completionRate}%</strong>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            console.log('项目分布渲染完成');
+        }
+
+        // 渲染每日统计
+        function renderDailyTrends(dailyTrends) {
+            console.log('每日数据统计：', dailyTrends)
+            if (!dailyTrends || dailyTrends.length === 0) {
+                console.log('暂无每日趋势数据');
+                document.getElementById('daily-trend-chart').innerHTML = '<p style="color:#999; text-align:center;">暂无每日趋势数据</p>';
+                return;
+            }
+
+           try {
+                const myChart = echarts.init(document.getElementById('daily-trend-chart'));
+                const dates = dailyTrends.map(d => d.date);
+                const completed = dailyTrends.map(d => d.completed || 0);
+                const newTasks = dailyTrends.map(d => d.newTasks || 0);
+                const overdue = dailyTrends.map(d => d.overdue || 0);
+
+                const option = {
+                    tooltip: { trigger: 'axis' },
+                    legend: { data: ['完成任务', '新增任务', '超时任务'] },
+                    grid: {
+                        left: '5%',
+                        right: '5%',
+                        bottom: '15%',
+                        containLabel: true
+                    },
+                    barGap: '2%',
+                    xAxis: {
+                        type: 'category',
+                        data: dates,
+                        axisLabel: {
+                            formatter: function(value) {
+                                return value.split('-').slice(1).join('-'); // 显示 01-11
+                            }
+                        }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: '数量',
+                        axisLabel: {
+                            formatter: '{value}'
+                        }
+                    },
+                    series: [
+                        {
+                            name: '完成任务',
+                            type: 'bar',
+                            data: completed,
+                            label: {
+                                show: true,           // 显示标签
+                                position: 'top',       // 标签位置：顶部
+                                formatter: '{c}'       // 显示数值
+                            },
+                            itemStyle: {
+                                color: '#27ae60'
+                            }
+                        },
+                        {
+                            name: '新增任务',
+                            type: 'bar',
+                            data: newTasks,
+                            label: {
+                                show: true,
+                                position: 'top',
+                                formatter: '{c}'
+                            },
+                            itemStyle: {
+                                color: '#3498db'
+                            }
+                        },
+                        {
+                            name: '超时任务',
+                            type: 'bar',
+                            data: overdue,
+                            label: {
+                                show: true,
+                                position: 'top',
+                                formatter: '{c}'
+                            },
+                            itemStyle: {
+                                color: '#e74c3c'
+                            }
+                        }
+                    ]
+                };
+
+                myChart.setOption(option);
+
+
+                console.log("mychart", myChart)
+            } catch (error) {
+                console.error('图表渲染失败:', error);
+                document.getElementById('daily-trend-chart').innerHTML = `<p style="color:red; text-align:center;">图表渲染失败: ${error.message}</p>`;
+            };
+        }
+
+        // 渲染团队表现数据
+        function renderTeamPerformance(teamData) {
+            const container = document.getElementById('team-performance-table');
+            if (!container || !teamData || teamData.length === 0) {
+                return;
+            }
+
+            // 计算团队统计数据
+            const totalTasks = teamData.reduce((sum, member) => sum + member.tasks, 0);
+            const totalCompleted = teamData.reduce((sum, member) => sum + member.completed, 0);
+            const avgCompletionRate = (totalCompleted / totalTasks * 100).toFixed(1);
+            const activeMembers = teamData.filter(m => m.tasks > 0).length;
+
+            // 创建团队统计卡片
+            const statsHtml = `
+                <div class="team-stats">
+                    <div class="team-stat-card">
+                        <div class="team-stat-value">${activeMembers}</div>
+                        <div class="team-stat-desc">活跃成员数</div>
+                    </div>
+                    <div class="team-stat-card">
+                        <div class="team-stat-value">${totalTasks}</div>
+                        <div class="team-stat-desc">团队总任务数</div>
+                    </div>
+                    <div class="team-stat-card">
+                        <div class="team-stat-value">${totalCompleted}</div>
+                        <div class="team-stat-desc">团队完成任务数</div>
+                    </div>
+                    <div class="team-stat-card">
+                        <div class="team-stat-value">${avgCompletionRate}%</div>
+                        <div class="team-stat-desc">团队平均完成率</div>
+                    </div>
+                </div>
+            `;
+
+            // 创建表格
+            let tableHtml = `
+                ${statsHtml}
+                <table class="team-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>成员姓名</th>
+                            <th>负责任务数</th>
+                            <th>已完成</th>
+                            <th>进行中</th>
+                            <th>完成率</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            // 按完成率排序
+            const sortedTeam = [...teamData].sort((a, b) => b.completionRate - a.completionRate);
+
+            sortedTeam.forEach((member, index) => {
+                const inProgress = member.tasks - member.completed;
+                const completionRate = member.completionRate;
+                
+                // 确定完成率颜色
+                let fillClass = 'completion-poor';
+                
+                if (completionRate >= 80) {
+                    fillClass = 'completion-excellent';
+                } else if (completionRate >= 60) {
+                    fillClass = 'completion-good';
+                }
+
+                // 添加排名图标
+                let rankIcon = '';
+                if (index === 0) rankIcon = '🥇';
+                else if (index === 1) rankIcon = '🥈';
+                else if (index === 2) rankIcon = '🥉';
+                else rankIcon = `${index + 1}`;
+
+                tableHtml += `
+                    <tr>
+                        <td style="font-weight: bold; font-size: 1.1em;">${rankIcon}</td>
+                        <td><strong>${member.name}</strong></td>
+                        <td>${member.tasks}</td>
+                        <td style="color: #27ae60; font-weight: 600;">${member.completed}</td>
+                        <td style="color: #f39c12;">${inProgress}</td>
+                        <td>
+                            <div class="completion-bar">
+                                <div class="completion-fill ${fillClass}" style="width: ${completionRate}%"></div>
+                            </div>
+                            <span style="font-weight: 600;">${completionRate.toFixed(1)}%</span>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += `
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = tableHtml;
+            console.log('团队表现数据渲染完成');
+        }
+
+        // 渲染ai生成的markdown格式内容
+        let marked = window.marked;
+
+        if (typeof marked === 'object' && typeof marked.parse === 'function') {
+            marked = marked.parse;
+        }
+
+        function renderAIContent(content) {
+            const aiContentContainer = document.getElementById('ai-analysis-content');
+            if (aiContentContainer && content) {
+                try {
+                    // 使用 marked 将 Markdown 转为 HTML
+                    const htmlContent = marked(content, {
+                        breaks: true,    // 支持换行
+                        gfm: true        // 启用 GitHub Flavored Markdown
+                    });
+
+                    aiContentContainer.innerHTML = htmlContent;
+
+                    // 手动增强样式
+                    const h2s = aiContentContainer.querySelectorAll('h2');
+                    h2s.forEach(h => {
+                        h.style.marginTop = '20px';
+                        h.style.marginBottom = '15px';
+                        h.style.borderBottom = '1px dashed #ddd';
+                    });
+
+                    const ps = aiContentContainer.querySelectorAll('p');
+                    ps.forEach(p => {
+                        p.style.marginTop = '12px';
+                        p.style.marginBottom = '5px';
+                    });
+
+                    // 添加任务项样式
+                    const lis = aiContentContainer.querySelectorAll('li');
+                    lis.forEach(li => {
+                        if (li.parentElement.tagName === 'UL') {
+                            li.style.padding = '8px 12px';
+                            li.style.marginBottom = '5px';
+                            li.style.background = '#f9f9f9';
+                            li.style.borderRadius = '6px';
+                            li.style.borderLeft = '3px solid #3498db';
+                            li.style.marginLeft = '2em';
+                        }
+                    });
+                } catch (err) {
+                    console.error('Markdown 渲染失败:', err);
+                    aiContentContainer.innerHTML = '<p style="color:red;">❌ Markdown 解析错误，请检查内容格式。</p>';
+                }
+            }
+        }
+
+        // 页面加载完成后执行
+        // document.addEventListener('DOMContentLoaded', function() {
+        //     loadReportData();
+        // });
+
+        // 导出PDF功能
+        function exportToPDF() {
+            window.print();
+        }
+
+        // 刷新数据功能
+        // function refreshData() {
+        //     loadReportData();
+        // }
+    </script>
+</body>
+</html>

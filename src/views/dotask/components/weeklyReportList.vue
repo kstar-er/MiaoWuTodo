@@ -250,6 +250,7 @@ const initData = async () => {
 // 跳转到 report.html 并传递 content 数据
 const viewHtmlReport = async (report) => {
   try {
+    console.log("report", report)
     // 1. 解析 dataJson
     let data = JSON.parse(report.dataJson)
 
@@ -269,8 +270,11 @@ const viewHtmlReport = async (report) => {
       reportEndDate: report.endDate,
       generationTime: report.generationTime,
       teamName: team,
+      aiContent: report.content,
       ...data
     }
+
+    console.log("parse", parseData)
 
     // 3. 避免url过长，存入本地存储
     const jsonContent = JSON.stringify(parseData)
@@ -288,32 +292,11 @@ const viewHtmlReport = async (report) => {
     const ossHost = 'https://baiaidu.com';
     const fullUrl = `${ossHost}/${templatePath}`;
 
-    // 方式一：新标签页打开
-    // const url = `/report.html?key=${key}`;
+    // 本地测试模板
+    // const fullUrl = '/公共模板1.html'
+
+    // 新标签页打开
     window.open(`/report.html?ossUrl=${encodeURIComponent(fullUrl)}&key=${key}`, '_blank');
-
-    // 方式二: 用tauri的插件打开
-    // await openUrl(`/report.html?ossUrl=${encodeURIComponent(fullUrl)}&key=${key}`);
-
-    // 方式三: 用窗口打开--缺点: 这个只能打开一个周报窗口
-    // const winLabel = 'report_preview';
-
-    //  try {
-    //   await closeWindow(winLabel);
-    // } catch (e) {}
-
-    // await createWin({
-    //   label: winLabel, // 动态标签避免重复
-    //   title: '周报预览',
-    //   url: `/report.html?ossUrl=${encodeURIComponent(fullUrl)}&key=${key}`,
-    //   width: 900,
-    //   height: 700,
-    //   resizable: true,
-    //   center: true,
-    //   decorations: true, // 显示标题栏以便关闭
-    //   theme: 'Light',
-    //   visible: true
-    // });
   } catch (err) {
     console.error(err)
     proxy.$message.error('无法解析报告内容');
