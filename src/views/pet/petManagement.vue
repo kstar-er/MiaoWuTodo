@@ -43,9 +43,11 @@ onMounted(async () => {
 });
 async function loadPets() {
   try {
-    // 从assets/media目录预加载所有宠物图片
-
-    const petImagesObj = await preloadImagesFromDirectory('media');
+    // // 从assets/media目录预加载所有宠物图片
+    // const petImagesObj = await preloadImagesFromDirectory('media');
+    
+    // 从src/assets/media目录预加载所有宠物图片
+    const petImagesObj = await preloadImagesFromDirectory('/src/assets/media');
 
     // 转换预加载的图片对象为宠物数据数组
     pets.value = await Promise.all(Object.entries(petImagesObj).map(async ([fileName]) => {

@@ -133,8 +133,7 @@ import { ref, onMounted, computed, watch, getCurrentInstance } from "vue";
 import EmptyState from "@/public/components/EmptyState.vue";
 import { queryReports, groupReportsByEndDate } from "@/utils/reportManagement/index.js";
 import { ArrowUpBold } from "@element-plus/icons-vue";
-import { openUrl } from '@tauri-apps/plugin-opener';
-import { createWin } from "../../../multiwins/action";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 const { proxy } = getCurrentInstance();
 
@@ -247,7 +246,12 @@ const initData = async () => {
   }
 };
 
-// 跳转到 report.html 并传递 content 数据
+/**
+ * 跳转到 report.html 并传递 content 数据
+ * 直接用 window.open 在正式环境中，直接打开tauri内置标签页会造成无法获取外部链接（如oss）问题
+ * 改成 创建临时窗口 显示数据
+ * @param report 周报数据
+ */
 const viewHtmlReport = async (report) => {
   try {
     console.log("report", report)
@@ -292,11 +296,28 @@ const viewHtmlReport = async (report) => {
     const ossHost = 'https://baiaidu.com';
     const fullUrl = `${ossHost}/${templatePath}`;
 
+    // 新标签页打开
+    // window.open(`/report.html?ossUrl=${encodeURIComponent(fullUrl)}&key=${key}`, '_blank')
+
+    // 创建新窗口打开
+    const webview = new WebviewWindow(`report-${Date.now()}`, {
+      title: '周报详情',
+      url: `/report.html?ossUrl=${encodeURIComponent(fullUrl)}&key=${key}`,
+      width: 1000,
+      height: 800
+    });
+
+    webview.once("tauri://created", async () => {
+      await newWindow.show(); // 显示窗口
+    });
+
+    webview.once("tauri://error", (e) => {
+      console.error("创建任务窗口时出错:", e);
+    });
+
     // 本地测试模板
     // const fullUrl = '/公共模板1.html'
-
-    // 新标签页打开
-    window.open(`/report.html?ossUrl=${encodeURIComponent(fullUrl)}&key=${key}`, '_blank');
+    // window.open(`/report.html?ossUrl=${encodeURIComponent(fullUrl)}&key=${key}`, '_blank');    
   } catch (err) {
     console.error(err)
     proxy.$message.error('无法解析报告内容');
