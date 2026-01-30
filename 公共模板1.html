@@ -630,6 +630,11 @@
                             li.style.marginLeft = '2em';
                         }
                     });
+
+                    const ols = aiContentContainer.querySelectorAll('ol');
+                    ols.forEach(ol => {
+                        ol.style.marginLeft = '1em';
+                    });
                 } catch (err) {
                     console.error('Markdown 渲染失败:', err);
                     aiContentContainer.innerHTML = '<p style="color:red;">❌ Markdown 解析错误，请检查内容格式。</p>';

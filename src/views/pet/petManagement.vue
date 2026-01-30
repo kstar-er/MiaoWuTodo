@@ -26,24 +26,55 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { readDir, copyFile, exists, create, BaseDirectory } from '@tauri-apps/plugin-fs';
 import { open } from '@tauri-apps/plugin-dialog';
 import { ElMessage } from 'element-plus';
+import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow, getAllWindows } from '@tauri-apps/api/window';
 import { join, basename } from '@tauri-apps/api/path';
 import { preloadImagesFromDirectory, loadConfigFile } from '../../utils/imageLoader';
 import { createWinPetWin } from "../../multiwins/action"
 
-var pets = ref([]);
-// 初始化时加载宠物列表
-onMounted(async () => {
-  await loadPets();
+const tauriWindow = getCurrentWindow('pet_management');
+onMounted( async() => {
+  console.log("宠物管理窗口已挂载完毕");
+  await tauriWindow.emit("window-ready");
+  console.log("宠物管理窗口 window-ready 事件已发送");
+})
 
+var pets = ref([]);
+let unlistenFn;
+onMounted(async () => {
+  const token = sessionStorage.getItem("token")
+  console.log(token)
+  // 监听来自登录窗口的登录信息
+  if (!token) {
+    try {
+      unlistenFn = await listen("login-info", async (event) => {
+        console.log("宠物管理窗口接收到登录信息:", event.payload);
+        const { token, userInfo } = event.payload;
+        // 存储登录信息到本地
+        sessionStorage.setItem("token", token);
+        sessionStorage.setItem("userInfo", JSON.stringify(userInfo));
+        console.log("宠物管理窗口登录信息已保存");
+      });
+    } catch (error) {
+      console.error("事件监听设置失败:", error);
+    }
+  } else {
+    console.log("已有登录信息");
+  }
 });
+
+onMounted(async() => {
+  // 初始化时加载宠物列表
+  await loadPets();
+})
+
 async function loadPets() {
   try {
-    // // 从assets/media目录预加载所有宠物图片
+    // 从assets/media目录预加载所有宠物图片
     // const petImagesObj = await preloadImagesFromDirectory('media');
     
     // 从src/assets/media目录预加载所有宠物图片
@@ -213,6 +244,10 @@ function loadPetFrame(image, config) {
   updateFrameLoop(); // 初始调用一次
   setInterval(updateFrameLoop, 200); // 每100毫秒更新一次帧
 }
+
+onUnmounted(() => {
+  unlistenFn?.();
+});
 </script>
 
 

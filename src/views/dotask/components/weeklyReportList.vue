@@ -296,23 +296,12 @@ const viewHtmlReport = async (report) => {
     const ossHost = 'https://baiaidu.com';
     const fullUrl = `${ossHost}/${templatePath}`;
 
-    // 新标签页打开
-    // window.open(`/report.html?ossUrl=${encodeURIComponent(fullUrl)}&key=${key}`, '_blank')
-
     // 创建新窗口打开
-    const webview = new WebviewWindow(`report-${Date.now()}`, {
+    new WebviewWindow(`report-${Date.now()}`, {
       title: '周报详情',
       url: `/report.html?ossUrl=${encodeURIComponent(fullUrl)}&key=${key}`,
       width: 1000,
       height: 800
-    });
-
-    webview.once("tauri://created", async () => {
-      await newWindow.show(); // 显示窗口
-    });
-
-    webview.once("tauri://error", (e) => {
-      console.error("创建任务窗口时出错:", e);
     });
 
     // 本地测试模板

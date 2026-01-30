@@ -400,17 +400,17 @@ const confirmSelection = async () => {
 const isExpanded = ref(true);
 
 const toggleContent = async () => {
-  const window = await getCurrentWindow();
+  const scale = (typeof window !== "undefined" && window.devicePixelRatio) ? window.devicePixelRatio : 1;
 
   if (isExpanded.value) {
     // 收起动画：先改变状态，等待动画完成后调整窗口大小
     isExpanded.value = false;
     setTimeout(async () => {
-      await window.setSize(new PhysicalSize(300, 80));
+      await minitask_win.setSize(new PhysicalSize(300 * scale, 80 * scale));
     }, 300);
   } else {
     // 展开动画：先调整窗口大小，等待调整完成后改变状态
-    await window.setSize(new PhysicalSize(300, 280));
+    await minitask_win.setSize(new PhysicalSize(300 * scale, 280 * scale));
     setTimeout(() => {
       isExpanded.value = true;
     }, 50);
