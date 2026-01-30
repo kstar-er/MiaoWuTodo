@@ -171,6 +171,12 @@ const handleCreateTask = async () => {
       await createTaskWin('pet');
       console.log("传输的数据:", formData);
     } else {
+      const formData = {
+        isCanSelectProject: true,
+        nickName: "",
+      }
+      sessionStorage.setItem("formdata", JSON.stringify(formData));
+
       // 如果没有缓存数据，直接创建任务窗口
       await createTaskWin('pet');
     }

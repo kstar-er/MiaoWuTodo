@@ -333,7 +333,7 @@ const initDataSource = async (event) => {
   formData.value.remark = formdata.remark || '';
 
   //上传图片模块
-  formData.value.caption = formdata.caption ? formdata.caption.split(';').map(url => `https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/images/task/${url}`) : []
+  formData.value.caption = formdata.caption ? formdata.caption?.split(';').map(url => `https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/images/task/${url}`) : []
 
   if (!formdata.id) { // 新增
     // 截止时间默认选择
