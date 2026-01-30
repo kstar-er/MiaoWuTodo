@@ -422,8 +422,8 @@ const closeWindow = async () => {
 };
 
 onMounted(async () => {
-  const window = await getCurrentWindow();
-  await window.setSize(new PhysicalSize(300, 280));
+  const scale = (typeof window !== "undefined" && window.devicePixelRatio) ? window.devicePixelRatio : 1;
+  await minitask_win.setSize(new PhysicalSize(300 * scale, 280 * scale));
 });
 
 /**

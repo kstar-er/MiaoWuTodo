@@ -443,14 +443,19 @@ export async function createWinPetWin() {
 
 /**
  * @desc 任务管理小窗口
+ * 窗口高度与宽度 由于电脑的DPR不同 需将设计尺寸乘以 DPR 得到真实物理像素
  */
 export async function createTeskWin() {
+  const scale = (typeof window !== "undefined" && window.devicePixelRatio) ? window.devicePixelRatio : 1;
+  const width = 300 * scale;
+  const height = 220 * scale;
+
   await createWin({
     label: "mini_task",
     url: "index.html#/miniTask",
     title: "任务管理小窗口",
-    width: 300,
-    height: 220,
+    width,
+    height,
     resizable: false,
     center: true,
     visible: false,
@@ -464,36 +469,37 @@ export async function createTeskWin() {
     theme: 'Dark'
   });
 }
+
 export async function createNotificationWin() {
-    // 获取宠物窗口
-   
-      // 获取宠物窗口的位置,从localstorage中获取
-      const notificationWidth = 300;
-      const notificationHeight = 150;
-      let x = JSON.parse(localStorage.getItem('window_position_pet')).x || 1900 - 300 - 20;
-      let y = JSON.parse(localStorage.getItem('window_position_pet')).y || 1100 - 220 - 20;
-      console.log(x, y);
-      y-=120
-      x-=60
-      const args = {
-        label: "notificationPopup",
-        url: "index.html#/notificationPopup",
-        title: "通知",
-        width: notificationWidth,
-        height: notificationHeight,
-        resizable: false,
-        center: false,
-        x: x,
-        y: y,
-        visible: true,
-        alwaysOnTop: true,
-        transparent: true,
-        decorations: false,
-        shadow: false,
-        skipTaskbar: true,
-        theme: 'Dark'
-      };
-      await createWin(args);
+  // 获取宠物窗口
+  
+  // 获取宠物窗口的位置,从localstorage中获取
+  const notificationWidth = 300;
+  const notificationHeight = 150;
+  let x = JSON.parse(localStorage.getItem('window_position_pet')).x || 1900 - 300 - 20;
+  let y = JSON.parse(localStorage.getItem('window_position_pet')).y || 1100 - 220 - 20;
+  console.log(x, y);
+  y-=120
+  x-=60
+  const args = {
+    label: "notificationPopup",
+    url: "index.html#/notificationPopup",
+    title: "通知",
+    width: notificationWidth,
+    height: notificationHeight,
+    resizable: false,
+    center: false,
+    x: x,
+    y: y,
+    visible: true,
+    alwaysOnTop: true,
+    transparent: true,
+    decorations: false,
+    shadow: false,
+    skipTaskbar: true,
+    theme: 'Dark'
+  };
+  await createWin(args);
 }
 /**
  * @desc 任务管理小窗口的筛选窗口
