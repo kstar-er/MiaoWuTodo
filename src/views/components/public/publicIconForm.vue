@@ -893,7 +893,7 @@ const formatTime = (val) => {
 const getCurrentUser = () => {
   try {
     const info = JSON.parse(sessionStorage.getItem('userInfo'));
-    return info?.user?.username|| null;
+    return info?.user?.username || info?.username || null;
   } catch (e) {
     return null;
   }

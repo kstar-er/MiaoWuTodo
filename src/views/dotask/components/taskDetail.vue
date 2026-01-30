@@ -366,7 +366,7 @@ const initDataSource = async (event) => {
 const initInlineData = async (data) => {
   loading.value = true;
   try {
-    // console.log("--内联模式数据--", data)
+    console.log("--内联模式数据--", data)
     formData.value = { ...data };
     // 放入负责人选择器数据
     if (data.leaderList) addOrEditTask.formSelectEl[0].options = data.leaderList; 
@@ -604,7 +604,7 @@ const addOrEditTask = reactive({
     delete params.leaderList;
     delete params.taskExecutorList;
 
-    console.log("----提交的参数3----", params)
+    console.log("----提交的参数----", params)
     addOrUpdateTask({ list: [params] }).then((res) => {
       if (res && res.code){
         proxy.$message.success('操作成功');
@@ -714,9 +714,11 @@ const initProjectData = async () => {
 const handleChangeSelectProject = async (selectId) => {
   try {
     selectedProject.value = selectId;
-    // console.log("切换项目：", selectedProject.value);
+    console.log("切换项目ID：", selectedProject.value);
     // 找到选中的项目数据
     const selectedProjectData = projectList.value.find(project => project.value === selectedProject.value);
+
+    console.log("切换项目数据：", selectedProjectData);
 
     if (!selectedProjectData) {
       proxy.$message.error('未找到对应项目数据');
@@ -724,9 +726,9 @@ const handleChangeSelectProject = async (selectId) => {
     }
 
     // 整合项目负责人数据
-    const projectLeaderOptions = selectedProjectData.userNameList.map(name => ({
+    const projectLeaderOptions = selectedProjectData.userNameList.map((name, index) => ({
       label: name,
-      value: name,
+      value: selectedProjectData.userIdList[index],
     }));
 
     // 更新 formData 的负责人选择器数据
