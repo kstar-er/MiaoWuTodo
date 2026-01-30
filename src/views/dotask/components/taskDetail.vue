@@ -236,6 +236,16 @@ const props = defineProps({
 const emitInline = defineEmits(["inlineClose", "inlineSaved"]);
 const { proxy } = getCurrentInstance();
 
+let emit_win = '';
+let task_win = null;
+if (!props.isInline) {
+  task_win = getCurrentWindow("task_add_detail");
+  onMounted(async () => {
+    console.log("任务管理组件已挂载完毕");
+    await task_win.emit("taskDetail-window-ready");
+  });
+}
+
 /**
  * 在 setup 顶层作用域注册监听
  * Mac渲染/事件调度可能更快，导致消息在onMounted之前就发送出去了，监听器未注册，消息丢失
@@ -280,16 +290,6 @@ let unlistenFn, unlistenFn1, unlistenFn2;
     }
   }
 })();
-
-let emit_win = '';
-let task_win = null;
-if (!props.isInline) {
-  task_win = getCurrentWindow("task_add_detail");
-  onMounted(async () => {
-    console.log("任务管理组件已挂载完毕");
-    await task_win.emit("taskDetail-window-ready");
-  });
-}
 
 const formData = ref({}); //表单数据
 const ruleFormRef = ref(null); // 子组件表单
