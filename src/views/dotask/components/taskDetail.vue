@@ -3,7 +3,7 @@
   <main class="container" :class="{ inline: isInline }">
     <customDragWindow v-if="!isInline">
       <template #header>
-        <div class="title-header">
+        <div class="title-header" style="padding: 20px 20px 10px 20px;">
           <div class="title-content">
 
             <!-- 所属项目选择 -->
@@ -45,7 +45,7 @@
         </div>
       </template>
     </customDragWindow>
-    <div v-else class="title-header">
+    <div v-else class="title-header" style="padding: 25px 20px 10px 20px;">
       <div class="title-content">
 
         <!-- 所属项目选择 -->
@@ -236,6 +236,51 @@ const props = defineProps({
 const emitInline = defineEmits(["inlineClose", "inlineSaved"]);
 const { proxy } = getCurrentInstance();
 
+/**
+ * 在 setup 顶层作用域注册监听
+ * Mac渲染/事件调度可能更快，导致消息在onMounted之前就发送出去了，监听器未注册，消息丢失
+ */
+let unlistenFn, unlistenFn1, unlistenFn2;
+
+// 监听主窗口的消息
+(async () => {
+  if (!props.isInline) {
+    try {
+      unlistenFn = await listen("main-task-add-edit-info", async (event) => {
+        await initDataSource(event);
+      });
+    } catch (e) {
+      console.error("监听设置失败", e);
+    }
+  }
+})();
+
+// 监听小窗口的消息
+(async () => {
+  if (!props.isInline) {
+    try {
+      unlistenFn1 = await listen("mini-task-add-edit-info", async (event) => {
+        await initDataSource(event);
+      });
+    } catch (e) {
+      console.error("监听设置失败", e);
+    }
+  }
+})();
+
+// 监听宠物的消息
+(async () => {
+  if (!props.isInline) {
+    try {
+      unlistenFn2 = await listen("pet-task-add-edit-info", async (event) => {
+        await initDataSource(event);
+      });
+    } catch (e) {
+      console.error("监听设置失败", e);
+    }
+  }
+})();
+
 let emit_win = '';
 let task_win = null;
 if (!props.isInline) {
@@ -246,34 +291,11 @@ if (!props.isInline) {
   });
 }
 
-let unlistenFn, unlistenFn1, unlistenFn2;
 const formData = ref({}); //表单数据
 const ruleFormRef = ref(null); // 子组件表单
 const loading = ref(false); // 加载动画标志
 onMounted(async () => {
-  // 监听来自父窗口的信息（仅独立窗口模式）
-  if (!props.isInline) {
-    loading.value = true;
-    try {
-      unlistenFn = await listen("main-task-add-edit-info", async (event) => {
-        await initDataSource(event);
-        loading.value = false;
-        return;
-      });
-      unlistenFn1 = await listen("mini-task-add-edit-info", async (event) => {
-        await initDataSource(event);
-        loading.value = false;
-        return;
-      });
-      unlistenFn2 = await listen("pet-task-add-edit-info", async (event) => {
-        await initDataSource(event);
-        loading.value = false;
-        return;
-      });
-    } catch (error) {
-      console.error("事件监听设置失败:", error);
-    }
-  } else if (props.inlineData) {
+  if (props.inlineData) {
     // 内联模式：直接初始化表单
     await initInlineData(props.inlineData);
   }
@@ -785,7 +807,6 @@ const handleDeleteTask = async (taskData) => {
 @import "../../../assets/global.less"; // 复用按钮样式
 .container {
   width: 100vw;
-  height: 100vh;
   position: relative;
   transform: none;
 }
@@ -800,7 +821,6 @@ const handleDeleteTask = async (taskData) => {
 
 .title-header {
   width: 100%;
-  padding: 25px 20px 10px 20px;
   margin-bottom: 15px;
   background-color: #d9cbb8;
   .title-number {
