@@ -16,12 +16,6 @@ jobs:
     runs-on: ${{ matrix.platform }} # 根据矩阵选择运行器
 
     steps:
-
-      # 检查AppStore可达性
-      - name: Check network connectivity to Apple
-        run: |
-        curl -I https://appstoreconnect.apple.com
-
       - name: Checkout code
         uses: actions/checkout@v4
       
@@ -90,12 +84,12 @@ jobs:
           APPLE_TEAM_ID: ${{ runner.os == 'macOS' && secrets.APPLE_TEAM_ID || '' }}
           
           # Apple API Key (必需，用于公证)
-          APPLE_API_ISSUER: ${{ runner.os == 'macOS' && secrets.APPLE_API_ISSUER || '' }}
-          APPLE_API_KEY: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY || '' }}
-          APPLE_API_KEY_PATH: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY_ID || '' }}
+          # APPLE_API_ISSUER: ${{ runner.os == 'macOS' && secrets.APPLE_API_ISSUER || '' }}
+          # APPLE_API_KEY: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY || '' }}
+          # APPLE_API_KEY_PATH: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY_ID || '' }}
 
-          APPLE_ID: ${{ runner.os == 'macOS' && secrets.APPLE_ID || '' }}
-          APPLE_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_PASSWORD || '' }}
+          # APPLE_ID: ${{ runner.os == 'macOS' && secrets.APPLE_ID || '' }}
+          # APPLE_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_PASSWORD || '' }}
         with:
           tagName: ${{ github.ref_name }} # 使用触发工作流的 tag 名称
           releaseName: 'MiaoWuTodo v__VERSION__' # __VERSION__ 会被自动替换
