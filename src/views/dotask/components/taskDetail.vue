@@ -559,6 +559,8 @@ const addOrEditTask = reactive({
       title: "花费天数",
       key: "spentDays",
       element: "number",
+      step: 0.1,
+      precision: 1,
       illustrate: "任务花费天数（天）",
       icon: "Timer",
       color: "#d47549",
