@@ -80,8 +80,8 @@ onMounted(async () => {
 });
 
 let unlistenTauri
-onMounted(async () => {
-  // 监听来自登录窗口的登录信息
+// 监听宠物窗口的消息
+(async () => {
   try {
     unlistenTauri = await listen("login-info", async (event) => {
       console.log("消息窗口接收到登录信息:", event.payload);
@@ -93,10 +93,11 @@ onMounted(async () => {
       sessionStorage.setItem("userInfo", JSON.stringify(userInfo));
       console.log("消息窗口登录信息已保存");
     });
-  } catch (error) {
-    console.error("事件监听设置失败:", error);
+  } catch (e) {
+    console.error("监听设置失败", e);
   }
-});
+})();
+
 
 // 消息缓存
 const cachedMessages = ref([])
