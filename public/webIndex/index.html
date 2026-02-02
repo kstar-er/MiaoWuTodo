@@ -224,16 +224,38 @@
 
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
-    // 占位：后续替换为真实下载链接
-    const winLink = 'https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/package/%E5%96%B5%E5%91%9CTodo_1.0.1_x64-setup.exe'; // 例如 https://example.com/download/DoTask-Setup.exe
-    const macLink = '#'; // 例如 https://example.com/download/DoTask-mac.dmg
-    document.getElementById('download-windows').setAttribute('href', winLink);
-    document.getElementById('download-mac').setAttribute('href', macLink);
-    // mac 版本暂未上线，点击提示
-    document.getElementById('download-mac').addEventListener('click', function (e) {
-      e.preventDefault();
-      alert('Mac版本正在加急审核中！审核完了马上上线喵');
-    });
+
+    // 从后端获取下载链接
+    async function getDownloadUrls() {
+      try {
+        // 获取Windows版本下载链接
+        const winResponse = await fetch('https://www.baiaidu.com:9822/eam/versionInformation/getDownloadUrl?os=win');
+        const winData = await winResponse.json();
+        if (winData.code === 200 && winData.data) {
+          document.getElementById('download-windows').setAttribute('href', winData.data);
+        }
+
+        // 获取Mac版本下载链接
+        const macResponse = await fetch('https://www.baiaidu.com:9822/eam/versionInformation/getDownloadUrl?os=mac');
+        const macData = await macResponse.json();
+        if (macData.code === 200 && macData.data) {
+          document.getElementById('download-mac').setAttribute('href', macData.data);
+        } else {
+          // 如果Mac版本暂未上线，保持原有提示
+          document.getElementById('download-mac').addEventListener('click', function (e) {
+            e.preventDefault();
+            alert('Mac版本正在加急审核中！审核完了马上上线喵');
+          });
+        }
+      } catch (error) {
+        console.error('获取下载链接失败:', error);
+        // 降级处理，使用默认链接
+        document.getElementById('download-windows').setAttribute('href', 'https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/package/%E5%96%B5%E5%91%9CTodo_1.0.1_x64-setup.exe');
+      }
+    }
+
+    // 页面加载完成后获取下载链接
+    getDownloadUrls();
   </script>
 </body>
 </html>
