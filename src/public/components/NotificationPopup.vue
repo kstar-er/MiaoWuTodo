@@ -28,6 +28,7 @@
             v-for="(message, index) in cachedMessages" 
             :key="message.id"
             class="message-item"
+            @click="handleTaskDetail(message)"
           >
             <div class="message-content">
               <div class="message-text">{{ message.content }}</div>
@@ -38,7 +39,7 @@
                 size="small" 
                 type="danger" 
                 circle
-                @click="removeMessage(index)"
+                @click.stop="removeMessage(index)"
               >
                 <el-icon><Delete /></el-icon>
               </el-button>
@@ -64,10 +65,41 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Close, Delete } from '@element-plus/icons-vue'
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { listen } from "@tauri-apps/api/event";
+import { getAllTask, getProject } from '../../utils/taskManagement';
+import { createTaskWin } from '../../multiwins/action';
 import customDragWindow from "../../views/components/public/customDragWindow.vue"; // 封装窗口拖拽
 
+const tauriWindow = getCurrentWindow('notificationPopup');
+const userData = ref(null);
+
+onMounted(async () => {
+  console.log("消息窗口已挂载完毕");
+  await tauriWindow.emit("window-ready");
+  console.log("消息窗口 window-ready 事件已发送");
+});
+
+let unlistenTauri
+onMounted(async () => {
+  // 监听来自登录窗口的登录信息
+  try {
+    unlistenTauri = await listen("login-info", async (event) => {
+      console.log("消息窗口接收到登录信息:", event.payload);
+      const { token, userInfo } = event.payload;
+      userData.value = userInfo;
+
+      // 存储登录信息到本地
+      sessionStorage.setItem("token", token);
+      sessionStorage.setItem("userInfo", JSON.stringify(userInfo));
+      console.log("消息窗口登录信息已保存");
+    });
+  } catch (error) {
+    console.error("事件监听设置失败:", error);
+  }
+});
+
+// 消息缓存
 const cachedMessages = ref([])
-let unlistenTauri = null
 
 // 消息缓存键
 const MESSAGE_CACHE_KEY = 'notification_messages'
@@ -139,6 +171,95 @@ const clearAllMessages = () => {
   saveMessagesToCache()
   // 当消息被清空时，关闭通知窗口
   close()
+}
+
+/**
+ * 点击消息卡片，查看任务详情
+ */
+const userIdUsernameMap = ref({});
+const projectInfo = ref({}); // 项目详情
+const handleTaskDetail = async (message) => {
+  console.log('消息中的任务id：', message)
+  const taskInfo = await fetchTaskDetails(message.taskId)
+  if (taskInfo) {
+    getLocalUsernameIdMap();
+
+    // 获取项目详情
+    if (projectInfo.value.id !== taskInfo.projectId) {
+      await fetchProjectInfo(taskInfo.projectId);
+    }
+
+    // 获取用户信息
+    if (userData.value === null) {
+      const storedUserInfo = sessionStorage.getItem("userInfo");
+      if (storedUserInfo) {
+        userData.value = JSON.parse(storedUserInfo);
+      }
+    }
+
+    // 整合传输数据
+    let data = {
+      ...projectInfo.value,
+      ...taskInfo,
+      scheduleList: taskInfo.scheduleList?.split(',') || [],
+      nickName: userData.value.nickname || userData.value.user.nickname,
+      isCanSelectProject: true
+    }
+
+    data.taskExecutorList = taskInfo.userIdList && taskInfo.userIdList.length > 0 
+      ? taskInfo.userIdList.map(id => userIdUsernameMap.value[id] || id) 
+      : [];
+
+    sessionStorage.setItem("formdata", JSON.stringify(data));
+
+    console.log('项目详情:', projectInfo.value)
+    console.log('任务详情:', taskInfo)
+    console.log('formdata详情:', data)
+    
+    // 创建任务详情窗口，传递 data
+    await createTaskWin('notificationPopup')
+
+    // 关闭通知窗口
+    // close()
+  } else {
+    console.error('无法获取任务详情')
+  }
+}
+
+const fetchTaskDetails = async (taskId) => {
+  try {
+    const response = await getAllTask({ id: taskId, pageNum: 1, pageSize: 1 });
+    if (response.code === 200 && response.rows.length > 0) {
+      return response.rows[0];
+    } else {
+      console.error('未找到任务详情');
+      return null;
+    }
+  } catch (error) {
+    console.error('获取任务详情失败:', error);
+    return null;
+  }
+}
+
+const fetchProjectInfo = async (projectId) => {
+  console.log('获取项目详情，项目ID:', projectId);
+  const { rows } = await getProject({ pageSize: 1, pageNum: 1, id: projectId });
+  projectInfo.value = rows[0];
+
+  // 对负责人的处理
+  let leaderList = [];
+  if (rows[0].userIdList && rows[0].userIdList.length > 0) {
+    rows[0].userIdList.forEach((id, index) => {
+      leaderList.push({ value: id, label: rows[0].userNameList[index] })
+    })
+  }
+  projectInfo.value.leaderList = leaderList
+}
+
+const getLocalUsernameIdMap = () => {
+  if (localStorage.getItem('userIdUsernameMap')) {
+    userIdUsernameMap.value = JSON.parse(localStorage.getItem('userIdUsernameMap'));
+  }
 }
 
 // 监听缓存变化，当消息被清空时关闭窗口
@@ -233,8 +354,7 @@ onMounted(async () => {
   }  
   // 在组件卸载时清理
   onUnmounted(() => {
-    if (unlistenTauri) unlistenTauri()
-
+    unlistenTauri?.();
     
     // 清理定时器
     if (cacheCheckInterval) {
@@ -316,6 +436,7 @@ defineExpose({
   transition: all 0.3s ease;
   backdrop-filter: blur(5px);
   border: 1px solid rgba(139, 69, 19, 0.1);
+  cursor: pointer;
 
   &:hover {
     transform: translateY(-2px);

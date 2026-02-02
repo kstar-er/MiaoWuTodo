@@ -20,12 +20,12 @@
       </div>
     </div>
     
-         <!-- 右键菜单 -->
-     <ContextMenu 
-       :visible="contextMenuVisible"
-       :petElement="petBodyRef"
-       @close="closeContextMenu"
-     />
+    <!-- 右键菜单 -->
+    <ContextMenu 
+      :visible="contextMenuVisible"
+      :petElement="petBodyRef"
+      @close="closeContextMenu"
+    />
   </div>
 </template>
 
@@ -154,6 +154,7 @@ const startCacheListener = () => {
 const showNotificationDialog = async () => {
   await createNotificationWin();
 };
+
 // 设置宠物的状态枚举
 // CRAWL是爬到顶部
 const PetStatus = {

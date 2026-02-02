@@ -12,12 +12,6 @@ export async function getAllTask(params) {
   return code === 200 ? { code, rows, total } : message
 }
 
-// 查询项目中的任务列表
-export async function getTask(params) {
-  const { data: { code, rows, message, total  } } = await pbRequest.post(`/eam/taskInformation/select?pageNum=${params.pageNum}&pageSize=${params.pageSize}`, params)
-  return code === 200 ? { code, rows, total } : message
-}
-
 // 查询项目中的任务列表-----子任务树结构
 export async function getTreeTask(params) {
   const { data: { code, rows, message, total  } } = await pbRequest.post(`/eam/taskInformation/selectTree?pageNum=${params.pageNum}&pageSize=${params.pageSize}`, params)
