@@ -80,6 +80,7 @@ const loadMessagesFromCache = () => {
 
 // 添加消息到缓存
 const addMessageToCache = (msg) => {
+  console.log("添加消息到缓存:", msg);
   let messages = [];
   try {
     messages = JSON.parse(localStorage.getItem(MESSAGE_CACHE_KEY)) || [];
@@ -87,8 +88,9 @@ const addMessageToCache = (msg) => {
   
   const newMessage = {
     id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    content: msg,
-    timestamp: Date.now()
+    content: msg.content,
+    timestamp: Date.now(),
+    taskId: msg.taskId || null
   };
   
   messages.unshift(newMessage);
@@ -100,7 +102,8 @@ const addMessageToCache = (msg) => {
 
 // WebSocket消息处理
 const handleWebSocketMessage = async (data) => {
-  const notificationMsg = data.msg || '您有新的任务待处理';
+  console.log("宠物窗口收到WebSocket消息:", data);
+  const notificationMsg = { content: data.msg, taskId: data.taskId} || '您有新的任务待处理';
   // 总是将消息添加到缓存
   addMessageToCache(notificationMsg);
 };

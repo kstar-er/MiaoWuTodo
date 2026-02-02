@@ -28,7 +28,7 @@
             v-for="(message, index) in cachedMessages" 
             :key="message.id"
             class="message-item"
-            @click="handleTaskDetail(message)"
+            @click="handleTaskDetail(message, index)"
           >
             <div class="message-content">
               <div class="message-text">{{ message.content }}</div>
@@ -79,11 +79,11 @@ onMounted(async () => {
   console.log("消息窗口 window-ready 事件已发送");
 });
 
-let unlistenTauri
+let unlistenTauri1, unlistenTauri2
 // 监听宠物窗口的消息
 (async () => {
   try {
-    unlistenTauri = await listen("login-info", async (event) => {
+    unlistenTauri1 = await listen("login-info", async (event) => {
       console.log("消息窗口接收到登录信息:", event.payload);
       const { token, userInfo } = event.payload;
       userData.value = userInfo;
@@ -92,6 +92,19 @@ let unlistenTauri
       sessionStorage.setItem("token", token);
       sessionStorage.setItem("userInfo", JSON.stringify(userInfo));
       console.log("消息窗口登录信息已保存");
+    });
+  } catch (e) {
+    console.error("监听设置失败", e);
+  }
+})();
+
+// 监听任务详情窗口已打开的消息，再将该消息从消息队列中删除
+(async () => {
+  try {
+    unlistenTauri2 = await listen("taskDetail-window-opened", async (event) => {
+      console.log("消息窗口接收到任务详情窗口已打开");
+      // 将该消息在消息队列中删除
+      removeMessage(event.payload.messageIndex)
     });
   } catch (e) {
     console.error("监听设置失败", e);
@@ -179,8 +192,8 @@ const clearAllMessages = () => {
  */
 const userIdUsernameMap = ref({});
 const projectInfo = ref({}); // 项目详情
-const handleTaskDetail = async (message) => {
-  console.log('消息中的任务id：', message)
+const handleTaskDetail = async (message, index) => {
+  console.log('消息中的任务id：', message, index)
   const taskInfo = await fetchTaskDetails(message.taskId)
   if (taskInfo) {
     getLocalUsernameIdMap();
@@ -212,6 +225,7 @@ const handleTaskDetail = async (message) => {
       : [];
 
     sessionStorage.setItem("formdata", JSON.stringify(data));
+    sessionStorage.setItem("messageIndex", index);
 
     console.log('项目详情:', projectInfo.value)
     console.log('任务详情:', taskInfo)
@@ -219,9 +233,6 @@ const handleTaskDetail = async (message) => {
     
     // 创建任务详情窗口，传递 data
     await createTaskWin('notificationPopup')
-
-    // 关闭通知窗口
-    // close()
   } else {
     console.error('无法获取任务详情')
   }
@@ -229,7 +240,7 @@ const handleTaskDetail = async (message) => {
 
 const fetchTaskDetails = async (taskId) => {
   try {
-    const response = await getAllTask({ id: taskId, pageNum: 1, pageSize: 1 });
+    const response = await getAllTask({ id: 706, pageNum: 1, pageSize: 1 });
     if (response.code === 200 && response.rows.length > 0) {
       return response.rows[0];
     } else {

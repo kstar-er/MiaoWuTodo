@@ -297,6 +297,7 @@ let unlistenFn, unlistenFn1, unlistenFn2, unlistenFn3;
     try {
       unlistenFn3 = await listen("notification-task-add-edit-info", async (event) => {
         await initDataSource(event);
+        await task_win.emit("taskDetail-window-opened", { messageIndex: event.payload.messageIndex});
       });
     } catch (e) {
       console.error("监听设置失败", e);
