@@ -1,19 +1,19 @@
 <template>
   <!-- 包裹整个宠物内容的可拖拽区域 -->
   <div class="content-area" @contextmenu="showContextMenu">
-    <div class="pet-body" ref="petBodyRef" @mousedown="startDrag">
-      <img :src="defaultPetSrc" alt="宠物" id="pet" />
+    <div class="pet-body" ref="petBodyRef" @mousedown="startDrag" @click="handleClick">
+      <img :src="defaultPetSrc" alt="宠物" id="pet"/>
       <canvas id="canvas" style="display: none"></canvas>
       
       <!-- Bell通知图标 -->
-      <div v-if="messageCount > 0" class="notification-bell" @click="showNotificationDialog">
+      <div v-if="messageCount > 0" class="notification-bell" @click.stop="showNotificationDialog">
         <el-icon><Bell /></el-icon>
         <!-- 消息数量提示 -->
         <div class="message-badge">{{ messageCount }}</div>
       </div>
       
       <!-- 感叹号提示图标 -->
-      <div v-if="outTimeCount > 0" class="hexagon-alert" @click="openOverdueInMain">
+      <div v-if="outTimeCount > 0" class="hexagon-alert" @click.stop="openOverdueInMain">
         <div class="hexagon-shape">
           <img src="/感叹号.svg" alt="感叹号" class="exclamation-svg" />
         </div>
@@ -243,10 +243,15 @@ function updatePetStatus(newStatus) {
 
 const tauriWindow = getCurrentWindow();
 const windowId = tauriWindow.label;
+const scaleFactor = ref(1); // 屏幕参数
+
 onMounted(async () => {
   console.log("宠物窗口已挂载完毕");
   await tauriWindow.emit("window-ready");
   console.log("宠物窗口 window-ready 事件已发送");
+
+  // 获取屏幕缩放因子
+  scaleFactor.value = await tauriWindow.scaleFactor() || 1;
 });
 
 // 获取上次的位置
@@ -325,7 +330,7 @@ const resetLocalFormdata = async () => {
 }
 
 // 加载用户选择的宠物
-onMounted(() => {
+onMounted(async() => {
   // 初始加载图片
   loadPetImage();
   // 启动自动播放
@@ -362,38 +367,89 @@ const closeContextMenu = () => {
   contextMenuVisible.value = false;
 };
 
+// 获取屏幕尺寸
+const getScreenSize = () => {
+  return {
+    width: window.screen.width,
+    height: window.screen.height,
+  };
+}
+
+// 确保窗口不超出屏幕范围
+const constrainToScreen = async(newX, newY) => {
+  const screenSize = getScreenSize();
+  const windowSize = await tauriWindow.innerSize();
+  const adjustedWindowSize = { width: windowSize.width / scaleFactor.value, height: windowSize.height / scaleFactor.value };
+  const maxWidth = screenSize.width - adjustedWindowSize.width;
+  const maxHeight = screenSize.height - adjustedWindowSize.height;
+
+  return new LogicalPosition(
+    Math.max(0, Math.min(maxWidth, newX)),
+    Math.max(0, Math.min(maxHeight, newY))
+  );
+}
+
 // 拖拽状态控制
 const isDragging = ref(false);
 let startX = 0;
 let startY = 0;
 let isUpdating = false;
+let isSignificantMove = false; // 是否显著拖拽
+let dragStartTime; // 开始拖拽的时间
+let pendingFallRecovery = null; // 落地后的定时器
+let animationCancelled = false; // 落地动画取消标志
+let startPosition = {
+  x: 0,
+  y: 0
+}
 
 // 鼠标按下时触发
 const startDrag = async (e) => {
+  // 掉落过程中拖拽，取消掉落动画
+  animationCancelled = true;
+
+  // 清除掉落动作的定时器
+  if (pendingFallRecovery !== null) {
+    clearTimeout(pendingFallRecovery);
+    pendingFallRecovery = null;
+  }
+
+  console.log("鼠标按下，准备拖拽", e);
   // 如果是右键点击，不启动拖拽
   if (e.button === 2) {
     return;
   }
   
-  console.log("开始拖拽");
   isDragging.value = true;
+  isSignificantMove = false;
+  console.log("开始拖拽");
   
   // 记录鼠标起始位置
   startX = e.clientX;
   startY = e.clientY;
-  
   console.log("起始鼠标位置:", { x: startX, y: startY });
+
+  // 记录桌宠起始位置
+  const position = await tauriWindow.innerPosition();
+  startPosition = { 
+    x: position.x / scaleFactor.value,
+    y: position.y / scaleFactor.value
+  }
+  console.log("起始桌宠位置:", startPosition);
+
+  // 记录拖拽开始时间
+  dragStartTime = Date.now(); 
+
+  // 设置一个 1s 定时器，提示用户不会掉落，并恢复站立
+  setTimeout(() => {
+    if (isDragging.value) { // 仍在拖拽中
+      console.log("拖拽已持续超过 1 秒，宠物将保持站立，不会掉落");
+      updatePetStatus(PetStatus.STAND); // 立即改为站立
+    }
+  }, 1000);
   
   document.addEventListener("mousemove", handleDrag);
   document.addEventListener("mouseup", stopDrag);
-
-  // 标记为用户控制状态并停止自动播放
-  animationState.isUserControlled = true;
-  stopAutoPlay();
-
-  // 切换到拖拽状态
-  console.log("切换到拖拽状态");
-  updatePetStatus(PetStatus.DRAG);
 };
 
 // 鼠标移动时更新窗口位置
@@ -403,22 +459,35 @@ const handleDrag = async (e) => {
   const deltaX = e.clientX - startX;
   const deltaY = e.clientY - startY;
 
+  // 判断是否为显著移动（超过 5px）
+  if (!isSignificantMove && (deltaX > 1 || deltaY > 1 || deltaX < -1 || deltaY < -1)) {
+    isSignificantMove = true;
+
+    // 标记为用户控制状态并停止自动播放
+    animationState.isUserControlled = true;
+    stopAutoPlay();
+
+    // 切换到拖拽状态
+    console.log("切换到拖拽状态");
+    updatePetStatus(PetStatus.DRAG);
+  }
+
   isUpdating = true;
   
   try {
     const position = await tauriWindow.innerPosition();
-    const scaleFactor = await tauriWindow.scaleFactor();
-    const adjustedPosition = { x: position.x / scaleFactor, y: position.y / scaleFactor };
+    const adjustedPosition = { x: position.x / scaleFactor.value, y: position.y / scaleFactor.value };
     const newX = adjustedPosition.x + deltaX;
     const newY = adjustedPosition.y + deltaY;
-    
-    const newPosition = new LogicalPosition(newX, newY);
+
+    // 确保窗口不超出屏幕范围
+    const constrainedPosition = await constrainToScreen(newX, newY);
     
     // 更新窗口位置
-    await tauriWindow.setPosition(newPosition);
+    await tauriWindow.setPosition(constrainedPosition);
     
     // 保存当前位置
-    await saveWindowPosition(windowId, newPosition);
+    saveWindowPosition(windowId, constrainedPosition);
     
     // 更新起始鼠标位置，避免累积误差
     startX = e.clientX - deltaX;
@@ -431,8 +500,8 @@ const handleDrag = async (e) => {
   }
 };
 
-// 停止拖拽
-const stopDrag = async () => {
+// 停止拖拽并处理掉落逻辑
+const stopDrag = async (e) => {
   if (!isDragging.value) return;
   
   isDragging.value = false;
@@ -443,26 +512,129 @@ const stopDrag = async () => {
 
   // 重置用户控制状态
   animationState.isUserControlled = false;
-  
-  // 确保动画状态正确重置，避免闪烁
-  if (animationState.currentAnimationId) {
-    cancelAnimationFrame(animationState.currentAnimationId);
-    animationState.currentAnimationId = null;
-  }
-  animationState.isTransitioning = false;
-  
-  // 立即切换到站立状态
-  console.log("切换到站立状态");
-  updatePetStatus(PetStatus.STAND);
 
-  // 延迟一段时间后重新启动自动播放
-  setTimeout(() => {
-    if (!isDragging.value && !animationState.isUserControlled) {
-      // 确保用户没有重新开始拖拽且不在用户控制状态
-      console.log("重新启动自动播放");
-      startAutoPlay();
+  // 判断拖拽时间是否“快速”（基于 startX/startY 记录的时间差）
+  const dragDuration = Date.now() - dragStartTime; // 需要在 startDrag 中记录时间
+  console.log("拖拽时长：", dragDuration)
+
+  // 如果没有显著移动 → 视为“点击”
+  if (!isSignificantMove) {
+    startX = startY = 0;
+    isSignificantMove = false;
+    return;
+  }
+
+  if (dragDuration < 1000 && isSignificantMove ) {
+    // 满足：快速拖拽 / 大范围移动 → 执行掉落
+    console.log("执行掉落动画");
+    updatePetStatus(PetStatus.JUMP); // 掉落时动作
+
+    // 获取当前位置
+    const position = await tauriWindow.innerPosition();
+    const currentX = position.x / scaleFactor.value;
+    const currentY = position.y / scaleFactor.value;
+    
+    await animateDrop(currentX, currentY); 
+  } else {
+    
+    // 正常情况：切换为站立状态
+
+    // 确保动画状态正确重置，避免闪烁
+    if (animationState.currentAnimationId) {
+      cancelAnimationFrame(animationState.currentAnimationId);
+      animationState.currentAnimationId = null;
     }
-  }, 3000); // 3秒后恢复自动播放
+    animationState.isTransitioning = false;
+    
+    // 立即切换到站立状态
+    console.log("切换到站立状态");
+    updatePetStatus(PetStatus.STAND);
+
+    // 延迟一段时间后重新启动自动播放
+    setTimeout(() => {
+      if (!isDragging.value && !animationState.isUserControlled) {
+        // 确保用户没有重新开始拖拽且不在用户控制状态
+        console.log("重新启动自动播放");
+        startAutoPlay();
+      }
+    }, 3000); // 3秒后恢复自动播放
+    
+  }
+
+  startX = startY = 0;
+  isSignificantMove = false;
+};
+
+// 掉落动画
+const animateDrop = (fromX, fromY) => {
+  return new Promise(async (resolve) => {
+    animationCancelled = false; // 重置标志
+    
+    // 获取当前窗口大小并计算可落脚的“最底端”
+    const screenSize = getScreenSize();
+    const windowSize = await tauriWindow.innerSize();
+    const adjustedHeight = windowSize.height / scaleFactor.value;
+    
+    // 理想落地 Y：贴底，但不超出屏幕
+    const targetY = screenSize.height - adjustedHeight;
+    const targetX = fromX; // 水平位置保持不变
+
+    // 使用 constrainToScreen 确保最终位置合法
+    const safeTarget = await constrainToScreen(targetX, targetY);
+
+    const duration = 1200; // 动画持续时间 ms
+    const frames = 60; // 分多少帧
+    const interval = duration / frames;
+    let elapsed = 0;
+
+    // 使用 easeOutCubic 缓动函数，模拟重力加速再弹一下
+    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+    const step = async () => {
+      if (animationCancelled) {
+        resolve(); // 立即结束 Promise
+        return;
+      }
+
+      elapsed += interval;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeProgress = easeOutCubic(progress);
+
+      const currentY = fromY + (safeTarget.y - fromY) * easeProgress;
+      const currentX = fromX; 
+
+      const constrainedPosition = await constrainToScreen(currentX, currentY);
+      await tauriWindow.setPosition(constrainedPosition); // 更新窗口位置
+
+      // 保存最新位置
+      saveWindowPosition(windowId, constrainedPosition);
+
+      if (progress < 1) {
+        setTimeout(step, interval);
+      } else {
+        // 动画结束
+        updatePetStatus(PetStatus.FALL); // 落地动作
+
+        // 清除旧的恢复定时器（防止重复触发）
+        if (pendingFallRecovery) {
+          clearTimeout(pendingFallRecovery);
+        }
+
+        // 设置 800ms 后站立并恢复自动播放
+        pendingFallRecovery = setTimeout(() => {
+          pendingFallRecovery = null;
+          // 只有在非用户控制状态下才恢复 STAND 和 autoplay
+          if (!animationState.isUserControlled) {
+            updatePetStatus(PetStatus.STAND);
+            startAutoPlay();
+          }
+        }, 800);
+        resolve();
+      }
+    };
+
+    step();
+  });
 };
 
 onUnmounted(() => {
@@ -470,15 +642,73 @@ onUnmounted(() => {
   document.removeEventListener("mouseup", stopDrag);
 });
 
+/**
+ * 点击宠物事件处理（防抖 + 区分点击和拖拽）
+ * 单击：变换动作
+ */
+let clickTimer = null;
+const handleClick = (e) => {
+  if (isSignificantMove) return; // 是拖拽，不触发点击
+  
+  // 防止右键或其他按钮触发
+  if (e.button !== 0) return;
+
+  // 如果正在拖拽，则忽略点击
+  if (isDragging.value) return;
+
+  isDragging.value = false;
+  console.log("检测到单击，切换宠物动作");
+  
+
+  // 清除可能的延迟任务（用于双击判断等扩展）
+  if (clickTimer) {
+    clearTimeout(clickTimer);
+  }
+
+  clickTimer = setTimeout(() => {
+    // 停止自动播放，进入用户交互模式
+    animationState.isUserControlled = true;
+    stopAutoPlay();
+
+    // 切换下一个状态
+    const currentIndex = autoPlayStates.indexOf(currentPetStatus.value);
+    if (currentIndex === -1) {
+      // 当前状态不在 autoPlayStates 中，默认切到第一个
+      updatePetStatus(autoPlayStates[0]);
+      return;
+    }
+
+    // 计算下一个状态（循环）
+    const nextIndex = (currentIndex + 1) % autoPlayStates.length;
+    const nextState = autoPlayStates[nextIndex];
+
+    // 切换状态
+    updatePetStatus(nextState);
+
+    // 10秒后恢复自动播放
+    setTimeout(() => {
+      if (!isDragging.value && animationState.isUserControlled) {
+        animationState.isUserControlled = false;
+        startAutoPlay();
+      }
+    }, 5000);
+  }, 50); // 简单单击响应时间
+};
+
+/**
+ * 宠物图片加载与动画处理
+ */
 const image = new Image();
 
 image.onload = () => {
   updateFrame();
 };
+
 image.onerror = (event) => {
   console.error("Failed to load image:", event.target.src);
   // 这里可以添加错误处理逻辑，比如显示备用图像或通知用户
 };
+
 // 动态加载宠物图片
 async function loadPetImage() {
   try {
@@ -701,7 +931,7 @@ const openOverdueInMain = async () => {
   /* 水平居中 */
   align-items: center;
   /* 垂直居中 */
-  cursor: move;
+  cursor: pointer;
   transform: translateZ(0);
   backface-visibility: hidden;
   pointer-events: auto;
