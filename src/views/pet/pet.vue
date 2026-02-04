@@ -446,7 +446,7 @@ const startDrag = async (e) => {
       console.log("拖拽已持续超过 1 秒，宠物将保持站立，不会掉落");
       updatePetStatus(PetStatus.STAND); // 立即改为站立
     }
-  }, 1000);
+  }, 800);
   
   document.addEventListener("mousemove", handleDrag);
   document.addEventListener("mouseup", stopDrag);
@@ -524,7 +524,7 @@ const stopDrag = async (e) => {
     return;
   }
 
-  if (dragDuration < 1000 && isSignificantMove ) {
+  if (dragDuration < 800 && isSignificantMove ) {
     // 满足：快速拖拽 / 大范围移动 → 执行掉落
     console.log("执行掉落动画");
     updatePetStatus(PetStatus.JUMP); // 掉落时动作
