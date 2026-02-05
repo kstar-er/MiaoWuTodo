@@ -31,7 +31,7 @@ echo "🔐 开始代码签名..."
 echo "   签名可执行文件..."
 codesign --force --verify --verbose --sign "$DEVELOPER_ID" \
     --options runtime \
-    "target/release/bundle/macos/$APP_NAME.app/Contents/MacOS/$APP_NAME"
+    "../target/release/bundle/macos/$APP_NAME.app/Contents/MacOS/$APP_NAME"
 
 if [ $? -ne 0 ]; then
     echo "❌ 可执行文件签名失败"
@@ -42,7 +42,7 @@ echo "   签名应用程序包..."
 codesign --force --verify --verbose --sign "$DEVELOPER_ID" \
         --options runtime \
         --entitlements entitlements.plist \
-        "target/release/bundle/macos/$APP_NAME.app"
+        "../target/release/bundle/macos/$APP_NAME.app"
 if [ $? -ne 0 ]; then
     echo "❌ 应用程序包签名失败"
     exit 1
@@ -50,7 +50,7 @@ fi
 
 # 验证签名
 echo "🔍 验证签名..."
-codesign --verify --deep --strict --verbose=2 "target/release/bundle/macos/$APP_NAME.app"
+codesign --verify --deep --strict --verbose=2 "../target/release/bundle/macos/$APP_NAME.app"
 
 if [ $? -eq 0 ]; then
     echo "✅ 签名验证成功"
