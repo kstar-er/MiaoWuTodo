@@ -3,6 +3,82 @@
 # macOS应用程序公证脚本
 # 需要Apple Developer账号和应用专用密码
 
+# 创建美观DMG的函数
+create_dmg() {
+    local app_path="$1"
+    local dmg_path="$2"
+    local app_name="$3"
+    
+    echo "💿 创建安装DMG..."
+    
+    # 创建临时DMG目录
+    local temp_dir="$(dirname "$dmg_path")/dmg_temp"
+    rm -rf "$temp_dir"
+    mkdir -p "$temp_dir"
+    
+    # 复制应用程序到临时目录
+    cp -R "$app_path" "$temp_dir/"
+    
+    # 创建Applications文件夹的符号链接
+    ln -s /Applications "$temp_dir/Applications"
+    
+    # 创建临时DMG
+    local temp_dmg="$(dirname "$dmg_path")/temp_$(basename "$dmg_path")"
+    hdiutil create -volname "$app_name" \
+        -srcfolder "$temp_dir" \
+        -ov -format UDRW \
+        "$temp_dmg"
+    
+    # 挂载临时DMG进行自定义
+    echo "🎨 自定义DMG外观..."
+    local mount_dir="/Volumes/$app_name"
+    hdiutil attach "$temp_dmg" -readwrite -noverify -noautoopen
+    
+    # 等待挂载完成
+    sleep 3
+    
+    # 创建隐藏的背景图片目录
+    mkdir -p "$mount_dir/.background"
+    
+    # 设置DMG窗口属性和图标位置
+    osascript <<EOF
+tell application "Finder"
+    tell disk "$app_name"
+        open
+        set current view of container window to icon view
+        set toolbar visible of container window to false
+        set statusbar visible of container window to false
+        set the bounds of container window to {100, 100, 600, 400}
+        set viewOptions to the icon view options of container window
+        set arrangement of viewOptions to not arranged
+        set icon size of viewOptions to 128
+        set position of item "$app_name.app" of container window to {150, 200}
+        set position of item "Applications" of container window to {350, 200}
+        close
+        open
+        update without registering applications
+        delay 3
+        close
+    end tell
+end tell
+EOF
+    
+    # 设置文件夹属性为隐藏
+    SetFile -a V "$mount_dir/.background" 2>/dev/null || true
+    
+    # 卸载DMG
+    hdiutil detach "$mount_dir" -force
+    
+    # 转换为只读压缩格式
+    hdiutil convert "$temp_dmg" -format UDZO -imagekey zlib-level=9 -o "$dmg_path"
+    
+    # 清理临时文件
+    rm -f "$temp_dmg"
+    rm -rf "$temp_dir"
+    
+    echo "✅ DMG创建完成: $dmg_path"
+}
+
 # 配置信息 - 请根据实际情况修改
 APP_NAME="MiaoWuTodo"
 BUNDLE_ID="com.miaowutodo"
@@ -116,12 +192,7 @@ if [ $NOTARIZE_RESULT -eq 0 ]; then
             echo "✅ 公证票据验证成功！"
             
             # 重新创建DMG（包含公证票据）
-            echo "💿 重新创建已公证的DMG..."
-            rm -f "target/release/bundle/macos/$APP_NAME.dmg"
-            hdiutil create -volname "target/release/bundle/macos/$APP_NAME" \
-                -srcfolder "target/release/bundle/macos/$APP_NAME.app" \
-                -ov -format UDZO \
-                "target/release/bundle/macos/$APP_NAME.dmg"
+            create_dmg "target/release/bundle/macos/$APP_NAME.app" "target/release/bundle/macos/$APP_NAME.dmg" "$APP_NAME"
             
             if [ $? -eq 0 ]; then
                 echo "✅ 已公证DMG创建成功"
