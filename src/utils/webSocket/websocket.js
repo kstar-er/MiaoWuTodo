@@ -40,7 +40,7 @@ class WebSocketService {
         // const wsUrl = isPro
         //     ? `wss://www.baiaidu.com:9822/eam/websocket/${userId}` // 生产环境用wss
         //     : `ws://localhost:9820/eam/websocket/${userId}`;      // 开发环境用ws
-            const wsUrl = `wss://www.baiaidu.com:9822/eam/websocket/${userId}`; // 生产环境用wss
+        const wsUrl = `wss://www.baiaidu.com:9822/eam/websocket/${userId}`; // 生产环境用wss
         console.log('WebSocket连接地址1:', wsUrl);
         this.ws = new WebSocket(wsUrl);
 

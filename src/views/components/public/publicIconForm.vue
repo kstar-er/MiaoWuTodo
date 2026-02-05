@@ -251,6 +251,7 @@
             :min="item.min ? item.min : 0"
             :precision="item.precision ? item.precision : 0"
             :max="item.max ? item.max : 100000000"
+            :step="item.step ? item.step : 1"
             controls-position="right"
             placeholder="1"
             size=""

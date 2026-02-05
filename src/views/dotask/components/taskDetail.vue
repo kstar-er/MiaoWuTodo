@@ -250,7 +250,7 @@ if (!props.isInline) {
  * 在 setup 顶层作用域注册监听
  * Mac渲染/事件调度可能更快，导致消息在onMounted之前就发送出去了，监听器未注册，消息丢失
  */
-let unlistenFn, unlistenFn1, unlistenFn2;
+let unlistenFn, unlistenFn1, unlistenFn2, unlistenFn3;
 
 // 监听主窗口的消息
 (async () => {
@@ -291,6 +291,20 @@ let unlistenFn, unlistenFn1, unlistenFn2;
   }
 })();
 
+// 监听消息通知窗口的消息
+(async () => {
+  if (!props.isInline) {
+    try {
+      unlistenFn3 = await listen("notification-task-add-edit-info", async (event) => {
+        await initDataSource(event);
+        await task_win.emit("taskDetail-window-opened", { messageIndex: event.payload.messageIndex});
+      });
+    } catch (e) {
+      console.error("监听设置失败", e);
+    }
+  }
+})();
+
 const formData = ref({}); //表单数据
 const ruleFormRef = ref(null); // 子组件表单
 const loading = ref(false); // 加载动画标志
@@ -314,6 +328,7 @@ onUnmounted(() => {
   unlistenFn?.(); 
   unlistenFn1?.();
   unlistenFn2?.();
+  unlistenFn3?.();
 });
 
 const initDataSource = async (event) => {
@@ -495,6 +510,7 @@ const hideWin = (type, params) => {
   unlistenFn?.();
   unlistenFn1?.();
   unlistenFn2?.();
+  unlistenFn3?.();
   task_win.destroy();
 }
 
@@ -559,6 +575,8 @@ const addOrEditTask = reactive({
       title: "花费天数",
       key: "spentDays",
       element: "number",
+      step: 0.1,
+      precision: 1,
       illustrate: "任务花费天数（天）",
       icon: "Timer",
       color: "#d47549",

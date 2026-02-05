@@ -349,6 +349,11 @@ export async function createTaskWin(win) {
         } else if (win === 'pet') {
           await main_win.emit("pet-task-add-edit-info", { formdata, token, emitWin: 'pet' });
           sessionStorage.removeItem("formdata");
+        } else if (win === 'notificationPopup') {
+          const messageIndex = sessionStorage.getItem("messageIndex");
+          await main_win.emit("notification-task-add-edit-info", { formdata, token, emitWin: 'notificationPopup', messageIndex });
+          sessionStorage.removeItem("formdata");
+          sessionStorage.removeItem("messageIndex");
         }
         await newWindow.show(); // 显示窗口
       }
