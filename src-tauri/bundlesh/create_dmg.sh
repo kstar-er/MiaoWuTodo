@@ -2,8 +2,8 @@
 
 # 设置变量
 APP_NAME="MiaoWuTodo"
-APP_PATH="target/release/bundle/macos/${APP_NAME}.app"
-DMG_PATH="target/release/bundle/macos/${APP_NAME}.dmg"
+APP_PATH="../target/release/bundle/macos/${APP_NAME}.app"
+DMG_PATH="../target/release/bundle/macos/${APP_NAME}.dmg"
 VOLUME_NAME="${APP_NAME}"
 TEMP_DMG="temp_${APP_NAME}.dmg"
     

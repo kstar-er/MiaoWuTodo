@@ -631,10 +631,31 @@
         </el-button>
       </el-tooltip>
 
+      <!-- 拆分按钮 -->
+      <el-tooltip
+        v-if="showSplitButton"
+        content="拆分任务" 
+        placement="top" 
+        :show-after="800"
+        :hide-after="200"
+        effect="dark"
+        :disabled="false"
+      >
+        <el-button
+          type="warning"
+          style="float: left; margin-left: 25px; width: 40px; height: 40px;"
+          @click="handleSplit"
+          class="btn-base btn-warning"
+          circle
+        >
+          <el-icon><Operation /></el-icon>
+        </el-button>
+      </el-tooltip>
+
       <!-- 删除按钮 -->
       <el-button
         v-if="showDeleteButton"
-        style="float: left; margin-left: 25px; width: 40px; height: 40px;"
+        style="float: left; margin-left: 10px; width: 40px; height: 40px;"
         @click="handleDelete"
         class="delete-btn"
         circle
@@ -669,7 +690,7 @@
 
 <script setup>
 import { ref, getCurrentInstance, onMounted, onUnmounted } from "vue";
-import { Edit, Plus, Delete, Picture, Check, Close, Document, ArrowLeft, ArrowRight, Warning } from "@element-plus/icons-vue";
+import { Edit, Plus, Delete, Picture, Check, Close, Document, ArrowLeft, ArrowRight, Warning, Operation } from "@element-plus/icons-vue";
 import { getTaskLogs } from "../../../utils/taskManagement/index.js";
 import { uploadTaskImageToOSS } from "../../../utils/upload/secureOSSUpload.js";
 import RichTextEditor from './RichTextEditor.vue';
@@ -798,6 +819,12 @@ const _props = defineProps({
     default: 'rtl'
   },
 
+  // 拆分按钮
+  showSplitButton: {
+    type: Boolean,
+    default: false
+  },
+
   // 保存按钮
   showSaveButton: {
     type: Boolean,
@@ -836,7 +863,7 @@ const onExceed = () => {
 };
 
 let myformData = ref({});
-const _emits = defineEmits(["hideWin", "inputDone", "emitOpenDialog", "deleteTask"]);
+const _emits = defineEmits(["hideWin", "inputDone", "emitOpenDialog", "deleteTask", "splitTask"]);
 const emitOpenDialog = (key) => _emits('emitOpenDialog', key);
 const hideWin = () => {
   myformData.value = {};
@@ -909,6 +936,11 @@ const checkDeletePermission = () => {
 
   const isEditMode = !!myformData.value?.id; // 有ID说明是编辑模式
   showDeleteButton.value = Boolean(isEditMode  && creator && currentUser === creator);
+};
+
+// 处理拆分任务
+const handleSplit = () => {
+  _emits("splitTask", myformData.value);
 };
 
 // 处理删除任务

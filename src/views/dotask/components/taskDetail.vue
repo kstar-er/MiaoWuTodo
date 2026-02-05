@@ -98,9 +98,11 @@
       :form-paste-image-el="addOrEditTask.formPasteImageEl"
       :my-client="myClient"
       :drawer-direction="props.drawerDirection"
+      :show-split-button="showSplitButton"
       @hide-win="hideWin"
       @input-done="addOrEditTask.inputDone"
       @delete-task="handleDeleteTask"
+      @split-task="handleSplitTask"
     >
       <template #append1>
         <el-form-item
@@ -197,6 +199,15 @@
         </el-form-item>
       </template>
     </publicIconForm>
+    
+    <!-- 任务拆分弹窗 -->
+    <TaskSplitDialog
+      v-model:visible="splitDialogVisible"
+      :split-result="splitResult"
+      :loading="splitLoading"
+      @confirm="handleConfirmSplit"
+      @close="handleCloseSplitDialog"
+    />
   </main>
 </template>
 
@@ -208,15 +219,18 @@ import {
   onUnmounted,
   getCurrentInstance,
   nextTick,
-  watch
+  watch,
+  computed
 } from "vue";
 import publicIconForm from "../../components/public/publicIconForm.vue"; // 封装表单
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { CloseBold, ArrowRight, ArrowLeft } from "@element-plus/icons-vue";
 import { addOrUpdateTask, getProject, deleteTask } from "../../../utils/taskManagement";
+import { analyzeTaskSplit, confirmTaskSplit } from "../../../utils/taskSplit";
 import { getCurrentFormattedTime, formatToLocalTime } from "../../../utils"; // 获取当前时间js
 import customDragWindow from "../../components/public/customDragWindow.vue"; // 封装窗口拖拽
+import TaskSplitDialog from "./taskSplitDialog.vue"; // 任务拆分弹窗
 
 const myClient = ref( );
 const props = defineProps({
@@ -819,6 +833,102 @@ const handleDeleteTask = async (taskData) => {
     proxy.$message.error('删除任务失败，请稍后重试');
   }
 }
+
+/**
+ * 任务拆分相关功能
+ */
+const splitDialogVisible = ref(false);
+const splitResult = ref(null);
+const splitLoading = ref(false);
+
+// 是否显示拆分按钮（只有已保存的任务才能拆分）
+const showSplitButton = computed(() => {
+  return Boolean(formData.value?.id);
+});
+
+// 处理拆分任务
+const handleSplitTask = async (taskData) => {
+  if (!taskData.id) {
+    proxy.$message.warning('请先保存任务后再进行拆分');
+    return;
+  }
+
+  console.log('开始拆分任务，taskData:', taskData);
+  splitDialogVisible.value = true;
+  splitLoading.value = true;
+  splitResult.value = null;
+
+  try {
+    const result = await analyzeTaskSplit(taskData.id, false);
+    console.log('拆分分析结果:', result);
+    
+    if (result.data.code === 200) {
+      splitResult.value = result.data.data;
+      console.log('设置splitResult:', result.data.data);
+    } else {
+      proxy.$message.error(result.message || '分析任务失败');
+      splitDialogVisible.value = false;
+    }
+  } catch (error) {
+    console.error('分析任务拆分时发生错误：', error);
+    proxy.$message.error('分析任务失败，请稍后重试');
+    splitDialogVisible.value = false;
+  } finally {
+    splitLoading.value = false;
+  }
+};
+
+// 确认拆分
+const handleConfirmSplit = async (splitData) => {
+  try {
+    console.log('确认拆分，splitData:', splitData);
+    
+    const confirmData = {
+      taskId: formData.value.id,
+      subtasks: splitData.subtasks.map((subtask, index) => ({
+        title: subtask.title.trim(),
+        content: subtask.content ? subtask.content.trim() : '',
+        order: index + 1
+      }))
+    };
+
+    console.log('发送给后端的确认数据:', confirmData);
+    
+    const result = await confirmTaskSplit(confirmData);
+    if (result.data.code === 200) {
+      proxy.$message.success(`拆分成功！已创建 ${result.data.data.length} 个子任务`);
+      splitDialogVisible.value = false;
+      
+      // 拆分成功后刷新任务列表
+      if (props.isInline) {
+        // 内联模式：通知父组件刷新任务列表
+        emitInline("inlineSaved", formData.value);
+      } else {
+        // 非内联模式：通知主窗口刷新任务列表
+        let main_win = getCurrentWindow(emit_win);
+        main_win.emit("task-info-updated", {
+          action: "updated", 
+          schedule: formData.value.schedule, 
+          data: formData.value
+        });
+        // 关闭窗口
+        hideWin();
+      }
+    } else {
+      proxy.$message.error(result.message || '拆分任务失败');
+    }
+  } catch (error) {
+    console.error('确认拆分时发生错误：', error);
+    proxy.$message.error('拆分任务失败，请稍后重试');
+  }
+};
+
+
+// 关闭拆分弹窗
+const handleCloseSplitDialog = () => {
+  splitDialogVisible.value = false;
+  splitResult.value = null;
+};
 </script>
 
 <style lang="less" scoped>
