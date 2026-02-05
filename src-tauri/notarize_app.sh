@@ -3,7 +3,7 @@
 # macOS应用程序公证脚本
 # 需要Apple Developer账号和应用专用密码
 
-# 创建美观DMG的函数
+# 创建美观DMG的函数 - 基于bundle_dmg.sh的逻辑
 create_dmg() {
     local app_path="$1"
     local dmg_path="$2"
@@ -19,28 +19,37 @@ create_dmg() {
     # 复制应用程序到临时目录
     cp -R "$app_path" "$temp_dir/"
     
-    # 创建Applications文件夹的符号链接
-    ln -s /Applications "$temp_dir/Applications"
-    
-    # 创建临时DMG
+    # 创建临时DMG (可读写格式)
     local temp_dmg="$(dirname "$dmg_path")/temp_$(basename "$dmg_path")"
-    hdiutil create -volname "$app_name" \
-        -srcfolder "$temp_dir" \
-        -ov -format UDRW \
+    rm -f "$temp_dmg"
+    
+    echo "创建临时DMG..."
+    hdiutil create -srcfolder "$temp_dir" -volname "$app_name" \
+        -fs HFS+ -fsargs "-c c=64,a=16,e=16" -format UDRW \
         "$temp_dmg"
     
+    # 调整DMG大小以容纳额外内容
+    local disk_size=$(du -sm "$temp_dir" | cut -f1)
+    disk_size=$((disk_size + 20))  # 添加20MB额外空间
+    hdiutil resize -size ${disk_size}m "$temp_dmg"
+    
     # 挂载临时DMG进行自定义
-    echo "🎨 自定义DMG外观..."
+    echo "🎨 挂载并自定义DMG外观..."
+    local dev_name=$(hdiutil attach -readwrite -noverify -noautoopen -nobrowse "$temp_dmg" | grep -E '^/dev/' | sed 1q | awk '{print $1}')
     local mount_dir="/Volumes/$app_name"
-    hdiutil attach "$temp_dmg" -readwrite -noverify -noautoopen
     
     # 等待挂载完成
     sleep 3
+    
+    # 创建Applications符号链接
+    echo "创建Applications链接..."
+    ln -s /Applications "$mount_dir/Applications"
     
     # 创建隐藏的背景图片目录
     mkdir -p "$mount_dir/.background"
     
     # 设置DMG窗口属性和图标位置
+    echo "设置窗口外观..."
     osascript <<EOF
 tell application "Finder"
     tell disk "$app_name"
@@ -52,6 +61,7 @@ tell application "Finder"
         set viewOptions to the icon view options of container window
         set arrangement of viewOptions to not arranged
         set icon size of viewOptions to 128
+        set text size of viewOptions to 16
         set position of item "$app_name.app" of container window to {150, 200}
         set position of item "Applications" of container window to {350, 200}
         close
@@ -63,13 +73,19 @@ tell application "Finder"
 end tell
 EOF
     
-    # 设置文件夹属性为隐藏
-    SetFile -a V "$mount_dir/.background" 2>/dev/null || true
+    # 修复权限
+    echo "修复权限..."
+    chmod -Rf go-w "$mount_dir" &> /dev/null || true
+    
+    # 删除不必要的文件系统事件日志
+    rm -rf "$mount_dir/.fseventsd" 2>/dev/null || true
     
     # 卸载DMG
-    hdiutil detach "$mount_dir" -force
+    echo "卸载临时DMG..."
+    hdiutil detach "$dev_name"
     
     # 转换为只读压缩格式
+    echo "压缩DMG..."
     hdiutil convert "$temp_dmg" -format UDZO -imagekey zlib-level=9 -o "$dmg_path"
     
     # 清理临时文件
