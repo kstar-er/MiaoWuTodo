@@ -2,12 +2,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 // src-tauri/src/main.rs
 use tauri::Manager;
-mod tray; // 引入 tray 模块
-mod lib; // 引入 lib 模块
-use std::path::Path;
-use std::process::Command;
+mod lib;
+mod tray; // 引入 tray 模块 // 引入 lib 模块
+use dirs;
 use std::env;
-use dirs;  // 添加 dirs 导入
+use std::path::Path;
+use std::process::Command; // 添加 dirs 导入
 
 #[tauri::command]
 fn get_download_path(filename: String) -> Result<String, String> {
@@ -17,7 +17,7 @@ fn get_download_path(filename: String) -> Result<String, String> {
         .to_str()
         .ok_or("路径转换失败")?
         .to_string();
-    
+
     // 构建完整的文件路径
     let file_path = Path::new(&download_dir).join(filename);
     Ok(file_path.to_str().unwrap().to_string())
@@ -31,12 +31,12 @@ fn check_file_exists(path: String) -> Result<bool, String> {
 #[tauri::command]
 fn open_file(path: String) -> Result<(), String> {
     let path = Path::new(&path);
-    
+
     // 检查文件是否存在
     if !path.exists() {
         return Err("文件不存在".to_string());
     }
-    
+
     // 使用系统默认程序打开文件
     if cfg!(target_os = "windows") {
         Command::new("cmd")
@@ -54,7 +54,7 @@ fn open_file(path: String) -> Result<(), String> {
             .spawn()
             .map_err(|e| e.to_string())?;
     }
-    
+
     Ok(())
 }
 
@@ -76,12 +76,14 @@ fn main() {
 
     // 使用 lib.rs 中的插件配置
     let app_result = tauri::Builder::default()
+        .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
             lib::show_window(app)
         }))
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             get_download_path,
             check_file_exists,
