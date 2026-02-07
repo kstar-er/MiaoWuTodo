@@ -82,6 +82,7 @@ fn main() {
             lib::show_window(app)
         }))
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build()) 
         .invoke_handler(tauri::generate_handler![
             get_download_path,
             check_file_exists,
