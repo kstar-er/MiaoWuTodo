@@ -1127,6 +1127,7 @@ const openTaskDetail = async (type, task, index) => {
 };
 
 const handleInlineSaved = async (params) => {
+  console.log("保存后的参数", params);
   detailDrawerVisible.value = false;
   // 复用现有的刷新逻辑
   if (params?.id) {
