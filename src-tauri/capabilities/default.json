@@ -113,19 +113,50 @@
     "opener:default",
     {
       "identifier": "fs:scope",
-      "allow": [ { "path": "$APPDATA/*" },{ "path": "$DESKTOP/**" },{ "path": "$DOWNLOAD/**" }]
+      "allow": [
+        {
+          "path": "$APPDATA/*"
+        },
+        {
+          "path": "$DESKTOP/**"
+        },
+        {
+          "path": "$DOWNLOAD/**"
+        }
+      ]
     },
     {
       "identifier": "fs:allow-exists",
-      "allow": [{ "path": "$APPDATA/**" }]
+      "allow": [
+        {
+          "path": "$APPDATA/**"
+        }
+      ]
     },
     {
       "identifier": "fs:allow-create",
-      "allow": [ { "path": "$DESKTOP/**"}]
+      "allow": [
+        {
+          "path": "$DESKTOP/**"
+        }
+      ]
     },
     {
       "identifier": "fs:allow-copy-file",
-      "allow": [ { "path": "$DESKTOP/**"}]
-    }
+      "allow": [
+        {
+          "path": "$DESKTOP/**"
+        }
+      ]
+    },
+    {
+      "identifier": "updater:default",
+      "allow": [
+        "check",
+        "download",
+        "install"
+      ]
+    },
+    "os:default"
   ]
 }

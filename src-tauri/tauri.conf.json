@@ -27,7 +27,7 @@
         "decorations": false,
         "shadow": false,
         "skipTaskbar": true,
-        "backgroundColor":"#00000000"
+        "backgroundColor": "#00000000"
       }
     ],
     "security": {
@@ -44,9 +44,20 @@
     },
     "withGlobalTauri": true
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ5NDI3QkYwRDA0MEY3NDcKUldSSDkwRFE4SHRDMlRydUtZOERiQ2pWOXYrVHYvbGlCWDZxTml6c016MEwyeTlPQlhObDl0NUIK",
+      "windows": {
+        "installMode": "passive"
+      },
+      "endpoints": ["https://www.baiaidu.com:9822/eam/versionInformation/getLatestVersion?os={{target}}"],
+      "dangerousInsecureTransportProtocol": true
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -54,9 +65,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "icons/*"
-    ],
+    "resources": ["icons/*"],
     "externalBin": [],
     "copyright": "",
     "category": "DeveloperTool",
@@ -65,7 +74,7 @@
     "macOS": {
       "exceptionDomain": "*",
       "entitlements": "entitlements.plist"
-    },  
+    },
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",

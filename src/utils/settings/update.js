@@ -3,10 +3,47 @@ import packageJson from '../../../package.json';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
 import { pbRequest} from "../../public/pbRequest/index"
-// 查询项目列表
+import { check } from '@tauri-apps/plugin-updater';
+
+// 获取最新版本版本
 export async function getVersion() {
-  const { data: { code,data, message  } } = await pbRequest.get(`/eam/versionInformation/getLatestVersion`)
-  return code === 200 ? { code, data } : message
+  // 动态获取真实操作系统
+  const getOs = async () => {
+    if (typeof window.__TAURI__ !== 'undefined') {
+      return await window.__TAURI__.os.platform(); // 'win32', 'darwin'
+    }
+    return navigator.userAgent.includes('Mac') ? 'darwin' : 'win32';
+  };
+
+  const platform = await getOs();
+  const os = platform === 'darwin' ? 'mac' : 'windows'; // 转换为后端可识别的值
+
+  const res = await pbRequest.get(`/eam/versionInformation/getLatestVersion?os=${os}`);
+  console.log("res---", res);
+  if (res.status !== 200) {
+    throw new Error(`HTTP error: ${res.status}`);
+  }
+
+  const data = res.data;
+
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid response format');
+  }
+
+  // 强制统一字段名
+  const versionInfo = {
+    version: data.version || data.VERSION, // 兼容大小写
+    pub_date: data.pub_date,
+    signature: data.signature,
+    url: data.url,
+    notes: data.notes,
+  };
+
+  if (!versionInfo.version) {
+    throw new Error('没有version');
+  }
+
+  return versionInfo;
 }
 
 // 下载并安装更新
@@ -60,16 +97,19 @@ export const downloadAndInstall = async (url) => {
   }
 };
 
-// 检查更新
 export const checkUpdate = async (versionInfo) => {
   try {
+    console.log("检查更新:", versionInfo)
     // 获取自动更新设置
     const autoUpdate = localStorage.getItem('autoUpdate') !== 'false';
     if (!autoUpdate) return;
 
     // 获取当前版本和最新版本
     const currentVersion = packageJson.version;
-    const latestVersion = versionInfo.data.versionNumber;
+    const latestVersion = versionInfo.version;
+
+    const update = await check();
+    console.log("更新信息:", update);
 
     // 比较版本号
     if (currentVersion !== latestVersion) {
@@ -82,18 +122,13 @@ export const checkUpdate = async (versionInfo) => {
           type: 'info',
         }
       ).then(async () => {
-        // 获取下载链接
-        const downloadUrl = versionInfo.data.downloadUrl;
-        if (downloadUrl) {
-          // 下载并安装更新
-          await downloadAndInstall(downloadUrl);
-        } else {
-          ElMessage.error('获取下载链接失败');
-        }
-      }).catch(() => {
+        await update.downloadAndInstall();
+      }).catch((error) => {
+        console.error("error", error)
         ElMessage.info('已取消更新');
       });
     }
+    
   } catch (error) {
     console.error('检查更新失败:', error);
   }
