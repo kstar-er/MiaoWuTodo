@@ -32,6 +32,11 @@
 - 实现`performAISplit()`方法
 - 调用AIServiceClient获取AI分析结果
 - 解析JSON响应并转换为VO对象
+- **重构`confirmSplit()`方法**：复用`TaskInformationService.addOrUpdate()`方法
+  - 将子任务信息转换为`TaskInformationDTO`列表
+  - 使用`JsonListDto`包装数据
+  - 调用统一的任务创建接口，保证业务逻辑一致性
+  - 支持批量创建，提高性能
 - 完善错误处理和日志记录
 
 ### 3. 配置文件
@@ -134,6 +139,12 @@ Java解析并返回VO
 - 支持环境变量配置
 - 默认值设置
 - 灵活的服务地址配置
+
+### 5. 代码复用
+- **复用现有任务创建逻辑**：`confirmSplit()`方法调用`TaskInformationService.addOrUpdate()`
+- **统一数据格式**：使用`TaskInformationDTO`和`JsonListDto`
+- **保证业务一致性**：子任务创建遵循与普通任务相同的业务规则
+- **批量处理优化**：一次性创建多个子任务，减少数据库交互
 
 ## 使用示例
 

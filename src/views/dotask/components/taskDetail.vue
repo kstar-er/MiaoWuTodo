@@ -631,7 +631,7 @@ const addOrEditTask = reactive({
       type: "textarea",
       minRows: 4,
       maxRows: 4,
-      placeholder: "请输入备注内容",
+      placeholder: "请输入备注内容，带有数字序号可直接拆分生成子任务；不带数字序号拆分时由AI生成子任务",
       fullWidth: true
     },
   ],
