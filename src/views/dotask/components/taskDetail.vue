@@ -362,7 +362,11 @@ const initDataSource = async (event) => {
   formData.value.remark = formdata.remark || '';
 
   //上传图片模块
-  formData.value.caption = formdata.caption ? formdata.caption?.split(';').map(url => `https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/images/task/${url}`) : []
+  formData.value.caption = formdata.caption 
+    ? typeof formdata.caption === 'string'
+      ? formdata.caption.split(';').map(url => `https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/images/task/${url}`)
+      : [] // 如果不是字符串（如数组或 null），返回空数组
+    : [];
 
   if (!formdata.id) { // 新增
     // 截止时间默认选择
@@ -644,7 +648,7 @@ const addOrEditTask = reactive({
     }
   ],
   inputDone: async (val) => {
-    // console.log("111---val", val)
+    console.log("111---val", val)
     let params = { ...formData.value, ...val };
 
     params.priority = priority.value; // 优先级
@@ -661,8 +665,12 @@ const addOrEditTask = reactive({
     console.log("----提交的参数----", params)
     addOrUpdateTask({ list: [params] }).then((res) => {
       if (res && res.code){
-        proxy.$message.success('操作成功');
-        hideWin('addOrEdit', params);
+        if (formData.value.isSplit) {
+          proxy.$message.success('父任务保存成功，正在进行分析拆分，请稍候...');
+        } else {
+          proxy.$message.success('操作成功');
+          hideWin('addOrEdit', params);
+        }
       }
     })
   },
@@ -848,6 +856,20 @@ const showSplitButton = computed(() => {
 
 // 处理拆分任务
 const handleSplitTask = async (taskData) => {
+   try {
+    formData.value = {
+      ...formData.value,
+      isSplit: true // 标记要进行拆分子任务
+    }
+
+    await ruleFormRef.value?.submitForm(); // 先提交表单，触发表单验证和数据更新
+    console.log('父任务内容已成功保存');
+  } catch (saveError) {
+    console.error('保存父任务失败，无法进行拆分：', saveError);
+    proxy.$message.error('保存当前任务失败，请先手动保存后再尝试拆分');
+    return;
+  }
+
   if (!taskData.id) {
     proxy.$message.warning('请先保存任务后再进行拆分');
     return;
@@ -898,6 +920,20 @@ const handleConfirmSplit = async (splitData) => {
     if (result.data.code === 200) {
       proxy.$message.success(`拆分成功！已创建 ${result.data.data.length} 个子任务`);
       splitDialogVisible.value = false;
+
+      console.log('后端返回的新子任务数据:', result.data.data);
+
+      const splitData = result.data.data.map(subtask => {
+        return {
+          ...subtask,
+          userIdList: formData.value.userIdList // 继承父任务的负责人
+        }
+      })
+
+      formData.value = {
+        ...formData.value,
+        children: [...splitData] // 将新创建的子任务列表放入当前任务数据中
+      }
       
       // 拆分成功后刷新任务列表
       if (props.isInline) {

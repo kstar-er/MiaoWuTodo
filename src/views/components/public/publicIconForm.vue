@@ -852,10 +852,27 @@ const updateInput = (propObj) => { // 手动更新某个值
   })
 }
 
+// 保存按钮逻辑
+const submitForm = async () => {
+  await proxy.$refs.ruleFormRef.validate((valid, fields) => {
+    if (valid) {
+      if (_props.isLimits) {
+        let menuList = proxy.$refs.treeRef?.getCheckedKeys();
+        let halfMenuList = proxy.$refs.treeRef?.getHalfCheckedKeys();
+        myformData.value.menuIds = menuList.concat(halfMenuList);
+      }
+      _emits("inputDone", JSON.parse(JSON.stringify(myformData.value)));
+    } else {
+      console.log("error submit!", fields);
+    }
+  });
+};
+
 defineExpose({
   ruleFormRef,
   updateFormData,
-  updateInput
+  updateInput,
+  submitForm
 });
 
 const onExceed = () => {
@@ -958,21 +975,6 @@ const handleDelete = async () => {
     // 用户取消删除
     console.log('用户取消删除操作');
   }
-};
-
-const submitForm = async () => {
-  await proxy.$refs.ruleFormRef.validate((valid, fields) => {
-    if (valid) {
-      if (_props.isLimits) {
-        let menuList = proxy.$refs.treeRef?.getCheckedKeys();
-        let halfMenuList = proxy.$refs.treeRef?.getHalfCheckedKeys();
-        myformData.value.menuIds = menuList.concat(halfMenuList);
-      }
-      _emits("inputDone", JSON.parse(JSON.stringify(myformData.value)));
-    } else {
-      console.log("error submit!", fields);
-    }
-  });
 };
 
 const handleRemove = (file, url, key) => {
