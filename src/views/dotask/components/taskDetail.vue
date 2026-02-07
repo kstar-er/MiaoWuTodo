@@ -849,9 +849,10 @@ const splitDialogVisible = ref(false);
 const splitResult = ref(null);
 const splitLoading = ref(false);
 
-// 是否显示拆分按钮（只有已保存的任务才能拆分）
+// 是否显示拆分按钮
 const showSplitButton = computed(() => {
-  return Boolean(formData.value?.id);
+  return true; // 不限制
+  // return Boolean(formData.value?.id);
 });
 
 // 处理拆分任务
@@ -870,10 +871,10 @@ const handleSplitTask = async (taskData) => {
     return;
   }
 
-  if (!taskData.id) {
-    proxy.$message.warning('请先保存任务后再进行拆分');
-    return;
-  }
+  // if (!taskData.id) {
+  //   proxy.$message.warning('请先保存任务后再进行拆分');
+  //   return;
+  // }
 
   console.log('开始拆分任务，taskData:', taskData);
   splitDialogVisible.value = true;
