@@ -32,7 +32,7 @@ const getTime = () => {
  */
 // 环境兼容 vite
 const isPro = import.meta.env.VITE_APP_ENV === 'pro';
-const baseURL = isPro ? 'https://www.baiaidu.com:9822' : 'http://192.168.1.10:9820';
+const baseURL = isPro ? 'https://www.baiaidu.com:9822' : 'http://192.168.1.25:9820';
 // const baseURL =  'https://www.baiaidu.com:9822' ;
 
 const pbRequest = axios.create({
@@ -159,7 +159,20 @@ pbRequest.interceptors.response.use(
       return response
     }
 
-    if (response.data.code !== 200){
+    if (response.config.url.includes('/eam/versionInformation/getLatestVersion')) {
+      if (response.status !== 200) {
+        ElMessageBox.alert(response.data.msg ?? response.data.message, '提示', {
+          type: 'warning',
+          icon: 'InfoFilled',
+          confirmButtonText: '我知道了',
+          dangerouslyUseHTMLString: true
+        });
+        return response;
+      }
+      return response;
+    }
+
+    if (response.data.code !== 200 || response.status !== 200){
       ElMessageBox.alert(response.data.msg ?? response.data.message, '提示', {
         type: 'warning',
         icon: 'InfoFilled',

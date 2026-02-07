@@ -647,7 +647,8 @@ const getAppVersion = async () => {
     const savedAutoUpdate = localStorage.getItem('autoUpdate')
     autoUpdate.value = savedAutoUpdate !== null ? JSON.parse(savedAutoUpdate) : true
     versionInfo = await getVersion()
-    version.value = versionInfo.data.versionNumber
+    console.log('获取版本信息：', versionInfo)
+    version.value = versionInfo.version
 
     checkUpdate(versionInfo)
     // 获取版本号
@@ -695,13 +696,12 @@ onMounted(async () => {
   await getAppVersion();
   try {
     console.log('获取版本信息：', versionInfo)
-    updateContent.value = versionInfo.data.updatedContent || '暂无更新内容'
+    updateContent.value = versionInfo.notes || '暂无更新内容'
   } catch (error) {
     console.error('获取版本信息失败:', error)
     version.value = '获取失败'
     updateContent.value = '获取更新内容失败'
   }
-  
 })
 
 onUnmounted(() => {
