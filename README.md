@@ -51,21 +51,14 @@ npm run tauri build --no-log
   oss路径：https://guoqinghh5.oss-cn-shanghai.aliyuncs.com
 
 5. 获取签名文件.sig：
-  方式一：将打包好的安装文件路径，运行命令，用私钥文件获取 签名signature
-  步骤：（1）将项目下"~/.tauri/myapp.key"的私钥文件，复制到本地用户下路径，比如：C:/用户/你的电脑用户名/.tauri/myapp.key（若已复制，此步骤可跳过）
-       （2）运行命令：tauri signer sign 打包好的文件路径> --private-key-path ~/.tauri/myapp.key
-            e.g. windows版本: tauri signer sign src-tauri/target/release/bundle/nsis/MiaowuTodo_1.1.0_x64-setup.exe --private-key-path ~/.tauri/myapp.key
-            e.g. mac版本：同理，但是需要用.tar.gz后缀的打包文件
-       （3）输入密码：123456
-
-  方式二：直接用私钥获取 签名
-    （1）直接运行命令：tauri signer sign 打包好的文件路径> --private-key "<将项目下私钥文件里面的私钥复制到这里>"
+  步骤：
+    （1）直接运行命令：tauri signer sign <打包好的文件路径> --private-key "<将项目下私钥文件里面的私钥复制到这里>"
       e.g. windows版本: tauri signer sign src-tauri/target/release/bundle/nsis/MiaowuTodo_1.1.0_x64-setup.exe --private-key "xxxxx"
     （2）输入密码：123456
 
-6. 步骤五运行完tauri signer sign和输入密码以后，将获取到的.sig的签名文件里面的签名字符串发给后端：
-  生成的.sig文件在该文件目录下：/src-tauri/target/release/bundle/nsis
-  或是 直接复制命令行输出的Public signature后的字符串
+6. 步骤五运行完tauri signer sign和输入密码以后，将获取到的.sig的签名文件里面的签名字符串发给后端、以及与安装包放置在同一个oss路径下面：
+  文件路径：/src-tauri/target/release/bundle/nsis
+  oss路径：https://guoqinghh5.oss-cn-shanghai.aliyuncs.com
 
 7. 下载oss路径中的软件包，重新安装测试功能完整性。
 8. 修改更新日志，将更新内容以及部署路径更新上去。
