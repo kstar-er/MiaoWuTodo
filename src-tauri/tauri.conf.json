@@ -50,7 +50,7 @@
       "windows": {
         "installMode": "passive"
       },
-      "endpoints": [ "http://192.168.1.25:9820/eam/versionInformation/getLatestVersion?os=windows" ],
+      "endpoints": ["https://www.baiaidu.com:9822/eam/versionInformation/getLatestVersion?os={{target}}"],
       "dangerousInsecureTransportProtocol": true
     }
   },

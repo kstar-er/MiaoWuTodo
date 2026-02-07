@@ -108,8 +108,8 @@ export const checkUpdate = async (versionInfo) => {
     const currentVersion = packageJson.version;
     const latestVersion = versionInfo.version;
 
-    const update = await check(); // 获取 updater 实例
-    console.log("update---", update)
+    const update = await check();
+    console.log("更新信息:", update);
 
     // 比较版本号
     if (currentVersion !== latestVersion) {
@@ -128,6 +128,7 @@ export const checkUpdate = async (versionInfo) => {
         ElMessage.info('已取消更新');
       });
     }
+    
   } catch (error) {
     console.error('检查更新失败:', error);
   }
