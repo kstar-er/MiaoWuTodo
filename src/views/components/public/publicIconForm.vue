@@ -866,13 +866,14 @@ const updateFormData = (newData) => { // 手动更新myformData的所有值
   Object.assign(myformData.value, newData);
   checkDeletePermission(); // 检查删除权限
 
-  console.log("updateFormData", myformData.value)
+  console.log("更新表单值：", myformData.value)
 }
 
 const updateInput = (propObj) => { // 手动更新某个值
   Object.keys(propObj).forEach(key => {
     myformData.value[key] = propObj[key]
   })
+  console.log('手动更新某个值: ', myformData.value)
 }
 
 // 保存按钮逻辑
@@ -883,6 +884,10 @@ const submitForm = async () => {
         let menuList = proxy.$refs.treeRef?.getCheckedKeys();
         let halfMenuList = proxy.$refs.treeRef?.getHalfCheckedKeys();
         myformData.value.menuIds = menuList.concat(halfMenuList);
+      }
+      myformData.value = {
+        ...myformData.value,
+        isSave: true
       }
       if (myformData.value?.isSplit) delete myformData.value.isSplit;
       _emits("inputDone", JSON.parse(JSON.stringify(myformData.value)));
@@ -995,6 +1000,7 @@ const handleSplit = async () => {
         ...myformData.value,
         isSplit: true
       }
+      if (myformData.value?.isSave) delete myformData.value.isSave;
       _emits("inputDone", JSON.parse(JSON.stringify(myformData.value)));
     } else {
       console.log("error submit!", fields);

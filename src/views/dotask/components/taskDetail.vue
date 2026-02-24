@@ -428,7 +428,12 @@ const initInlineData = async (data) => {
     // 备注模块
     formData.value.remark = data.remark || '';
     // 上传图片模块
-    formData.value.caption = data.caption ? data.caption.split(';').map(url => `https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/images/task/${url}`) : []
+    formData.value.caption = data.caption 
+    ? typeof data.caption === 'string'
+      ? data.caption.split(';').map(url => `https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/images/task/${url}`)
+      : [] // 如果不是字符串（如数组或 null），返回空数组
+    : [];
+
     if (!data.id) {
       // 截止时间默认选择
       if (!data.deadline) formData.value.deadline = getCurrentFormattedTime();
@@ -661,23 +666,35 @@ const addOrEditTask = reactive({
 
     if (params.id === null) delete params.id;
     if (params?.taskExecutor) delete params.taskExecutor;
+
     delete params.leaderList;
     delete params.taskExecutorList;
 
     console.log("----提交的参数----", params)
-    addOrUpdateTask({ list: [params] }).then((res) => {
+    addOrUpdateTask({ list: [params] }).then(async(res) => {
       if (res && res.code){
         if (val.isSplit) {
-          let data = {...res.data[0], isSplit: true};
-          emitInline('inlineSaved', data);
+          let data = {...res.data[0]};
+
+          // 主窗口刷新
+          if (props.isInline) {
+            emitInline('inlineSaved', {...params});
+          } else {
+            let main_win = getCurrentWindow(emit_win);
+            main_win.emit("task-info-updated", {action: params.id ? "updated" : "add", schedule: params.schedule, data: params})
+          }
+          
           proxy.$message.success('父任务保存成功，正在进行分析拆分，请稍候...');
-          console.log("formdata----", formData.value)
-          if (!formData.value?.id) {
+          
+          if (!params.id) {
             formData.value = {
-              ...formData.value,
-              ...data
+              ...data,
+              ...val,
+              id: data.id
             };
-            initInlineData(data)
+            await nextTick(()=> { // 手动强制刷新表单数据
+              ruleFormRef.value?.updateFormData(formData.value);
+            })
           };
           handleSplitTask(data);
         } else {
@@ -946,7 +963,9 @@ const handleConfirmSplit = async (splitData) => {
 
       formData.value = {
         ...formData.value,
-        children: [...splitData] // 将新创建的子任务列表放入当前任务数据中
+        children: [...splitData], // 将新创建的子任务列表放入当前任务数据中
+        isSave: true,
+        isSplit: true
       }
       console.log("form", formData.value, props.isInline)
       // 拆分成功后刷新任务列表
@@ -955,15 +974,8 @@ const handleConfirmSplit = async (splitData) => {
         
         emitInline("inlineSaved", formData.value);
       } else {
-        // 非内联模式：通知主窗口刷新任务列表
-        let main_win = getCurrentWindow(emit_win);
-        main_win.emit("task-info-updated", {
-          action: "updated", 
-          schedule: formData.value.schedule, 
-          data: formData.value
-        });
-        // 关闭窗口
-        hideWin();
+        // 非内联模式：通知主窗口刷新任务列表，并关闭窗口
+        hideWin('addOrEdit', formData.value);
       }
     } else {
       proxy.$message.error(result.message || '拆分任务失败');
