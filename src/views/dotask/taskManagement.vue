@@ -1128,9 +1128,12 @@ const openTaskDetail = async (type, task, index) => {
 
 const handleInlineSaved = async (params) => {
   console.log("保存后的参数", params);
-  detailDrawerVisible.value = false;
+  if (!params.isSplit) {
+    detailDrawerVisible.value = false;
+  }
+  
   // 复用现有的刷新逻辑
-  if (params?.id) {
+  if (params?.id && !params.isSplit) {
     // 编辑
     if ( params.parentId === 0 && ((active_process.value === "all" && active_alltask.value !== params.schedule)
         || ( active_process.value !== "all" && params.schedule !== active_onetask.value))) {

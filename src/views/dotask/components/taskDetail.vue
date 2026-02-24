@@ -599,7 +599,7 @@ const addOrEditTask = reactive({
       icon: "Timer",
       color: "#d47549",
       size: "18",
-      fullWidth: false
+      fullWidth: true
     },
   ],
   formSelectEl: [
@@ -636,6 +636,7 @@ const addOrEditTask = reactive({
       minRows: 4,
       maxRows: 4,
       placeholder: "请输入备注内容，带有数字序号可直接拆分生成子任务；不带数字序号拆分时由AI生成子任务",
+      customStyle: {width: '85%'},
       fullWidth: true
     },
   ],
@@ -649,6 +650,7 @@ const addOrEditTask = reactive({
   ],
   inputDone: async (val) => {
     console.log("111---val", val)
+    console.log("111---formdata", formData.value)
     let params = { ...formData.value, ...val };
 
     params.priority = priority.value; // 优先级
@@ -665,8 +667,19 @@ const addOrEditTask = reactive({
     console.log("----提交的参数----", params)
     addOrUpdateTask({ list: [params] }).then((res) => {
       if (res && res.code){
-        if (formData.value.isSplit) {
+        if (val.isSplit) {
+          let data = {...res.data[0], isSplit: true};
+          emitInline('inlineSaved', data);
           proxy.$message.success('父任务保存成功，正在进行分析拆分，请稍候...');
+          console.log("formdata----", formData.value)
+          if (!formData.value?.id) {
+            formData.value = {
+              ...formData.value,
+              ...data
+            };
+            initInlineData(data)
+          };
+          handleSplitTask(data);
         } else {
           proxy.$message.success('操作成功');
           hideWin('addOrEdit', params);
@@ -857,19 +870,19 @@ const showSplitButton = computed(() => {
 
 // 处理拆分任务
 const handleSplitTask = async (taskData) => {
-   try {
-    formData.value = {
-      ...formData.value,
-      isSplit: true // 标记要进行拆分子任务
-    }
+  //  try {
+  //   formData.value = {
+  //     ...formData.value,
+  //     isSplit: true // 标记要进行拆分子任务
+  //   }
 
-    await ruleFormRef.value?.submitForm(); // 先提交表单，触发表单验证和数据更新
-    console.log('父任务内容已成功保存');
-  } catch (saveError) {
-    console.error('保存父任务失败，无法进行拆分：', saveError);
-    proxy.$message.error('保存当前任务失败，请先手动保存后再尝试拆分');
-    return;
-  }
+  //   await ruleFormRef.value?.submitForm(); // 先提交表单，触发表单验证和数据更新
+  //   console.log('父任务内容已成功保存');
+  // } catch (saveError) {
+  //   console.error('保存父任务失败，无法进行拆分：', saveError);
+  //   proxy.$message.error('保存当前任务失败，请先手动保存后再尝试拆分');
+  //   return;
+  // }
 
   // if (!taskData.id) {
   //   proxy.$message.warning('请先保存任务后再进行拆分');
@@ -935,10 +948,11 @@ const handleConfirmSplit = async (splitData) => {
         ...formData.value,
         children: [...splitData] // 将新创建的子任务列表放入当前任务数据中
       }
-      
+      console.log("form", formData.value, props.isInline)
       // 拆分成功后刷新任务列表
       if (props.isInline) {
         // 内联模式：通知父组件刷新任务列表
+        
         emitInline("inlineSaved", formData.value);
       } else {
         // 非内联模式：通知主窗口刷新任务列表

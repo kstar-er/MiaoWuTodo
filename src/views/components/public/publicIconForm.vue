@@ -317,6 +317,7 @@
           :prop="item.key"
           :class="{'full-width': item.fullWidth}"
           class="form-item"
+          style="width: 100%; display: flex;"
         >
           <template #label>
             <el-popover
@@ -344,6 +345,7 @@
             :placeholder="item.placeholder ? item.placeholder : `请输入${item.title}`"
             :disabled="item.type === 'dialog' || item.disabled"
             :autosize="{ minRows: item.minRows ? item.minRows : 3, maxRows: item.maxRows ? item.maxRows : 6 }"
+            :style="item.customStyle"
             clearable
           >
             <template v-if="item.type === 'dialog'" #append>
@@ -355,6 +357,26 @@
             </template>
           </el-input>
 
+          <el-tooltip
+            v-if="showSplitButton"
+            content="拆分任务" 
+            placement="top" 
+            :show-after="800"
+            :hide-after="200"
+            effect="dark"
+            :disabled="false"
+          >
+            <el-button
+              type="warning"
+              style="float: left; margin-left: 25px; width: 40px; height: 40px;"
+              @click="handleSplit"
+              class="btn-base btn-warning"
+              circle
+            >
+              <img :src="imageList.split" alt="拆分" style="width: 23px;height: 23px;">
+            </el-button>
+          </el-tooltip>
+          
           <div v-if="item.element === 'markdown'" class="markdown-preview" v-html="myformData[item.key]"></div>
         </el-form-item>
 
@@ -632,7 +654,7 @@
       </el-tooltip>
 
       <!-- 拆分按钮 -->
-      <el-tooltip
+      <!-- <el-tooltip
         v-if="showSplitButton"
         content="拆分任务" 
         placement="top" 
@@ -648,9 +670,9 @@
           class="btn-base btn-warning"
           circle
         >
-          <el-icon><Operation /></el-icon>
+          <img :src="imageList.split" alt="拆分" style="width: 23px;height: 23px;">
         </el-button>
-      </el-tooltip>
+      </el-tooltip> -->
 
       <!-- 删除按钮 -->
       <el-button
@@ -700,7 +722,8 @@ import RichTextEditor from './RichTextEditor.vue';
 const { proxy } = getCurrentInstance();
 
 const imageList = ref({
-  hint: './hint.svg'
+  hint: './hint.svg',
+  split: './split.svg'
 })
 
 const ruleFormRef = ref(null);
@@ -861,6 +884,7 @@ const submitForm = async () => {
         let halfMenuList = proxy.$refs.treeRef?.getHalfCheckedKeys();
         myformData.value.menuIds = menuList.concat(halfMenuList);
       }
+      if (myformData.value?.isSplit) delete myformData.value.isSplit;
       _emits("inputDone", JSON.parse(JSON.stringify(myformData.value)));
     } else {
       console.log("error submit!", fields);
@@ -955,9 +979,27 @@ const checkDeletePermission = () => {
   showDeleteButton.value = Boolean(isEditMode  && creator && currentUser === creator);
 };
 
-// 处理拆分任务
-const handleSplit = () => {
-  _emits("splitTask", myformData.value);
+/**
+ * 处理拆分任务
+ * 先提交保存再调用拆分
+ */
+const handleSplit = async () => {
+  await proxy.$refs.ruleFormRef.validate((valid, fields) => {
+    if (valid) {
+      if (_props.isLimits) {
+        let menuList = proxy.$refs.treeRef?.getCheckedKeys();
+        let halfMenuList = proxy.$refs.treeRef?.getHalfCheckedKeys();
+        myformData.value.menuIds = menuList.concat(halfMenuList);
+      }
+      myformData.value = {
+        ...myformData.value,
+        isSplit: true
+      }
+      _emits("inputDone", JSON.parse(JSON.stringify(myformData.value)));
+    } else {
+      console.log("error submit!", fields);
+    }
+  });
 };
 
 // 处理删除任务
