@@ -20,176 +20,174 @@
       </div>
     </div>
 
-    <div style="padding-bottom: 80px;">
-      <publicIconForm
-        ref="ruleFormRef"
-        :label-width="'90px'"
-        :show-save-button="showSaveButton"
-        :form-data="formData"
-        :form-input-el="detailForm.formInputEl"
-        :form-select-el="detailForm.formSelectEl"
-        :form-text-area-el="detailForm.formTextAreaEl"
-        :form-upload-el="detailForm.formUploadEl"
-        :form-time-and-number="detailForm.formTimeAndNumber"
-        :form-switch-el="detailForm.formSwitchEl"
-        :form-editor-el="detailForm.formEditorEl"
-        :my-client="myClient"
-        :drawer-direction="props.drawerDirection"
-        @hide-win="hideWin"
-        @input-done="detailForm.inputDone"
-        @delete-item="handleDeleteItem"
-      >
-        <template #selectAppend>
-          <el-form-item
-            label="团队/项目"
-            prop="groupId"
-            style="width:100%;"
-            v-if="formData.reportType === 'group' || formData.reportType === 'project'"
+    <publicIconForm
+      ref="ruleFormRef"
+      :label-width="'90px'"
+      :show-save-button="showSaveButton"
+      :form-data="formData"
+      :form-input-el="detailForm.formInputEl"
+      :form-select-el="detailForm.formSelectEl"
+      :form-text-area-el="detailForm.formTextAreaEl"
+      :form-upload-el="detailForm.formUploadEl"
+      :form-time-and-number="detailForm.formTimeAndNumber"
+      :form-switch-el="detailForm.formSwitchEl"
+      :form-editor-el="detailForm.formEditorEl"
+      :my-client="myClient"
+      :drawer-direction="props.drawerDirection"
+      @hide-win="hideWin"
+      @input-done="detailForm.inputDone"
+      @delete-item="handleDeleteItem"
+    >
+      <template #selectAppend>
+        <el-form-item
+          label="团队/项目"
+          prop="groupId"
+          style="width:100%;"
+          v-if="formData.reportType === 'group' || formData.reportType === 'project'"
+        >
+          <template #label>
+            <el-popover
+              placement="top"
+              width="300"
+              :hide-after="0"
+            >
+              <template #reference>
+                <el-icon style="color: #d47549" size="18">
+                  <User v-if="formData.reportType === 'group'"/>
+                  <List v-else/>
+                </el-icon>
+              </template>
+              <template #default>
+                该模板的所属{{formData.reportType === 'group' ? '团队' : '项目' }}
+              </template>
+            </el-popover>
+          </template>
+
+          <el-select
+            v-if="formData.reportType === 'group'"
+            v-model="formData.groupId"
+            placeholder="请选择该模板的所属团队"
+            clearable
+            @change="handleChangeGroup"
           >
-            <template #label>
-              <el-popover
-                placement="top"
-                width="300"
-                :hide-after="0"
-              >
-                <template #reference>
-                  <el-icon style="color: #d47549" size="18">
-                    <User v-if="formData.reportType === 'group'"/>
-                    <List v-else/>
-                  </el-icon>
-                </template>
-                <template #default>
-                  该模板的所属{{formData.reportType === 'group' ? '团队' : '项目' }}
-                </template>
-              </el-popover>
-            </template>
+            <el-option
+              v-for="item in formData.groupList"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
 
-            <el-select
-              v-if="formData.reportType === 'group'"
-              v-model="formData.groupId"
-              placeholder="请选择该模板的所属团队"
-              clearable
-              @change="handleChangeGroup"
+          <el-select
+            v-if="formData.reportType === 'project'"
+            v-model="formData.projectId"
+            placeholder="请选择该模板的所属项目"
+            clearable
+            @change="handleChangeProject"
+          >
+            <el-option
+              v-for="item in formData.projectList"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
+      </template>
+
+      <template #timeAndNumberAppend>
+        <div class="full-width">
+          <div class="switch-container">
+            <el-form-item
+              v-for="(item, index) in formSwitchEl"
+              :key="index"
+              :label="item.title"
+              :rules="item.rules"
+              :prop="item.key"
+              class="switch-item"
             >
-              <el-option
-                v-for="item in formData.groupList"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
+              <template #label>
+                <el-popover
+                  v-if="item.illustrate"
+                  placement="top"
+                  width="300"
+                  :hide-after="0"
+                >
+                  <template #reference>
+                    <el-icon :style="`color: ${item.color ? item.color : 'orange'}`" :size="item.size ? item.size : ''">
+                      <component :is="item.icon ? item.icon : 'Warning'" />
+                    </el-icon>
+                  </template>
+                  <template #default>
+                    {{ item.illustrate }}
+                  </template>
+                </el-popover>
+                <div v-if="!item.icon">{{ item.title }}</div>
+              </template>
+              <el-switch
+                v-model="formData[item.key]"
+                :disabled="item.disabled"
+                inline-prompt
+                @change="item.change"
               />
-            </el-select>
+            </el-form-item>
+          </div>
+        </div>
+      </template>
 
-            <el-select
-              v-if="formData.reportType === 'project'"
-              v-model="formData.projectId"
-              placeholder="请选择该模板的所属项目"
-              clearable
-              @change="handleChangeProject"
+      <template #textAreaAppend v-if="formData.type === 'template'">
+        <el-form-item
+          label="可用模板"
+          prop="contentFormat"
+          style="width: 100%;"
+          class="full-width"
+        >
+          <template #label>
+            <el-popover
+              placement="top"
+              width="300"
+              :hide-after="0"
             >
-              <el-option
-                v-for="item in formData.projectList"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
-          </el-form-item>
-        </template>
+              <template #reference>
+                <el-icon style="color: #d47549" size="18">
+                  <FolderOpened />
+                </el-icon>
+              </template>
+              <template #default>
+                快速选择可用模板（重复点击某个模板即可取消选中）
+              </template>
+            </el-popover>
+          </template>
 
-        <template #timeAndNumberAppend>
-          <div class="full-width">
-            <div class="switch-container">
-              <el-form-item
-                v-for="(item, index) in formSwitchEl"
-                :key="index"
-                :label="item.title"
-                :rules="item.rules"
-                :prop="item.key"
-                class="switch-item"
-              >
-                <template #label>
-                  <el-popover
-                    v-if="item.illustrate"
-                    placement="top"
-                    width="300"
-                    :hide-after="0"
-                  >
-                    <template #reference>
-                      <el-icon :style="`color: ${item.color ? item.color : 'orange'}`" :size="item.size ? item.size : ''">
-                        <component :is="item.icon ? item.icon : 'Warning'" />
-                      </el-icon>
-                    </template>
-                    <template #default>
-                      {{ item.illustrate }}
-                    </template>
-                  </el-popover>
-                  <div v-if="!item.icon">{{ item.title }}</div>
-                </template>
-                <el-switch
-                  v-model="formData[item.key]"
-                  :disabled="item.disabled"
-                  inline-prompt
-                  @change="item.change"
-                />
-              </el-form-item>
+          <div class="template-card-container">
+            <div
+              v-for="tmpl in templateList"
+              :key="tmpl.id"
+              class="template-card"
+              @click="handleTemplateSelect(tmpl.id)"
+              :class="{ selected: formData.contentFormat === tmpl.id }"
+            >
+              <!-- 图标 -->
+              <img
+                v-if="!tmpl.isMore"
+                src="@/assets/images/template.png"
+                alt="文档"
+                class="template-icon"
+              />
+              <img
+                v-else
+                src="@/assets/images/more.png"
+                alt="更多"
+                class="template-icon"
+              />
+
+              <!-- 名称 -->
+              <span class="template-name">{{ tmpl.name }}</span>
             </div>
           </div>
-        </template>
-
-        <template #textAreaAppend v-if="formData.type === 'template'">
-          <el-form-item
-            label="可用模板"
-            prop="contentFormat"
-            style="width: 100%;"
-            class="full-width"
-          >
-            <template #label>
-              <el-popover
-                placement="top"
-                width="300"
-                :hide-after="0"
-              >
-                <template #reference>
-                  <el-icon style="color: #d47549" size="18">
-                    <FolderOpened />
-                  </el-icon>
-                </template>
-                <template #default>
-                  快速选择可用模板（重复点击某个模板即可取消选中）
-                </template>
-              </el-popover>
-            </template>
-
-            <div class="template-card-container">
-              <div
-                v-for="tmpl in templateList"
-                :key="tmpl.id"
-                class="template-card"
-                @click="handleTemplateSelect(tmpl.id)"
-                :class="{ selected: formData.contentFormat === tmpl.id }"
-              >
-                <!-- 图标 -->
-                <img
-                  v-if="!tmpl.isMore"
-                  src="@/assets/images/template.png"
-                  alt="文档"
-                  class="template-icon"
-                />
-                <img
-                  v-else
-                  src="@/assets/images/more.png"
-                  alt="更多"
-                  class="template-icon"
-                />
-
-                <!-- 名称 -->
-                <span class="template-name">{{ tmpl.name }}</span>
-              </div>
-            </div>
-          </el-form-item>
-        </template>
-      </publicIconForm>
-    </div>
+        </el-form-item>
+      </template>
+    </publicIconForm>
   </main>
 </template>
 

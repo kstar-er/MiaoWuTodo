@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <div class="form_area">
+  <div class="form-container">
+    <div class="form-area">
       <el-form
         ref="ruleFormRef"
         :label-width="labelWidth"
@@ -1122,6 +1122,19 @@ const handleDateChange = (key, value, type) => {
 <style lang="less" scoped>
 @import "../../../assets/global.less";
 
+.form-container {
+  position: relative;
+  height: 100%;
+  .form-area {
+    height: 82%;
+    overflow-y: auto;
+  }
+  .footer-btn {
+    width: 100%;
+    height: 60px;
+  }
+}
+
 .form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -1135,12 +1148,6 @@ const handleDateChange = (key, value, type) => {
 
 .full-width {
   grid-column: span 2;
-}
-
-.footer-btn {
-  height: 60px;
-  bottom: 0;
-  right: 0;
 }
 
 /* 确保删除图标按钮样式在 scoped 下正确生效并覆盖 Element Plus 默认样式 */
