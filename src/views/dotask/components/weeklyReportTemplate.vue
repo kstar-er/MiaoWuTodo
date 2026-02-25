@@ -49,7 +49,7 @@
             </div>
             <div class="info-row" v-if="template.scheduleType !== 'manual'">
               <span class="label">生成日：</span>
-              <span v-if="template.scheduleType === 'monthly'">{{ getWeeklyLabel(template.generateDay) }}</span>
+              <span v-if="template.scheduleType === 'weekly'">{{ getWeeklyLabel(template.generateDay) }}</span>
               <span v-else>{{ template.generateDay }}号</span>
             </div>
           </div>
