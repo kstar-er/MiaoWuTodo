@@ -167,7 +167,7 @@ import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 import { createMainWin, createWinPetWin } from "../multiwins/action";
 import customDragWindow from "../views/components/public/customDragWindow.vue"; // 封装窗口拖拽
 import CryptoJS from "crypto-js";
-import { checkUpdate,getVersion } from "../utils/settings/update";
+import { checkUpdate, getVersion } from "../utils/settings/update";
 
 import { listen } from '@tauri-apps/api/event'
 
@@ -207,6 +207,7 @@ const forgot = reactive({
 let login_win = getCurrentWindow("login"); // 登录窗口实例
 const SECRET_KEY = "do-task-secret-key"; // 加密密钥
 let unlistenFn = null; // 事件监听器
+let unlistenFn1 = null;
 
 // 清除登录表单的函数
 const clearLoginForm = () => {
@@ -232,7 +233,7 @@ onMounted(async () => {
   if (proxy.$disconnect) proxy.$disconnect();
   
   // 检查更新
-  await checkUpdate(await getVersion());
+  await checkUpdate(await getVersion('login'));
   
   // 使用 Tauri 事件系统监听清除登录表单的事件
   try {
@@ -244,12 +245,25 @@ onMounted(async () => {
   } catch (error) {
     console.error('设置事件监听器失败:', error);
   }
+
+  try {
+    unlistenFn1 = await listen('login-update-cancel', () => {
+      proxy.$message.warning('已取消更新')
+    });
+    console.log('登录页面已监听 update-cancel事件');
+  } catch (error) {
+    console.error('设置事件监听器失败:', error);
+  }
 });
 
 onUnmounted(async () => {
   // 移除事件监听器
   if (unlistenFn) {
     await unlistenFn();
+    console.log('登录页面已移除事件监听器');
+  }
+  if (unlistenFn1) {
+    await unlistenFn1();
     console.log('登录页面已移除事件监听器');
   }
   if (countdownTimer) {

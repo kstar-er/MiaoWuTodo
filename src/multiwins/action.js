@@ -171,7 +171,7 @@ export async function createNewWin(newWindow) {
 
   return new Promise((resolve, reject) => {
     const successHandler = () => {
-      console.log("任务窗口已成功创建");
+      console.log(`${newWindow.label} 已成功创建`);
       resolve(true); // 成功时为 true
     };
 
@@ -674,6 +674,44 @@ export async function createOrEditGroupWin() {
   }
 }
 
+/**
+ * @desc 更新窗口
+ */
+export async function createUpdateWin(data) {
+  const args = {
+    label: "update_dialog",
+    url: "index.html#/update-dialog",
+    title: "发现新版本",
+    width: 600,
+    height: 400,
+    resizable: false,
+    center: true,
+    visible: false,
+    alwaysOnTop: true,
+    decorations: false,
+    theme: 'Dark'
+  }
+  console.log("update-window-data: ", data)
+  await checkIsExisting(args);
+  const main_win = await WebviewWindow.getByLabel(data.win);
+  const newWindow = new WebviewWindow(args.label, args);
+  const res = await createNewWin(newWindow);
+
+  console.log("111---action----win", main_win);
+  if (res) {
+    console.log(args.label, "窗口 已准备好");
+    await newWindow.show();
+    listenAndRemove(newWindow, "update-window-ready", async (event) => {
+      console.log("update-window: ", data)
+      if (data) {
+        const token = sessionStorage.getItem("token");
+        await main_win.emit("update-info", { token, data });
+        await newWindow.show(); // 显示窗口
+      }
+    });
+  }
+}
+
 
 export default {
   createWin,
@@ -692,5 +730,6 @@ export default {
   createFilterWin,
   createInformWin,
   createOrEditGroupWin,
-  createGroupMemberDetailWin
+  createGroupMemberDetailWin,
+  createUpdateWin
 };

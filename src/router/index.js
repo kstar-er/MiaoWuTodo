@@ -196,6 +196,14 @@ const routes = [
     },
   },
   {
+    path: '/update-dialog',
+    name: 'updateDialog',
+    component: () => import('../views/dotask/components/updateDialog.vue'),
+    meta: {
+      title: '更新'
+    }
+  },
+  {
     path: '/update-content',
     name: 'updateContent',
     component: () => import('../views/dotask/updateContent.vue'),

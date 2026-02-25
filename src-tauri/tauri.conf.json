@@ -47,11 +47,10 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ5NDI3QkYwRDA0MEY3NDcKUldSSDkwRFE4SHRDMlRydUtZOERiQ2pWOXYrVHYvbGlCWDZxTml6c016MEwyeTlPQlhObDl0NUIK",
-      "windows": {
-        "installMode": "passive"
-      },
       "endpoints": ["https://www.baiaidu.com:9822/eam/versionInformation/getLatestVersion?os={{target}}"],
-      "dangerousInsecureTransportProtocol": true
+      "dangerousInsecureTransportProtocol": true,
+      "enabled": true,
+      "auto_update": false
     }
   },
   "bundle": {

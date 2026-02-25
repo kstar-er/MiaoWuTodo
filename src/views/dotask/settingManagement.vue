@@ -274,8 +274,29 @@ import { useRouter } from 'vue-router';
 import { logout, updateProfile, updatePassword } from '../../utils/login';
 import { uploadAvatarToOSS } from '../../utils/upload/secureOSSUpload.js';
 import CryptoJS from 'crypto-js';
+import { listen } from "@tauri-apps/api/event";
 import { emit } from '@tauri-apps/api/event';
 const { proxy } = getCurrentInstance();
+
+let unlistenFn = null;
+onMounted(async () => {
+  try {
+    unlistenFn = await listen('main_task-update-cancel', () => {
+      proxy.$message.warning('已取消更新')
+    });
+    console.log('设置页面已监听 update-cancel事件');
+  } catch (error) {
+    console.error('设置事件监听器失败:', error);
+  }
+});
+
+onUnmounted(async () => {
+  // 移除事件监听器
+  if (unlistenFn) {
+    await unlistenFn();
+    console.log('设置页面已移除事件监听器');
+  }
+});
 
 // 引导组件引用
 const guidedTourRef = ref(null);
@@ -646,7 +667,7 @@ const getAppVersion = async () => {
     // 从 localStorage 获取自动更新设置
     const savedAutoUpdate = localStorage.getItem('autoUpdate')
     autoUpdate.value = savedAutoUpdate !== null ? JSON.parse(savedAutoUpdate) : true
-    versionInfo = await getVersion()
+    versionInfo = await getVersion('main_task')
     console.log('获取版本信息：', versionInfo)
     version.value = versionInfo.version
 
@@ -661,7 +682,7 @@ const getAppVersion = async () => {
 const handleAutoUpdateChange = async (value) => {
   try {
     // 保存到 localStorage
-    localStorage.setItem('autoUpdate', JSON.stringify(value))
+    localStorage.setItem('autoUpdate', value)
     // 如果开启自动更新，立即检查更新
     if (value) {
       await checkUpdate(versionInfo);
@@ -702,10 +723,6 @@ onMounted(async () => {
     version.value = '获取失败'
     updateContent.value = '获取更新内容失败'
   }
-})
-
-onUnmounted(() => {
-
 })
 </script>
 
