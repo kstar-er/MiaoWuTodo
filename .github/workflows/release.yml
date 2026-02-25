@@ -3,95 +3,106 @@ name: Publish MiaoWuTodo
 on:
   push:
     tags:
-      - 'v*' # 推送 v 开头的 tag 时触发工作流
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
-  publish-tauri:
-    permissions:
-      contents: write # 赋予 GITHUB_TOKEN 写入 Release 的权限
-    strategy:
-      fail-fast: false # 一个平台失败不影响其他平台继续构建
-      matrix:
-        platform: [macos-latest] # 支持macOS和Windows平台
-    runs-on: ${{ matrix.platform }} # 根据矩阵选择运行器
-
+  create-release:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-        # 安装证书到钥匙串 :cite[2]:cite[4]
-      - name: Import Apple Certificate
-        if: runner.os == 'macOS'
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        run: |
-          echo $APPLE_CERTIFICATE | base64 --decode > certificate.p12
-          security create-keychain -p "$APPLE_CERTIFICATE_PASSWORD" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$APPLE_CERTIFICATE_PASSWORD" build.keychain
-          security set-keychain-settings -t 3600 -u build.keychain
-          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$APPLE_CERTIFICATE_PASSWORD" build.keychain
-          security find-identity -v -p codesigning build.keychain
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set output
+        id: vars
+        run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
 
-
-      - name: verify certificate
-        if: runner.os == 'macOS'
-        run: |
-          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
-          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
-          echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
-          echo "Certificate imported."
-
-
-      - name: Setup Node.js
+      - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm' # 或 yarn 或 pnpm，根据你的项目选择
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Generate changelog
+        id: create_release
+        run: npx changelogithub --draft --name ${{ steps.vars.outputs.tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+  build-app:
+    needs: create-release
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+          - platform: windows-latest
+            target: i686-pc-windows-msvc
+          - platform: windows-latest
+            target: aarch64-pc-windows-msvc
+
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - platform: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup node
+        uses: actions/setup-node@v4
         with:
-          toolchain: stable
+          node-version: 20
+      - uses: pnpm/action-setup@v3
+        with:
+          version: latest
 
-      - name: Rust cache # 缓存 Rust 依赖，加速后续构建
-        uses: Swatinem/rust-cache@v2
+      - name: Install rust target
+        run: rustup target add ${{ matrix.target }}
 
-      - name: Install frontend dependencies
-        run: npm install # 或 yarn install 或 pnpm install
-
-      - name: Debug environment variables
-        if: runner.os == 'macOS'
+      - name: Install dependencies (ubuntu only)
+        if: startsWith(matrix.platform, 'ubuntu')
         run: |
-          echo "Checking environment variables..."
-          echo "APPLE_ID is set: ${{ secrets.APPLE_ID != '' }}"
-          echo "APPLE_PASSWORD is set: ${{ secrets.APPLE_PASSWORD != '' }}"
-          echo "APPLE_TEAM_ID is set: ${{ secrets.APPLE_TEAM_ID != '' }}"
-          echo "APPLE_API_KEY_CONTENT is set: ${{ secrets.APPLE_API_KEY_CONTENT != '' }}"
-          echo "APPLE_API_KEY_ID is set: ${{ secrets.APPLE_API_KEY_ID != '' }}"
-          echo "CERT_ID: $CERT_ID"
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev libudev-dev patchelf xdg-utils
 
-      - name: Build the Tauri application
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: target
+
+      - name: Sync node version and setup cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install front-end dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the app
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS签名相关环境变量
-          APPLE_CERTIFICATE: ${{ runner.os == 'macOS' && secrets.APPLE_CERTIFICATE || '' }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
-          APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && env.CERT_ID || '' }}
-          APPLE_TEAM_ID: ${{ runner.os == 'macOS' && secrets.APPLE_TEAM_ID || '' }}
-          
-          # Apple API Key (必需，用于公证)
-          # APPLE_API_ISSUER: ${{ runner.os == 'macOS' && secrets.APPLE_API_ISSUER || '' }}
-          # APPLE_API_KEY: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY || '' }}
-          # APPLE_API_KEY_PATH: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY_ID || '' }}
-
-          # APPLE_ID: ${{ runner.os == 'macOS' && secrets.APPLE_ID || '' }}
-          # APPLE_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_PASSWORD || '' }}
+          CI: false
+          PLATFORM: ${{ matrix.platform }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }} # 使用触发工作流的 tag 名称
-          releaseName: 'MiaoWuTodo v__VERSION__' # __VERSION__ 会被自动替换
-          releaseBody: 'See the assets to download and install.'
-          releaseDraft: false # 创建正式发布（false）还是草稿（true）
+          tagName: ${{ github.ref_name }}
+          releaseName: BongoCat ${{ needs.create-release.outputs.APP_VERSION }}
+          releaseBody: ''
+          releaseDraft: true
+          prerelease: false
+          args: --target ${{ matrix.target }}
