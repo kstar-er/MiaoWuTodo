@@ -99,8 +99,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: BongoCat ${{ needs.create-release.outputs.APP_VERSION }}
+          releaseName: 'MiaoWuTodo v__VERSION__' # __VERSION__ 会被自动替换
+          releaseBody: 'See the assets to download and install.'
+          releaseDraft: false # 创建正式发布（false）还是草稿（true）
           releaseBody: ''
-          releaseDraft: true
           prerelease: false
           args: --target ${{ matrix.target }}
