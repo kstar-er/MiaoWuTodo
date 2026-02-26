@@ -2,27 +2,36 @@
 <template>
   <customDragWindow>
     <template #header>
-      <div class="top-bar" >
+      <div class="top-bar">
         <div class="title-box">
           <div class="title-icon">
-            <img :src="title_icon" alt="" style="width: 20px; height: auto;">
+            <img :src="title_icon" alt="" style="width: 20px; height: auto" />
           </div>
-          <div class="title-text">
-            喵呜Todo
-          </div>
+          <div class="title-text">喵呜Todo</div>
         </div>
         <div class="actions">
           <!-- 置顶按钮 -->
-          <div @click="pinWindow" class="actions-pin" :class="{ 'pinned-bg': isPinned }">
-            <img :src="imageList.pin" alt="" :class="isPinned ? 'is-pinned' : 'not-pinned'"/>
+          <div @click.stop="handleTour" class="actions-minus" title="指引">
+            <el-icon color="#ffffffa6"><Pointer /></el-icon>
           </div>
-          <div @click="minimizeWindow" class="actions-minus">
+          <div
+            @click="pinWindow"
+            class="actions-pin"
+            :class="{ 'pinned-bg': isPinned }"
+          >
+            <img
+              :src="imageList.pin"
+              alt=""
+              :class="isPinned ? 'is-pinned' : 'not-pinned'"
+            />
+          </div>
+          <div @click="minimizeWindow" class="actions-minus" title="最小化">
             <el-icon color="#ffffffa6"><SemiSelect /></el-icon>
           </div>
-          <div @click="refreshWindow" class="actions-refresh">
-            <el-icon color="#ffffffd1"><RefreshLeft  /></el-icon>
+          <div @click="refreshWindow" class="actions-refresh" title="刷新">
+            <el-icon color="#ffffffd1"><RefreshLeft /></el-icon>
           </div>
-          <div @click="closeWindow" class="actions-close">
+          <div @click="closeWindow" class="actions-close" title="关闭">
             <el-icon color="#ffffffd1"><Close /></el-icon>
           </div>
         </div>
@@ -31,45 +40,47 @@
   </customDragWindow>
 </template>
 <script setup>
-import { ref } from 'vue';
-import { getCurrentWindow } from '@tauri-apps/api/window';
-import { SemiSelect, Close, RefreshLeft } from '@element-plus/icons-vue';
-import customDragWindow from '../../views/components/public/customDragWindow.vue';
-import title_icon from '../../assets/pet_image/mainWinIcon.png'
-const windowInstance = getCurrentWindow();
-
+import { ref, getCurrentInstance } from "vue"
+import { getCurrentWindow } from "@tauri-apps/api/window"
+import { SemiSelect, Close, RefreshLeft } from "@element-plus/icons-vue"
+import customDragWindow from "../../views/components/public/customDragWindow.vue"
+import title_icon from "../../assets/pet_image/mainWinIcon.png"
+const windowInstance = getCurrentWindow()
+const { proxy } = getCurrentInstance()
+const handleTour = () => {
+  proxy.$emit("guide")
+}
 const imageList = ref({
-  pin: './pin.svg'
+  pin: "./pin.svg"
 })
 
 // 置顶窗口
-const isPinned = ref(false); // 是否置顶
+const isPinned = ref(false) // 是否置顶
 const pinWindow = async () => {
   try {
-    const newState = !isPinned.value;
-    await windowInstance.setAlwaysOnTop(newState);
-    isPinned.value = newState;
+    const newState = !isPinned.value
+    await windowInstance.setAlwaysOnTop(newState)
+    isPinned.value = newState
   } catch (error) {
-    console.error('设置置顶状态失败:', error)
+    console.error("设置置顶状态失败:", error)
   }
 }
 
 // 最小化窗口
 const minimizeWindow = async () => {
-  await windowInstance.minimize();
-};
+  await windowInstance.minimize()
+}
 
 // 刷新数据
 const refreshWindow = async () => {
   console.log("topbar")
-  window.dispatchEvent(new CustomEvent('window-refresh'));
+  window.dispatchEvent(new CustomEvent("window-refresh"))
 }
 
 // 关闭窗口
 const closeWindow = async () => {
-  await windowInstance.close();
-};
-
+  await windowInstance.close()
+}
 </script>
 
 <style lang="less" scoped>
@@ -133,7 +144,8 @@ const closeWindow = async () => {
       filter: invert(50%) sepia(100%) saturate(5000%) hue-rotate(30deg);
     }
     .not-pinned {
-      filter: invert(82%) sepia(100%) saturate(0%) hue-rotate(275deg) brightness(95%) contrast(100%);
+      filter: invert(82%) sepia(100%) saturate(0%) hue-rotate(275deg)
+        brightness(95%) contrast(100%);
     }
   }
 }

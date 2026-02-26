@@ -8,19 +8,44 @@
       :background-color="'#000000'"
       :ellipsis="false"
     >
-      <el-menu-item index="1" data-tab="projectManagement">
+      <el-menu-item
+        index="1"
+        data-tab="projectManagement"
+        id="project"
+        title="项目管理"
+      >
         <el-icon><Folder /></el-icon>
       </el-menu-item>
-      <el-menu-item index="2" data-tab="taskManagement">
+      <el-menu-item
+        index="2"
+        data-tab="taskManagement"
+        id="task"
+        title="任务管理"
+      >
         <el-icon><Document /></el-icon>
       </el-menu-item>
-      <el-menu-item index="3" data-tab="groupManagement">
+      <el-menu-item
+        index="3"
+        data-tab="groupManagement"
+        id="team"
+        title="团队管理"
+      >
         <el-icon><User /></el-icon>
       </el-menu-item>
-      <el-menu-item index="4" data-tab="weeklyReportManagement">
+      <el-menu-item
+        index="4"
+        data-tab="weeklyReportManagement"
+        id="weeklyReport"
+        title="周报管理"
+      >
         <el-icon><DataAnalysis /></el-icon>
       </el-menu-item>
-      <el-menu-item index="5" data-tab="settingManagement">
+      <el-menu-item
+        index="5"
+        data-tab="settingManagement"
+        id="setting"
+        title="设置管理"
+      >
         <el-icon><Setting /></el-icon>
       </el-menu-item>
     </el-menu>
@@ -28,28 +53,37 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
-import { Folder, Document, Setting, User, DataAnalysis } from '@element-plus/icons-vue';
+import { ref, watch } from "vue"
+import {
+  Folder,
+  Document,
+  Setting,
+  User,
+  DataAnalysis
+} from "@element-plus/icons-vue"
 
 const props = defineProps({
   currentIndex: {
     type: String,
-    default: '1'
+    default: "1"
   }
-});
+})
 
-const emit = defineEmits(['menuSelect']);
-const currentMenuIndex = ref(props.currentIndex);
+const emit = defineEmits(["menuSelect"])
+const currentMenuIndex = ref(props.currentIndex)
 
 // 监听currentIndex的变化
-watch(() => props.currentIndex, (newIndex) => {
-  currentMenuIndex.value = newIndex;
-});
+watch(
+  () => props.currentIndex,
+  newIndex => {
+    currentMenuIndex.value = newIndex
+  }
+)
 
 const handleSelect = (index: string) => {
-  currentMenuIndex.value = index;
-  emit('menuSelect', index);
-};
+  currentMenuIndex.value = index
+  emit("menuSelect", index)
+}
 </script>
 
 <style scoped lang="less">
@@ -66,13 +100,14 @@ const handleSelect = (index: string) => {
   backdrop-filter: blur(10px);
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     height: 100%;
-    background: url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="1" fill="%23ffffff" opacity="0.3"/></svg>') repeat;
+    background: url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="1" fill="%23ffffff" opacity="0.3"/></svg>')
+      repeat;
     opacity: 0.5;
     pointer-events: none;
   }
@@ -88,7 +123,7 @@ const handleSelect = (index: string) => {
     height: 45px;
     line-height: 45px;
     color: #8b4513;
-    font-family: 'Ghibli', sans-serif;
+    font-family: "Ghibli", sans-serif;
     letter-spacing: 1px;
     transition: all 0.3s ease;
     position: relative;
@@ -96,7 +131,7 @@ const handleSelect = (index: string) => {
     margin: 0 5px;
 
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       top: 0;
       left: -100%;
@@ -127,7 +162,7 @@ const handleSelect = (index: string) => {
       font-weight: 500;
 
       &::after {
-        content: '';
+        content: "";
         position: absolute;
         bottom: 0;
         left: 50%;
@@ -140,7 +175,7 @@ const handleSelect = (index: string) => {
       }
 
       &::before {
-        content: '✦';
+        content: "✦";
         position: absolute;
         top: 50%;
         left: 50%;

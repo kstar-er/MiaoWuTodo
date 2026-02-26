@@ -154,8 +154,11 @@
     </div>
 
     <!-- 新增按钮：新增该项目该流程下的任务进度内容 -->
-    <div class="add_but">
-      <FloatIcon @onClick="openProjectDetail('add')"></FloatIcon>
+    <div class="add_but" >
+      <FloatIcon @onClick="openProjectDetail('add')" ></FloatIcon>
+    </div>
+    <div class="add_but" >
+      <div id="addProject"></div>
     </div>
   </main>
 </template>
@@ -166,6 +169,7 @@ import {
   reactive,
   ref,
   onUnmounted,
+  watch,
   getCurrentInstance,
 } from "vue";
 import { getProject, deleteProject, addOrUpdateProject } from "../../utils/taskManagement/index";
@@ -177,7 +181,17 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { createProjectWin } from "../../multiwins/action";
 import EmptyState from "@/public/components/EmptyState.vue";
-
+const props = defineProps({
+  stepChanged: {
+    type: Boolean,
+    default: false,
+  },
+});
+watch(() => props.stepChanged,  (newValue, oldValue) => {
+  console.log("项目已切换",newValue, oldValue);
+  if (newValue) {
+  }
+});
 const { proxy } = getCurrentInstance();
 
 const imageList = ref({
@@ -512,6 +526,13 @@ const resetLocalFormdata = async () => {
 </script>
 
 <style lang="less" scoped>
+#addProject {
+  position: absolute;
+  width: 45px;
+  height: 45px;
+  bottom: 50px;
+  right: 10px;
+}
 @keyframes hover-effect {
   0% {
     transform: scale(1);
