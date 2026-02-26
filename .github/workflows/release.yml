@@ -90,6 +90,7 @@ jobs:
         run: npm ci
 
       - name: Build the app
+        id: build  
         uses: tauri-apps/tauri-action@v0
         env:
           CI: false
@@ -102,6 +103,29 @@ jobs:
           releaseName: 'MiaoWuTodo v__VERSION__' # __VERSION__ 会被自动替换
           releaseBody: 'See the assets to download and install.'
           releaseDraft: false # 创建正式发布（false）还是草稿（true）
-          releaseBody: ''
           prerelease: false
           args: --target ${{ matrix.target }}
+
+      - name: Upload to Gitee Releases
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          ARTIFACTS: ${{ steps.build.outputs.artifacts }} 
+          REPO: k_star/miao-wu-todo        # 替换为你的 Gitee 仓库路径
+          TAG: ${{ github.ref_name }}               # 可以基于动态变量，如 ${{ github.ref_name }}
+        run: |
+          curl -X POST \
+            -H "Authorization: token $GITEE_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"tag_name\":\"$TAG\",\"name\":\"Release $TAG\"}" \
+            "https://gitee.com/api/v5/repos/$REPO/releases"
+          RELEASE_ID=$(curl -s \
+            -H "Authorization: token $GITEE_TOKEN" \
+            "https://gitee.com/api/v5/repos/$REPO/releases/tags/$TAG" | jq -r .id)
+          echo "$ARTIFACTS" | jq -c '.[]' | while read file; do
+          file_path=$(echo "$file" | tr -d '"')
+          echo "Uploading $file_path ..."
+          curl -X POST \
+            -H "Authorization: token $GITEE_TOKEN" \
+            -F "file=@$file_path" \
+            "https://gitee.com/api/v5/repos/$REPO/releases/$TAG/assets?access_token=$GITEE_TOKEN"
+          done
