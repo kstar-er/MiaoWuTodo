@@ -106,26 +106,13 @@ jobs:
           prerelease: false
           args: --target ${{ matrix.target }}
 
-      - name: Upload to Gitee Releases
-        env:
-          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
-          ARTIFACTS: ${{ steps.build.outputs.artifacts }} 
-          REPO: k_star/miao-wu-todo        # 替换为你的 Gitee 仓库路径
-          TAG: ${{ github.ref_name }}               # 可以基于动态变量，如 ${{ github.ref_name }}
-        run: |
-          curl -X POST \
-            -H "Authorization: token $GITEE_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"tag_name\":\"$TAG\",\"name\":\"Release $TAG\"}" \
-            "https://gitee.com/api/v5/repos/$REPO/releases"
-          RELEASE_ID=$(curl -s \
-            -H "Authorization: token $GITEE_TOKEN" \
-            "https://gitee.com/api/v5/repos/$REPO/releases/tags/$TAG" | jq -r .id)
-          echo "$ARTIFACTS" | jq -c '.[]' | while read file; do
-          file_path=$(echo "$file" | tr -d '"')
-          echo "Uploading $file_path ..."
-          curl -X POST \
-            -H "Authorization: token $GITEE_TOKEN" \
-            -F "file=@$file_path" \
-            "https://gitee.com/api/v5/repos/$REPO/releases/$TAG/assets?access_token=$GITEE_TOKEN"
-          done
+      - name: Sync GitHub Release to Gitee
+        uses: trustedinster/sync-release-gitee@v1.3
+        with:
+            gitee_owner: k_star
+            gitee_repo: miao-wu-todo
+            gitee_token: ${{ secrets.GITEE_TOKEN }}
+            github_owner: kstar-er
+            github_repo: MiaoWuTodo
+            gitee_upload_retry_times: 3
+            debug: false
