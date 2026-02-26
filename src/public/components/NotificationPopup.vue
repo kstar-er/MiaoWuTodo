@@ -240,7 +240,7 @@ const handleTaskDetail = async (message, index) => {
 
 const fetchTaskDetails = async (taskId) => {
   try {
-    const response = await getAllTask({ id: 706, pageNum: 1, pageSize: 1 });
+    const response = await getAllTask({ id: taskId, pageNum: 1, pageSize: 1 });
     if (response.code === 200 && response.rows.length > 0) {
       return response.rows[0];
     } else {

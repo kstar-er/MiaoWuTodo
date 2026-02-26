@@ -49,8 +49,8 @@ export async function getGroupList(params) {
 
 // 获取群组成员列表 groupId
 export async function getGroupMemberList(params) {
-  const { data: { code, data, total  } } = await pbRequest.get(`/eam/group/getGroupMembers?groupId=${params.groupId}`)
-  return code === 200 ? { code, data, total } : message
+  const { data: { code, data, message  } } = await pbRequest.get(`/eam/group/getGroupMembers?groupId=${params.groupId}`)
+  return code === 200 ? { code, data } : message
 }
 
 // 批量获取群组成员列表 groupIds

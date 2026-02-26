@@ -132,8 +132,6 @@
               </div>
             </template>
           </el-tab-pane>
-
-     
         </template>
       </el-tabs>
     </div>
@@ -170,7 +168,7 @@ onBeforeMount(() => {
 });
 
 const userInfo = ref(null);
-let unlistenFn, unlistenFn1, unlistenFn2, unlistenFn3;
+let unlistenFn, unlistenFn1, unlistenFn2, unlistenFn3, unlistenFn4, unlistenFn5;
 onMounted(async() => {
   // 获取当前登录的用户信息
   if (userInfo.value === null) {
@@ -204,6 +202,7 @@ onMounted(async() => {
   try {
     unlistenFn2 = await listen("group-info-updated", async (event) => {
       const { action, data } = event.payload;
+      console.log("group-info-updated 消息，数据：", action)
       proxy.$message.success(`${action === "add" ? "新增群组成功" : "群组拉人成功"}`); // 发送提示信息
       currentTab.value = "群组"; // 切换到群组标签
       handleResetParams(); // 重置分页参数
@@ -217,6 +216,7 @@ onMounted(async() => {
   try {
     unlistenFn3 = await listen("verify-apply-friend-group-accept", async (event) => {
       const { type } = event.payload;
+      console.log("verify-apply-friend-group-accept 消息，数据：", type)
       handleResetParams();
       if (type === "好友") {
         getFriendApplyNumber();
@@ -224,6 +224,43 @@ onMounted(async() => {
       } else if (type === "群组") {
         getGroupInformNumber();
         await getGroupsList();
+      }
+      return;
+    });
+  } catch (error) {
+    console.error("事件监听设置失败:", error);
+  }
+
+  try {
+    unlistenFn4 = await listen("group-name-change", async (event) => {
+      const { type, data } = event.payload;
+      if (currentTab.value === type) {
+        console.log("收到修改群名消息，数据：", data)
+        const target = groupList.value.find(item => item.id === data.id)
+        if (target) {
+          target.groupName = data.groupName;
+        }
+      }
+      return;
+    });
+  } catch (error) {
+    console.error("事件监听设置失败:", error);
+  }
+
+  try {
+    unlistenFn5 = await listen("group-delete", async (event) => {
+      const { type, data } = event.payload;
+      if (currentTab.value === type) {
+        console.log("收到解散消息，数据：", data)
+        const targetIndex = groupList.value.findIndex(item => item.id === data.id)
+        if (targetIndex !== -1) {
+          groupList.value.splice(targetIndex, 1)
+          proxy.$message.success(`成功解散群组：${data.groupName}`);
+        }
+      } else {
+        currentTab.value = "群组";
+        await initData();
+        proxy.$message.success(`成功解散群组：${data.groupName}`);
       }
       return;
     });
@@ -238,6 +275,8 @@ onUnmounted(() => {
   unlistenFn1?.();
   unlistenFn2?.();
   unlistenFn3?.();
+  unlistenFn4?.();
+  unlistenFn5?.();
 });
 
 /**
@@ -301,9 +340,13 @@ const handleResetParams = () => {
  */
 const friendList = ref([]); // 好友列表数据
 const groupList = ref([]);  // 群组列表数据
+const friendLoading = ref(false);
+const groupLoading = ref(false);
 
 const getFriendsList = async () => {
+  if (friendLoading.value) return;
   try {
+    friendLoading.value = true;
     const res = await getFriendList(searchParams);
     if (res.code === 200) {
       if (searchParams.pageNum === 1) {
@@ -316,13 +359,18 @@ const getFriendsList = async () => {
     } else {
       console.error("获取好友列表失败:", res.message);
     }
+    friendLoading.value = false;
   } catch (error) {
     console.error("加载好友列表时发生错误:", error);
+  } finally {
+    friendLoading.value = false;
   }
 };
 
 const getGroupsList = async () => {
+  if (groupLoading.value) return;
   try {
+    groupLoading.value = true;
     const res = await getGroupList(searchParams);
     console.log("获取群组列表结果:", res);
     if (res.code === 200) {
@@ -336,8 +384,11 @@ const getGroupsList = async () => {
     } else {
       console.error("获取群组列表失败:", res.message);
     }
+    groupLoading.value = false;
   } catch (error) {
     console.error("加载群组列表时发生错误:", error);
+  } finally {
+    groupLoading.value = false;
   }
 };
 
@@ -347,20 +398,29 @@ const getGroupsList = async () => {
  */
 const friendInformNumber = ref(0);
 const groupInformNumber = ref(0);
+
+const friendInformLoading = ref(false);
 const getFriendApplyNumber = async () => {
+  if (friendInformLoading.value) return;
+  friendInformLoading.value = true;
   const res = await getPendingFriendApplyTotal({ pageNum: 1, pageSize: 999});
   console.log("获取好友申请数量结果:", res);
   if (res.code === 200) {
     friendInformNumber.value = res.data || 0; // 如果没有数据，默认为0
   }
+  friendInformLoading.value = false;
 }
 
+const groupInformLoading = ref(false);
 const getGroupInformNumber = async () => {
+  if (groupInformLoading.value) return;
+  groupInformLoading.value = true;
   const res = await getPendingGroupApplyTotal();
   if (res.code === 200) {
     console.log("获取群组申请数量结果:", res);
     groupInformNumber.value = res.data || 0; // 如果没有数据，默认为0
   }
+  groupInformLoading.value = false;
 }
 
 const handleApplyUpdate = async (data) => {
@@ -377,7 +437,7 @@ const handleApplyUpdate = async (data) => {
 /**
  * 切换好友/群组标签
  */
-const currentTab = ref("好友"); // 设置默认选择标签
+const currentTab = ref("群组"); // 设置默认选择标签
 
 const handleTabClick = async (tab) => {
   console.log("当前选中的标签页:", tab.props.name);
@@ -405,16 +465,17 @@ const handleSearch = async () => {
 
 /**
  * 创建或编辑群组
- */const handleCreateGroup = async (type, data) => {
+ */
+const handleCreateGroup = async (type, data) => {
   await resetLocalFormdata();
   if (type === 'add') {
     sessionStorage.setItem("formdata", JSON.stringify({}));
-    await createOrEditGroupWin();
+    await createOrEditGroupWin('main_task');
     return;
   } else {
     const formdata = {...data};
     sessionStorage.setItem("formdata", JSON.stringify(formdata));
-    await createOrEditGroupWin();
+    await createOrEditGroupWin('main_task');
     return;
   }
 }
@@ -625,8 +686,6 @@ defineExpose({ initData }); // 将加载数据方法暴露给父组件
       background-color: #f8eadf;
     }
   }
-
-  
 }
 
 .sticky-tabs {
@@ -689,7 +748,8 @@ defineExpose({ initData }); // 将加载数据方法暴露给父组件
     margin: 5px 0;
     border-bottom: 1px solid #e4e2e1;
     background-color: #fffcfa;
-    cursor: default;
+    cursor: pointer;
+    transition: all ease 0.3s;
 
     .group-item-left {
       display: flex;
@@ -715,6 +775,32 @@ defineExpose({ initData }); // 将加载数据方法暴露给父组件
         cursor: pointer;
         color: #909399;
       }
+    }
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgb(255, 255, 255, 0.2),
+        transparent
+      );
+      transition: 0.5s;
+    }
+
+    &:hover::before {
+      left: 100%;
+    }
+
+    &:hover {
+      background: #fcf2ec;
+      transform: translateY(-2px);
+      box-shadow: 2px 2px 2px rgba(139, 69, 19, 0.2);
     }
   }
 }
