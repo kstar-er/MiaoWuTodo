@@ -281,21 +281,42 @@
 </template>
 
 <script setup>
-import { getCurrentWindow, getAllWindows } from "@tauri-apps/api/window"
-import { onMounted, ref, onUnmounted, getCurrentInstance } from "vue"
-import { ElMessage, ElMessageBox } from "element-plus"
-import { createLoginWin, createPetManagementWin } from "../../multiwins/action"
-import { User, Lock } from "@element-plus/icons-vue"
-import GuidedTour from "../../components/GuidedTour.vue"
-import { clearWindowPositions } from "../../utils"
-import packageJson from "../../../package.json"
-import { checkUpdate, getVersion } from "../../utils/settings/update"
-import { useRouter } from "vue-router"
-import { logout, updateProfile, updatePassword } from "../../utils/login"
-import { uploadAvatarToOSS } from "../../utils/upload/secureOSSUpload.js"
-import CryptoJS from "crypto-js"
-import { emit } from "@tauri-apps/api/event"
-const { proxy } = getCurrentInstance()
+import { getCurrentWindow, getAllWindows  } from '@tauri-apps/api/window';
+import { onMounted, ref, onUnmounted, getCurrentInstance } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { createLoginWin, createPetManagementWin } from "../../multiwins/action";
+import { User, Lock } from '@element-plus/icons-vue';
+import GuidedTour from "../../components/GuidedTour.vue";
+import { clearWindowPositions } from '../../utils';
+import packageJson from '../../../package.json';
+import { checkUpdate, getVersion } from '../../utils/settings/update';
+import { useRouter } from 'vue-router';
+import { logout, updateProfile, updatePassword } from '../../utils/login';
+import { uploadAvatarToOSS } from '../../utils/upload/secureOSSUpload.js';
+import CryptoJS from 'crypto-js';
+import { listen } from "@tauri-apps/api/event";
+import { emit } from '@tauri-apps/api/event';
+const { proxy } = getCurrentInstance();
+
+let unlistenFn = null;
+onMounted(async () => {
+  try {
+    unlistenFn = await listen('main_task-update-cancel', () => {
+      proxy.$message.warning('已取消更新')
+    });
+    console.log('设置页面已监听 update-cancel事件');
+  } catch (error) {
+    console.error('设置事件监听器失败:', error);
+  }
+});
+
+onUnmounted(async () => {
+  // 移除事件监听器
+  if (unlistenFn) {
+    await unlistenFn();
+    console.log('设置页面已移除事件监听器');
+  }
+});
 
 // 引导组件引用
 const guidedTourRef = ref(null)
@@ -651,11 +672,10 @@ const updateContent = ref("")
 const getAppVersion = async () => {
   try {
     // 从 localStorage 获取自动更新设置
-    const savedAutoUpdate = localStorage.getItem("autoUpdate")
-    autoUpdate.value =
-      savedAutoUpdate !== null ? JSON.parse(savedAutoUpdate) : true
-    versionInfo = await getVersion()
-    console.log("获取版本信息：", versionInfo)
+    const savedAutoUpdate = localStorage.getItem('autoUpdate')
+    autoUpdate.value = savedAutoUpdate !== null ? JSON.parse(savedAutoUpdate) : true
+    versionInfo = await getVersion('main_task')
+    console.log('获取版本信息：', versionInfo)
     version.value = versionInfo.version
 
     checkUpdate(versionInfo)
