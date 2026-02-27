@@ -54,7 +54,7 @@ npm run tauri build --no-log
   步骤：
     （1）直接运行命令：tauri signer sign <打包好的文件路径> --private-key "<将项目下私钥文件里面的私钥复制到这里>"
       e.g. windows版本: tauri signer sign src-tauri/target/release/bundle/nsis/MiaowuTodo_1.1.0_x64-setup.exe --private-key "xxxxx"
-    （2）输入密码：123456
+    （2）输入密码：password
 
 6. 步骤五运行完tauri signer sign和输入密码以后，将获取到的.sig的签名文件里面的签名字符串发给后端、以及与安装包放置在同一个oss路径下面：
   文件路径：/src-tauri/target/release/bundle/nsis
