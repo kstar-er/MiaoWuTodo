@@ -1,5 +1,5 @@
 <template>
-  <top-bar @guide="startGuide" />
+  <top-bar />
   <side-menu :currentIndex="currentMenuIndex" @menuSelect="changePage" />
   <div class="content">
     <component
@@ -9,10 +9,12 @@
         currentComponent === taskManagement ? selectedProject : null
       "
       :stepChanged="stepChanged"
+      :reportChanged="reportChanged"
       @projectSelected="handleProjectSelected"
       @menuSelect="changePage"
       @guide="handleGuide"
       @updateTab="handleGroupTab"
+      @updateReportTab="handleReportTab"
     />
   </div>
   <el-tour
@@ -66,10 +68,24 @@
     </el-tour-step>
     <el-tour-step
       :target="target10"
-      title="查看周报"
+      title="生成周报"
       description="点击周报管理"
     >
       <span style="color: #000 !important">点击周报管理</span>
+    </el-tour-step>
+    <el-tour-step
+      :target="target11"
+      title="生成周报"
+      description="点击周报模板管理"
+    >
+      <span style="color: #000 !important">点击周报模板管理</span>
+    </el-tour-step>
+    <el-tour-step
+      :target="target12"
+      title="生成周报"
+      description="新增周报模板"
+    >
+      <span style="color: #000 !important">新增周报模板</span>
     </el-tour-step>
   </el-tour>
 </template>
@@ -86,7 +102,9 @@ import WeeklyReportManagement from "./weeklyReportManagement.vue"
 const openGuide = ref(false)
 const currentStep = ref(0)
 const stepChanged = ref(false)
+const reportChanged = ref(false)
 const groupTab = ref("好友")
+const reportTab = ref("reportList")
 const target1 = () => document.querySelector("#team")
 const target2 = () => document.querySelector("#groupBtn")
 const target3 = () => document.querySelector("#tab-群组")
@@ -97,7 +115,8 @@ const target7 = () => document.querySelector("#addProject")
 const target8 = () => document.querySelector("#task")
 const target9 = () => document.querySelector("#addTask")
 const target10 = () => document.querySelector("#weeklyReport")
-const target11 = () => document.querySelector("#petIcon")
+const target11 = () => document.querySelector("#tab-templateManagement")
+const target12 = () => document.querySelector("#addTemplate")
 const handleStep = step => {
   console.log(step, currentMenuIndex.value, "当前指引步骤")
   if (step === 1 && currentMenuIndex.value !== "3") {
@@ -112,7 +131,7 @@ const handleStep = step => {
   }
   if (step === 3) {
     stepChanged.value = true
-    console.log("currentMenuIndex.value", groupTab.value, stepChanged.value)
+    // console.log("currentMenuIndex.value", groupTab.value, stepChanged.value)
     return
   }
   if (step === 6 && currentMenuIndex.value !== "1") {
@@ -121,6 +140,14 @@ const handleStep = step => {
   }
   if (step === 8 && currentMenuIndex.value !== "2") {
     changePage("2")
+    return
+  }
+  if (step === 10 && currentMenuIndex.value !== "4") {
+    changePage("4")
+    return
+  }
+  if (step === 11) {
+    reportChanged.value = true
     return
   }
 }
@@ -133,10 +160,14 @@ const handleLink = () => {
 const handleGroupTab = tab => {
   groupTab.value = tab
 }
+const handleReportTab = tab => {
+  reportTab.value = tab
+}
 const startGuide = () => {
   currentStep.value = 0
   groupTab.value = "好友"
   stepChanged.value = false
+  reportChanged.value = false
   openGuide.value = true
 }
 const projectManagement = markRaw(ProjectManagement)
@@ -171,6 +202,7 @@ const changePage = index => {
       break
     case "2":
       currentComponent.value = taskManagement
+      currentStep.value = 8
       break
     case "3":
       currentComponent.value = groupManagement
@@ -178,6 +210,7 @@ const changePage = index => {
       break
     case "4":
       currentComponent.value = weeklyReportManagement
+      currentStep.value = 10
       break
     case "5":
       currentComponent.value = settingManagement

@@ -290,7 +290,7 @@ onMounted(async () => {
 
   // 获取屏幕缩放因子
   scaleFactor.value = (await tauriWindow.scaleFactor()) || 1
-  initTour()
+  //initTour()
 })
 const initTour = () => {
   let needPetTour = localStorage.getItem("needPetTour")

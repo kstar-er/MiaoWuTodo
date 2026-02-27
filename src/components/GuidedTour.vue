@@ -96,6 +96,8 @@ const checkFirstLogin = () => {
 
   if (isFirstLogin && !tourCompleted) {
     showWelcomeDialog.value = true
+  } else {
+    // showWelcomeDialog.value = true
   }
 }
 

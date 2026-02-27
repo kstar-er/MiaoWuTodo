@@ -11,9 +11,9 @@
         </div>
         <div class="actions">
           <!-- 置顶按钮 -->
-          <div @click.stop="handleTour" class="actions-minus" title="指引">
+          <!-- <div @click.stop="handleTour" class="actions-minus" title="指引">
             <el-icon color="#ffffffa6"><Pointer /></el-icon>
-          </div>
+          </div> -->
           <div
             @click="pinWindow"
             class="actions-pin"

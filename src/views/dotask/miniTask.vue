@@ -6,11 +6,11 @@
           <div class="task-header">
             <h3>最近任务</h3>
             <div class="header-buttons">
-              <el-tooltip :content="`指引`">
+              <!-- <el-tooltip :content="`指引`">
                 <el-icon class="filter-btn" @click="handleGuide"
                   ><Pointer
                 /></el-icon>
-              </el-tooltip>
+              </el-tooltip> -->
               <el-tooltip :content="`筛选(${filterLength})`">
                 <el-icon class="filter-btn" @click="handleFilter" id="filterBtn"
                   ><Filter
@@ -117,9 +117,11 @@
     <el-tour-step
       :target="target1"
       title="设置筛选条件"
-      description="点击设置筛选条件"
+      description="筛选特定的任务，例如：只让'进行中'的任务悬浮在桌面"
     >
-      <span style="color: #000 !important">点击设置筛选条件</span>
+      <span style="color: #000 !important"
+        >筛选特定的任务，例如：只让"进行中"的任务悬浮在桌面</span
+      >
     </el-tour-step>
     <!-- <el-tour-step :target="target6" title="创建项目" description="点击项目管理">
       <span style="color: #000 !important">点击项目管理</span>
