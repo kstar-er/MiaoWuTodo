@@ -289,13 +289,14 @@ import { User, Lock } from '@element-plus/icons-vue';
 import GuidedTour from "../../components/GuidedTour.vue";
 import { clearWindowPositions } from '../../utils';
 import packageJson from '../../../package.json';
-import { checkUpdate, getVersion } from '../../utils/settings/update';
+import { checkUpdate } from '../../utils/settings/update';
 import { useRouter } from 'vue-router';
 import { logout, updateProfile, updatePassword } from '../../utils/login';
 import { uploadAvatarToOSS } from '../../utils/upload/secureOSSUpload.js';
 import CryptoJS from 'crypto-js';
 import { listen } from "@tauri-apps/api/event";
 import { emit } from '@tauri-apps/api/event';
+import { check } from '@tauri-apps/plugin-updater';
 const { proxy } = getCurrentInstance();
 
 let unlistenFn = null;
@@ -674,11 +675,18 @@ const getAppVersion = async () => {
     // 从 localStorage 获取自动更新设置
     const savedAutoUpdate = localStorage.getItem('autoUpdate')
     autoUpdate.value = savedAutoUpdate !== null ? JSON.parse(savedAutoUpdate) : true
-    versionInfo = await getVersion('main_task')
+
+    // 获取版本信息
+    const update = await check()
+    if (!update) return;
+
+    versionInfo = {
+      ...update
+    }
     console.log('获取版本信息：', versionInfo)
     version.value = versionInfo.version
 
-    checkUpdate(versionInfo)
+    await checkUpdate('main_task');
     // 获取版本号
   } catch (error) {
     console.error("获取版本信息失败:", error)
@@ -692,7 +700,7 @@ const handleAutoUpdateChange = async value => {
     localStorage.setItem("autoUpdate", JSON.stringify(value))
     // 如果开启自动更新，立即检查更新
     if (value) {
-      await checkUpdate(versionInfo)
+      await checkUpdate('main_task');
     }
   } catch (error) {
     console.error("保存自动更新设置失败:", error)
@@ -724,7 +732,7 @@ onMounted(async () => {
   await getAppVersion()
   try {
     console.log("获取版本信息：", versionInfo)
-    updateContent.value = versionInfo.notes || "暂无更新内容"
+    updateContent.value = versionInfo.body || "暂无更新内容"
   } catch (error) {
     console.error("获取版本信息失败:", error)
     version.value = "获取失败"

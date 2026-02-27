@@ -1,6 +1,5 @@
 // src/utils/update.ts
-import { check, Update } from '@tauri-apps/plugin-updater';
-import { relaunch } from '@tauri-apps/plugin-process';
+import { check } from '@tauri-apps/plugin-updater';
 
 export async function performUpdate(
   onProgress: (progress: number) => void,
