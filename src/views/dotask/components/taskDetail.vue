@@ -98,9 +98,11 @@
       :form-paste-image-el="addOrEditTask.formPasteImageEl"
       :my-client="myClient"
       :drawer-direction="props.drawerDirection"
+      :show-split-button="showSplitButton"
       @hide-win="hideWin"
       @input-done="addOrEditTask.inputDone"
       @delete-task="handleDeleteTask"
+      @split-task="handleSplitTask"
     >
       <template #append1>
         <el-form-item
@@ -197,6 +199,15 @@
         </el-form-item>
       </template>
     </publicIconForm>
+    
+    <!-- 任务拆分弹窗 -->
+    <TaskSplitDialog
+      v-model:visible="splitDialogVisible"
+      :split-result="splitResult"
+      :loading="splitLoading"
+      @confirm="handleConfirmSplit"
+      @close="handleCloseSplitDialog"
+    />
   </main>
 </template>
 
@@ -208,15 +219,18 @@ import {
   onUnmounted,
   getCurrentInstance,
   nextTick,
-  watch
+  watch,
+  computed
 } from "vue";
 import publicIconForm from "../../components/public/publicIconForm.vue"; // 封装表单
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { CloseBold, ArrowRight, ArrowLeft } from "@element-plus/icons-vue";
 import { addOrUpdateTask, getProject, deleteTask } from "../../../utils/taskManagement";
+import { analyzeTaskSplit, confirmTaskSplit } from "../../../utils/taskSplit";
 import { getCurrentFormattedTime, formatToLocalTime } from "../../../utils"; // 获取当前时间js
 import customDragWindow from "../../components/public/customDragWindow.vue"; // 封装窗口拖拽
+import TaskSplitDialog from "./taskSplitDialog.vue"; // 任务拆分弹窗
 
 const myClient = ref( );
 const props = defineProps({
@@ -348,7 +362,11 @@ const initDataSource = async (event) => {
   formData.value.remark = formdata.remark || '';
 
   //上传图片模块
-  formData.value.caption = formdata.caption ? formdata.caption?.split(';').map(url => `https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/images/task/${url}`) : []
+  formData.value.caption = formdata.caption 
+    ? typeof formdata.caption === 'string'
+      ? formdata.caption.split(';').map(url => `https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/images/task/${url}`)
+      : [] // 如果不是字符串（如数组或 null），返回空数组
+    : [];
 
   if (!formdata.id) { // 新增
     // 截止时间默认选择
@@ -410,7 +428,12 @@ const initInlineData = async (data) => {
     // 备注模块
     formData.value.remark = data.remark || '';
     // 上传图片模块
-    formData.value.caption = data.caption ? data.caption.split(';').map(url => `https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/images/task/${url}`) : []
+    formData.value.caption = data.caption 
+    ? typeof data.caption === 'string'
+      ? data.caption.split(';').map(url => `https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/images/task/${url}`)
+      : [] // 如果不是字符串（如数组或 null），返回空数组
+    : [];
+
     if (!data.id) {
       // 截止时间默认选择
       if (!data.deadline) formData.value.deadline = getCurrentFormattedTime();
@@ -581,7 +604,7 @@ const addOrEditTask = reactive({
       icon: "Timer",
       color: "#d47549",
       size: "18",
-      fullWidth: false
+      fullWidth: true
     },
   ],
   formSelectEl: [
@@ -617,7 +640,8 @@ const addOrEditTask = reactive({
       type: "textarea",
       minRows: 4,
       maxRows: 4,
-      placeholder: "请输入备注内容",
+      placeholder: "请输入备注内容，带有数字序号可直接拆分生成子任务；不带数字序号拆分时由AI生成子任务",
+      customStyle: {width: '85%'},
       fullWidth: true
     },
   ],
@@ -630,7 +654,8 @@ const addOrEditTask = reactive({
     }
   ],
   inputDone: async (val) => {
-    // console.log("111---val", val)
+    console.log("111---val", val)
+    console.log("111---formdata", formData.value)
     let params = { ...formData.value, ...val };
 
     params.priority = priority.value; // 优先级
@@ -641,14 +666,41 @@ const addOrEditTask = reactive({
 
     if (params.id === null) delete params.id;
     if (params?.taskExecutor) delete params.taskExecutor;
+
     delete params.leaderList;
     delete params.taskExecutorList;
 
     console.log("----提交的参数----", params)
-    addOrUpdateTask({ list: [params] }).then((res) => {
+    addOrUpdateTask({ list: [params] }).then(async(res) => {
       if (res && res.code){
-        proxy.$message.success('操作成功');
-        hideWin('addOrEdit', params);
+        if (val.isSplit) {
+          let data = {...res.data[0]};
+
+          // 主窗口刷新
+          if (props.isInline) {
+            emitInline('inlineSaved', {...params});
+          } else {
+            let main_win = getCurrentWindow(emit_win);
+            main_win.emit("task-info-updated", {action: params.id ? "updated" : "add", schedule: params.schedule, data: params})
+          }
+          
+          proxy.$message.success('父任务保存成功，正在进行分析拆分，请稍候...');
+          
+          if (!params.id) {
+            formData.value = {
+              ...data,
+              ...val,
+              id: data.id
+            };
+            await nextTick(()=> { // 手动强制刷新表单数据
+              ruleFormRef.value?.updateFormData(formData.value);
+            })
+          };
+          handleSplitTask(data);
+        } else {
+          proxy.$message.success('操作成功');
+          hideWin('addOrEdit', params);
+        }
       }
     })
   },
@@ -819,6 +871,127 @@ const handleDeleteTask = async (taskData) => {
     proxy.$message.error('删除任务失败，请稍后重试');
   }
 }
+
+/**
+ * 任务拆分相关功能
+ */
+const splitDialogVisible = ref(false);
+const splitResult = ref(null);
+const splitLoading = ref(false);
+
+// 是否显示拆分按钮
+const showSplitButton = computed(() => {
+  return true; // 不限制
+  // return Boolean(formData.value?.id);
+});
+
+// 处理拆分任务
+const handleSplitTask = async (taskData) => {
+  //  try {
+  //   formData.value = {
+  //     ...formData.value,
+  //     isSplit: true // 标记要进行拆分子任务
+  //   }
+
+  //   await ruleFormRef.value?.submitForm(); // 先提交表单，触发表单验证和数据更新
+  //   console.log('父任务内容已成功保存');
+  // } catch (saveError) {
+  //   console.error('保存父任务失败，无法进行拆分：', saveError);
+  //   proxy.$message.error('保存当前任务失败，请先手动保存后再尝试拆分');
+  //   return;
+  // }
+
+  // if (!taskData.id) {
+  //   proxy.$message.warning('请先保存任务后再进行拆分');
+  //   return;
+  // }
+
+  console.log('开始拆分任务，taskData:', taskData);
+  splitDialogVisible.value = true;
+  splitLoading.value = true;
+  splitResult.value = null;
+
+  try {
+    const result = await analyzeTaskSplit(taskData.id, false);
+    console.log('拆分分析结果:', result);
+    
+    if (result.data.code === 200) {
+      splitResult.value = result.data.data;
+      console.log('设置splitResult:', result.data.data);
+    } else {
+      proxy.$message.error(result.message || '分析任务失败');
+      splitDialogVisible.value = false;
+    }
+  } catch (error) {
+    console.error('分析任务拆分时发生错误：', error);
+    proxy.$message.error('分析任务失败，请稍后重试');
+    splitDialogVisible.value = false;
+  } finally {
+    splitLoading.value = false;
+  }
+};
+
+// 确认拆分
+const handleConfirmSplit = async (splitData) => {
+  try {
+    console.log('确认拆分，splitData:', splitData);
+    
+    const confirmData = {
+      taskId: formData.value.id,
+      subtasks: splitData.subtasks.map((subtask, index) => ({
+        title: subtask.title.trim(),
+        content: subtask.content ? subtask.content.trim() : '',
+        order: index + 1
+      }))
+    };
+
+    console.log('发送给后端的确认数据:', confirmData);
+    
+    const result = await confirmTaskSplit(confirmData);
+    if (result.data.code === 200) {
+      proxy.$message.success(`拆分成功！已创建 ${result.data.data.length} 个子任务`);
+      splitDialogVisible.value = false;
+
+      console.log('后端返回的新子任务数据:', result.data.data);
+
+      const splitData = result.data.data.map(subtask => {
+        return {
+          ...subtask,
+          userIdList: formData.value.userIdList // 继承父任务的负责人
+        }
+      })
+
+      formData.value = {
+        ...formData.value,
+        children: [...splitData], // 将新创建的子任务列表放入当前任务数据中
+        isSave: true,
+        isSplit: true
+      }
+      console.log("form", formData.value, props.isInline)
+      // 拆分成功后刷新任务列表
+      if (props.isInline) {
+        // 内联模式：通知父组件刷新任务列表
+        
+        emitInline("inlineSaved", formData.value);
+      } else {
+        // 非内联模式：通知主窗口刷新任务列表，并关闭窗口
+        hideWin('addOrEdit', formData.value);
+      }
+    } else {
+      proxy.$message.error(result.message || '拆分任务失败');
+    }
+  } catch (error) {
+    console.error('确认拆分时发生错误：', error);
+    proxy.$message.error('拆分任务失败，请稍后重试');
+  }
+};
+
+
+// 关闭拆分弹窗
+const handleCloseSplitDialog = () => {
+  splitDialogVisible.value = false;
+  splitResult.value = null;
+};
 </script>
 
 <style lang="less" scoped>

@@ -1127,9 +1127,13 @@ const openTaskDetail = async (type, task, index) => {
 };
 
 const handleInlineSaved = async (params) => {
-  detailDrawerVisible.value = false;
+  console.log("保存后的参数", params);
+  if (!params.isSplit || params.isSave) {
+    detailDrawerVisible.value = false;
+  }
+  
   // 复用现有的刷新逻辑
-  if (params?.id) {
+  if (params?.id && !params.isSplit) {
     // 编辑
     if ( params.parentId === 0 && ((active_process.value === "all" && active_alltask.value !== params.schedule)
         || ( active_process.value !== "all" && params.schedule !== active_onetask.value))) {
@@ -1586,8 +1590,8 @@ onMounted(async () => {
       const { action, schedule, data } = event.payload;
       proxy.$message.success(`${action === "add" ? "新增" : "更新"}任务成功`); // 发送提示信息
 
-      if (action === "add" || active_onetask.value !== schedule) {
-        // 新增任务或是更新任务时有更新到流程，需刷新获得新卡片
+      if (action === "add" || active_onetask.value !== schedule || data.isSplit) {
+        // 新增任务/更新任务时有更新到流程/拆分操作，需刷新获得新卡片
         await initTaskList(data, schedule);
       } else {
         // 更新任务时，找到对应的任务并替换，这样无需刷新
