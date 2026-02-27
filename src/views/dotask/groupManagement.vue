@@ -437,7 +437,7 @@ const handleApplyUpdate = async (data) => {
 /**
  * 切换好友/群组标签
  */
-const currentTab = ref("群组"); // 设置默认选择标签
+const currentTab = ref("好友"); // 设置默认选择标签
 
 const handleTabClick = async (tab) => {
   console.log("当前选中的标签页:", tab.props.name);
