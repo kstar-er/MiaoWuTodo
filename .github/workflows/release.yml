@@ -108,6 +108,7 @@ jobs:
 
   sync-to-gitee:
     needs: build-app
+    if: always()  # 即使部分构建失败也执行同步
     runs-on: ubuntu-latest
     permissions:
       contents: read
