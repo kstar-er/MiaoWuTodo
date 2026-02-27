@@ -4,9 +4,10 @@ import { ElMessageBox, ElMessage } from 'element-plus';
 import { invoke } from '@tauri-apps/api/core';
 import { pbRequest} from "../../public/pbRequest/index"
 import { check } from '@tauri-apps/plugin-updater';
+import { createUpdateWin } from "../../multiwins/action";
 
 // 获取最新版本版本
-export async function getVersion() {
+export async function getVersion(win) {
   // 动态获取真实操作系统
   const getOs = async () => {
     if (typeof window.__TAURI__ !== 'undefined') {
@@ -37,6 +38,7 @@ export async function getVersion() {
     signature: data.signature,
     url: data.url,
     notes: data.notes,
+    win
   };
 
   if (!versionInfo.version) {
@@ -46,58 +48,45 @@ export async function getVersion() {
   return versionInfo;
 }
 
-// 下载并安装更新
-export const downloadAndInstall = async (url) => {
-  try {
-    // 创建下载链接
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = url.split('/').pop(); // 获取文件名
+// export const checkUpdate = async (versionInfo) => {
+//   try {
+//     console.log("检查更新:", versionInfo)
+//     // 获取自动更新设置
+//     const autoUpdate = localStorage.getItem('autoUpdate') !== 'false';
+//     if (!autoUpdate) return;
+
+//     // 获取当前版本和最新版本
+//     const currentVersion = packageJson.version;
+//     const latestVersion = versionInfo.version;
+
+//     const update = await check();
+//     console.log("更新信息:", update);
+
+//     // 比较版本号
+//     if (currentVersion !== latestVersion) {
+//       ElMessageBox.confirm(
+//         `发现新版本 ${latestVersion}，是否立即更新？`,
+//         '更新提示',
+//         {
+//           confirmButtonText: '立即更新',
+//           cancelButtonText: '稍后再说',
+//           type: 'info',
+//         }
+//       ).then(async () => {
+//         await update.downloadAndInstall();
+//       }).catch((error) => {
+//         console.error("error", error)
+//         ElMessage.info('已取消更新');
+//       });
+//     }
     
-    // 创建下载完成的事件监听器
-    const downloadComplete = new Promise((resolve, reject) => {
-      // 监听下载开始事件
-      link.addEventListener('click', () => {
-        // 创建一个定时器来检查下载是否完成
-        const checkInterval = setInterval(async () => {
-          try {
-            // 使用 Tauri 的 API 检查文件是否存在
-            const filePath = await invoke('get_download_path', { filename: link.download });
-            const exists = await invoke('check_file_exists', { path: filePath });
-            
-            if (exists) {
-              clearInterval(checkInterval);
-              resolve(filePath);
-            }
-          } catch (error) {
-            console.error('检查文件失败:', error);
-          }
-        }, 1000); // 每秒检查一次
-      });
-    });
+//   } catch (error) {
+//     console.error('检查更新失败:', error);
+//   }
+// }; 
 
-    // 触发下载
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
 
-    // 等待下载完成
-    const downloadPath = await downloadComplete;
-
-    // 使用 Tauri 的 API 打开文件
-    await invoke('open_file', { path: downloadPath });
-
-    // 关闭当前应用
-    const currentWindow = getCurrentWindow();
-    await currentWindow.close();
-
-  } catch (error) {
-    console.error('下载安装失败:', error);
-    ElMessage.error('下载安装失败，请手动下载安装');
-  }
-};
-
-export const checkUpdate = async (versionInfo) => {
+export async function checkUpdate(versionInfo) {
   try {
     console.log("检查更新:", versionInfo)
     // 获取自动更新设置
@@ -108,28 +97,17 @@ export const checkUpdate = async (versionInfo) => {
     const currentVersion = packageJson.version;
     const latestVersion = versionInfo.version;
 
-    const update = await check();
-    console.log("更新信息:", update);
+    if (currentVersion === latestVersion) return
 
-    // 比较版本号
-    if (currentVersion !== latestVersion) {
-      ElMessageBox.confirm(
-        `发现新版本 ${latestVersion}，是否立即更新？`,
-        '更新提示',
-        {
-          confirmButtonText: '立即更新',
-          cancelButtonText: '稍后再说',
-          type: 'info',
-        }
-      ).then(async () => {
-        await update.downloadAndInstall();
-      }).catch((error) => {
-        console.error("error", error)
-        ElMessage.info('已取消更新');
-      });
+    // 比较版本号，不同则创建更新窗口
+    // 发送调用该方法的主窗口的label：登录窗口/任务窗口
+    const data = {
+      ...versionInfo,
+      currentVersion
     }
     
+    await createUpdateWin(data)
   } catch (error) {
     console.error('检查更新失败:', error);
   }
-}; 
+}

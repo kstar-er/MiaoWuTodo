@@ -17,7 +17,7 @@
     "create_edit_group",
     "notificationPopup",
     "group_member_detail",
-    "report_preview"
+    "update_dialog"
   ],
   "permissions": [
     "core:default",
