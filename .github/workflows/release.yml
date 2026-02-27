@@ -106,6 +106,12 @@ jobs:
           prerelease: false
           args: --target ${{ matrix.target }}
 
+  sync-to-gitee:
+    needs: build-app
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
       - name: Sync GitHub Release to Gitee
         uses: trustedinster/sync-release-gitee@v1.3
         with:
