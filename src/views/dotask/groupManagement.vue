@@ -13,14 +13,21 @@
           :prefix-icon="Search"
           @keyup.enter="handleSearch"
         />
-        <el-dropdown trigger="click">
+        <el-dropdown trigger="click" id="groupBtn">
           <span class="el-dropdown-link">
             <el-icon size="20" class="add-icon"><Plus /></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item :icon="ChatLineRound" @click="handleCreateGroup('add', {})">创建群组</el-dropdown-item>
-              <el-dropdown-item :icon="CirclePlus" @click="navigateTo('apply')">加好友/群</el-dropdown-item>
+              <el-dropdown-item
+                id="addGroup"
+                :icon="ChatLineRound"
+                @click="handleCreateGroup('add', {})"
+                >创建群组</el-dropdown-item
+              >
+              <el-dropdown-item :icon="CirclePlus" @click="navigateTo('apply')"
+                >加好友/群</el-dropdown-item
+              >
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -45,37 +52,58 @@
         </div>
       </div>
 
-      <el-tabs v-model="currentTab" class="sticky-tabs" @tab-click="handleTabClick" stretch>
-         <template #default>
-               <!-- 群组列表 -->
-               <el-tab-pane label="群组" name="群组">
+      <el-tabs
+        v-model="currentTab"
+        class="sticky-tabs"
+        @tab-click="handleTabClick"
+        stretch
+      >
+        <template #default>
+          <!-- 群组列表 -->
+          <el-tab-pane label="群组" name="群组">
             <template #default>
               <div class="group-list scroll-pane" @scroll="handleScroll">
                 <!-- 群组列表内容 -->
-                <div 
-                  v-for="group in groupList" 
-                  :key="group.id" 
-                  class="group-item-box" 
+                <div
+                  v-for="(group, ind) in groupList"
+                  :key="group.id"
+                  :id="ind ? group.id : 'groupOne'"
+                  class="group-item-box"
                   v-if="groupList.length > 0"
                   @click="navigateTo('groupMemberDetail', group)"
                 >
                   <div class="group-item-left">
-                    <div class="group-name"> {{ group.groupName }}</div>
+                    <div class="group-name">{{ group.groupName }}</div>
                     <div class="group-person">
-                      {{ '群组成员：' + group.userNumber + '/' + group.userLimit }}
+                      {{
+                        "群组成员：" + group.userNumber + "/" + group.userLimit
+                      }}
                     </div>
                   </div>
                   <div class="group-item-right">
-                    <el-dropdown>
+                    <el-dropdown :id="ind ? btn + group.id : 'groupHandle'">
                       <span class="el-dropdown-link">
-                        <el-icon class="group-item-icon"><MoreFilled /></el-icon>
+                        <el-icon class="group-item-icon"
+                          ><MoreFilled
+                        /></el-icon>
                       </span>
                       <template #dropdown>
                         <el-dropdown-menu>
-                          <el-dropdown-item @click="handleInviteMember(group)">群组邀人</el-dropdown-item>
-                          <el-dropdown-item @click="handleCopyInviteLink(group)" class="invite-link-btn">邀请链接</el-dropdown-item>
-                          <el-dropdown-item @click="handleShowEditGroupName(group)">修改群组名</el-dropdown-item>
-                          <el-dropdown-item @click="handleDelete(group)">删除群组</el-dropdown-item>
+                          <el-dropdown-item @click="handleInviteMember(group)"
+                            >群组邀人</el-dropdown-item
+                          >
+                          <el-dropdown-item
+                            @click="handleCopyInviteLink(group)"
+                            class="invite-link-btn"
+                            >邀请链接</el-dropdown-item
+                          >
+                          <el-dropdown-item
+                            @click="handleShowEditGroupName(group)"
+                            >修改群组名</el-dropdown-item
+                          >
+                          <el-dropdown-item @click="handleDelete(group)"
+                            >删除群组</el-dropdown-item
+                          >
                         </el-dropdown-menu>
                       </template>
                     </el-dropdown>
@@ -86,7 +114,9 @@
                     <el-icon class="is-loading"><Loading /></el-icon>
                     <span>加载更多...</span>
                   </div>
-                  <div v-if="noMore && !loadingMore" class="no-more">没有更多数据了</div>
+                  <div v-if="noMore && !loadingMore" class="no-more">
+                    没有更多数据了
+                  </div>
                 </div>
                 <div v-else class="no-data">
                   <el-empty description="暂无群组" />
@@ -99,19 +129,28 @@
               <!-- 可滚动内容区域 -->
               <div class="friend-list scroll-pane" @scroll="handleScroll">
                 <!-- 好友列表内容 -->
-                <div v-for="friend in friendList" :key="friend.friendId" class="friend-item-box" v-if="friendList.length > 0">
+                <div
+                  v-for="friend in friendList"
+                  :key="friend.friendId"
+                  class="friend-item-box"
+                  v-if="friendList.length > 0"
+                >
                   <div class="friend-item-left">
-                    <div class="friend-name"> {{ friend.nickName }}</div>
-                    <div class="friend-username"> {{ friend.userName }}</div>
+                    <div class="friend-name">{{ friend.nickName }}</div>
+                    <div class="friend-username">{{ friend.userName }}</div>
                   </div>
                   <div class="friend-item-right">
                     <el-dropdown>
                       <span class="el-dropdown-link">
-                        <el-icon class="friend-item-icon"><MoreFilled /></el-icon>
+                        <el-icon class="friend-item-icon"
+                          ><MoreFilled
+                        /></el-icon>
                       </span>
                       <template #dropdown>
                         <el-dropdown-menu>
-                          <el-dropdown-item @click="handleDelete(friend)">删除好友</el-dropdown-item>
+                          <el-dropdown-item @click="handleDelete(friend)"
+                            >删除好友</el-dropdown-item
+                          >
                         </el-dropdown-menu>
                       </template>
                     </el-dropdown>
@@ -123,32 +162,50 @@
                     <el-icon class="is-loading"><Loading /></el-icon>
                     <span>加载更多...</span>
                   </div>
-                  <div v-if="noMore && !loadingMore" class="no-more">我也是有底线的</div>
+                  <div v-if="noMore && !loadingMore" class="no-more">
+                    我也是有底线的
+                  </div>
                 </div>
                 <div v-else class="no-data">
                   <el-empty description="暂无好友" />
                 </div>
-
               </div>
             </template>
           </el-tab-pane>
-
-     
         </template>
       </el-tabs>
     </div>
   </div>
-  <applyFriendOrGroup v-model="showApplyDialog" @update="handleApplyUpdate"/>
+  <applyFriendOrGroup v-model="showApplyDialog" @update="handleApplyUpdate" />
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref, getCurrentInstance, onBeforeMount, reactive } from "vue";
-import loadingAnimation from "../components/public/loadingAnimation.vue";
-import { Search, ArrowRight, MoreFilled, Plus, ChatLineRound, CirclePlus} from '@element-plus/icons-vue';
-import { ElMessageBox } from 'element-plus';
-import { createInformWin, createOrEditGroupWin, createGroupMemberDetailWin } from "../../multiwins/action";
-import { listen } from "@tauri-apps/api/event";
-import applyFriendOrGroup from "./components/applyFriendOrGroupDialog.vue";
+import {
+  onMounted,
+  onUnmounted,
+  ref,
+  watch,
+  getCurrentInstance,
+  onBeforeMount,
+  reactive
+} from "vue"
+import loadingAnimation from "../components/public/loadingAnimation.vue"
+import {
+  Search,
+  ArrowRight,
+  MoreFilled,
+  Plus,
+  ChatLineRound,
+  CirclePlus
+} from "@element-plus/icons-vue"
+import { ElMessageBox } from "element-plus"
+import {
+  createInformWin,
+  createOrEditGroupWin,
+  createGroupMemberDetailWin
+} from "../../multiwins/action"
+import { listen } from "@tauri-apps/api/event"
+import applyFriendOrGroup from "./components/applyFriendOrGroupDialog.vue"
 import {
   getGroupList,
   dissolveGroup,
@@ -157,53 +214,69 @@ import {
   getPendingFriendApplyTotal,
   getPendingGroupApplyTotal,
   updateGroupName
-} from "../../utils/groupManagement";
+} from "../../utils/groupManagement"
 
-const proxy = getCurrentInstance().proxy;
-
+const proxy = getCurrentInstance().proxy
+const props = defineProps({
+  stepChanged: {
+    type: Boolean,
+    default: false
+  }
+})
+watch(
+  () => props.stepChanged,
+  (newValue, oldValue) => {
+    console.log("群组按钮已切换", newValue, oldValue)
+    if (props.stepChanged) {
+      currentTab.value = "群组"
+      handleTabClick({ props: { name: "群组" } })
+    }
+  }
+)
 onBeforeMount(() => {
-  loading.value = true;
-  initData();
-  getFriendApplyNumber();
-  getGroupInformNumber();
-  loading.value = false;
-});
+  loading.value = true
+  initData()
+  getFriendApplyNumber()
+  getGroupInformNumber()
+  loading.value = false
+})
 
 const userInfo = ref(null);
-let unlistenFn, unlistenFn1, unlistenFn2, unlistenFn3;
+let unlistenFn, unlistenFn1, unlistenFn2, unlistenFn3, unlistenFn4, unlistenFn5;
 onMounted(async() => {
   // 获取当前登录的用户信息
   if (userInfo.value === null) {
     if (sessionStorage.getItem("userInfo")) {
-      userInfo.value = JSON.parse(sessionStorage.getItem("userInfo")).user;
+      userInfo.value = JSON.parse(sessionStorage.getItem("userInfo")).user
     }
   }
 
   // 监听来自 申请好友/群组 窗口提交的事件
   try {
-    unlistenFn = await listen("apply-friend-group", async (event) => {
-      getFriendApplyNumber();
-      getGroupInformNumber();
-      return;
-    });
+    unlistenFn = await listen("apply-friend-group", async event => {
+      getFriendApplyNumber()
+      getGroupInformNumber()
+      return
+    })
   } catch (error) {
-    console.error("事件监听设置失败:", error);
+    console.error("事件监听设置失败:", error)
   }
 
   // 监听来自 审批验证好友/群组 窗口提交的事件
   try {
-    unlistenFn1 = await listen("verify-apply-friend-group", async (event) => {
-      getFriendApplyNumber();
-      getGroupInformNumber();
-      return;
-    });
+    unlistenFn1 = await listen("verify-apply-friend-group", async event => {
+      getFriendApplyNumber()
+      getGroupInformNumber()
+      return
+    })
   } catch (error) {
-    console.error("事件监听设置失败:", error);
+    console.error("事件监听设置失败:", error)
   }
 
   try {
     unlistenFn2 = await listen("group-info-updated", async (event) => {
       const { action, data } = event.payload;
+      console.log("group-info-updated 消息，数据：", action)
       proxy.$message.success(`${action === "add" ? "新增群组成功" : "群组拉人成功"}`); // 发送提示信息
       currentTab.value = "群组"; // 切换到群组标签
       handleResetParams(); // 重置分页参数
@@ -211,12 +284,13 @@ onMounted(async() => {
       return;
     });
   } catch (error) {
-    console.error("事件监听设置失败:", error);
+    console.error("事件监听设置失败:", error)
   }
 
   try {
     unlistenFn3 = await listen("verify-apply-friend-group-accept", async (event) => {
       const { type } = event.payload;
+      console.log("verify-apply-friend-group-accept 消息，数据：", type)
       handleResetParams();
       if (type === "好友") {
         getFriendApplyNumber();
@@ -224,6 +298,43 @@ onMounted(async() => {
       } else if (type === "群组") {
         getGroupInformNumber();
         await getGroupsList();
+      }
+      return;
+    });
+  } catch (error) {
+    console.error("事件监听设置失败:", error);
+  }
+
+  try {
+    unlistenFn4 = await listen("group-name-change", async (event) => {
+      const { type, data } = event.payload;
+      if (currentTab.value === type) {
+        console.log("收到修改群名消息，数据：", data)
+        const target = groupList.value.find(item => item.id === data.id)
+        if (target) {
+          target.groupName = data.groupName;
+        }
+      }
+      return;
+    });
+  } catch (error) {
+    console.error("事件监听设置失败:", error);
+  }
+
+  try {
+    unlistenFn5 = await listen("group-delete", async (event) => {
+      const { type, data } = event.payload;
+      if (currentTab.value === type) {
+        console.log("收到解散消息，数据：", data)
+        const targetIndex = groupList.value.findIndex(item => item.id === data.id)
+        if (targetIndex !== -1) {
+          groupList.value.splice(targetIndex, 1)
+          proxy.$message.success(`成功解散群组：${data.groupName}`);
+        }
+      } else {
+        currentTab.value = "群组";
+        await initData();
+        proxy.$message.success(`成功解散群组：${data.groupName}`);
       }
       return;
     });
@@ -238,28 +349,29 @@ onUnmounted(() => {
   unlistenFn1?.();
   unlistenFn2?.();
   unlistenFn3?.();
+  unlistenFn4?.();
+  unlistenFn5?.();
 });
 
 /**
  * 加载数据列表
  * 好友列表、群组列表
  */
-const loading = ref(false);
+const loading = ref(false)
 const initData = async () => {
-  console.log("---加载数据---");
+  console.log("---加载数据---")
 
   try {
-    handleResetParams();
+    handleResetParams()
     if (currentTab.value === "好友") {
-      await getFriendsList();
+      await getFriendsList()
     } else if (currentTab.value === "群组") {
-      await getGroupsList();
+      await getGroupsList()
     }
   } catch (error) {
-    console.error("加载数据时发生错误:", error);
+    console.error("加载数据时发生错误:", error)
   }
-};
-
+}
 
 /**
  * 分页加载
@@ -271,28 +383,32 @@ const searchParams = reactive({
   groupName: "",
   nickName: "",
   total: 0
-});
-const loadingMore = ref(false);
-const noMore = ref(false);
+})
+const loadingMore = ref(false)
+const noMore = ref(false)
 
-const handleScroll = async (e) => {
-  const el = e.target;
-  if (el.target + el.clientHeight >= el.scrollHeight - 10 && !loadingMore.value && !noMore.value) {
-    loadingMore.value = true;
-    searchParams.pageNum += 1;
+const handleScroll = async e => {
+  const el = e.target
+  if (
+    el.target + el.clientHeight >= el.scrollHeight - 10 &&
+    !loadingMore.value &&
+    !noMore.value
+  ) {
+    loadingMore.value = true
+    searchParams.pageNum += 1
     if (currentTab.value === "好友") {
-      await getFriendsList();
+      await getFriendsList()
     } else {
-      await getGroupsList();
+      await getGroupsList()
     }
   }
 }
 
 // 重置分页参数
 const handleResetParams = () => {
-  searchParams.pageNum = 1;
-  searchParams.total = 0;
-  noMore.value = false;
+  searchParams.pageNum = 1
+  searchParams.total = 0
+  noMore.value = false
 }
 
 /**
@@ -301,120 +417,142 @@ const handleResetParams = () => {
  */
 const friendList = ref([]); // 好友列表数据
 const groupList = ref([]);  // 群组列表数据
+const friendLoading = ref(false);
+const groupLoading = ref(false);
 
 const getFriendsList = async () => {
+  if (friendLoading.value) return;
   try {
+    friendLoading.value = true;
     const res = await getFriendList(searchParams);
     if (res.code === 200) {
       if (searchParams.pageNum === 1) {
-        friendList.value = res.rows || [];
+        friendList.value = res.rows || []
       } else {
-        friendList.value = [ ...friendList.value , ...res.rows] ;
+        friendList.value = [...friendList.value, ...res.rows]
       }
-      searchParams.total = res.total;
-      noMore.value = friendList.value.length >= res.total;
+      searchParams.total = res.total
+      noMore.value = friendList.value.length >= res.total
     } else {
-      console.error("获取好友列表失败:", res.message);
+      console.error("获取好友列表失败:", res.message)
     }
+    friendLoading.value = false;
   } catch (error) {
     console.error("加载好友列表时发生错误:", error);
+  } finally {
+    friendLoading.value = false;
   }
-};
+}
 
 const getGroupsList = async () => {
+  if (groupLoading.value) return;
   try {
+    groupLoading.value = true;
     const res = await getGroupList(searchParams);
     console.log("获取群组列表结果:", res);
     if (res.code === 200) {
       if (searchParams.pageNum === 1) {
-        groupList.value = res.data.records || [];
+        groupList.value = res.data.records || []
       } else {
-        groupList.value = [ ...groupList.value , ...res.data] ;
+        groupList.value = [...groupList.value, ...res.data]
       }
-      searchParams.total = res.data.total;
-      noMore.value = groupList.value.length >= res.data.total;
+      searchParams.total = res.data.total
+      noMore.value = groupList.value.length >= res.data.total
     } else {
-      console.error("获取群组列表失败:", res.message);
+      console.error("获取群组列表失败:", res.message)
     }
+    groupLoading.value = false;
   } catch (error) {
     console.error("加载群组列表时发生错误:", error);
+  } finally {
+    groupLoading.value = false;
   }
-};
-
+}
 
 /**
  * 获取好友通知、群组列表数量
  */
 const friendInformNumber = ref(0);
 const groupInformNumber = ref(0);
+
+const friendInformLoading = ref(false);
 const getFriendApplyNumber = async () => {
+  if (friendInformLoading.value) return;
+  friendInformLoading.value = true;
   const res = await getPendingFriendApplyTotal({ pageNum: 1, pageSize: 999});
   console.log("获取好友申请数量结果:", res);
   if (res.code === 200) {
-    friendInformNumber.value = res.data || 0; // 如果没有数据，默认为0
+    friendInformNumber.value = res.data || 0 // 如果没有数据，默认为0
   }
+  friendInformLoading.value = false;
 }
 
+const groupInformLoading = ref(false);
 const getGroupInformNumber = async () => {
+  if (groupInformLoading.value) return;
+  groupInformLoading.value = true;
   const res = await getPendingGroupApplyTotal();
   if (res.code === 200) {
-    console.log("获取群组申请数量结果:", res);
-    groupInformNumber.value = res.data || 0; // 如果没有数据，默认为0
+    console.log("获取群组申请数量结果:", res)
+    groupInformNumber.value = res.data || 0 // 如果没有数据，默认为0
   }
+  groupInformLoading.value = false;
 }
 
-const handleApplyUpdate = async (data) => {
-  console.log("handleApplyUpdate data:", data);
-  if (data.type === 'user') {
-    await getFriendApplyNumber();
+const handleApplyUpdate = async data => {
+  console.log("handleApplyUpdate data:", data)
+  if (data.type === "user") {
+    await getFriendApplyNumber()
   } else {
-    await getGroupInformNumber();
+    await getGroupInformNumber()
   }
 
-  showApplyDialog.value = false; // 关闭弹窗
+  showApplyDialog.value = false // 关闭弹窗
 }
 
 /**
  * 切换好友/群组标签
  */
-const currentTab = ref("好友"); // 设置默认选择标签
+const currentTab = ref("好友") // 设置默认选择标签
 
-const handleTabClick = async (tab) => {
-  console.log("当前选中的标签页:", tab.props.name);
-  handleResetParams();
+const handleTabClick = async tab => {
+  console.log("当前选中的标签页:", currentTab.value, tab.props.name)
+  handleResetParams()
+  proxy.$emit("update-tab", tab.props.name)
   if (tab.props.name === "好友") {
-    await getFriendsList();
-  } else{
-    await getGroupsList();
+    await getFriendsList()
+  } else {
+    await getGroupsList()
   }
-};
+}
 
 /**
  * 搜索
  */
-const searchQuery = ref(""); // 搜索关键词
+const searchQuery = ref("") // 搜索关键词
 const handleSearch = async () => {
-  if (currentTab.value === '好友') {
-    searchParams.nickName = searchQuery.value;
+  if (currentTab.value === "好友") {
+    searchParams.nickName = searchQuery.value
   } else {
-    searchParams.groupName = searchQuery.value;
+    searchParams.groupName = searchQuery.value
   }
 
-  await initData();
+  await initData()
 }
 
 /**
  * 创建或编辑群组
- */const handleCreateGroup = async (type, data) => {
+ */
+const handleCreateGroup = async (type, data) => {
   await resetLocalFormdata();
   if (type === 'add') {
     sessionStorage.setItem("formdata", JSON.stringify({}));
-    await createOrEditGroupWin();
+    await createOrEditGroupWin('main_task');
     return;
   } else {
     const formdata = {...data};
     sessionStorage.setItem("formdata", JSON.stringify(formdata));
-    await createOrEditGroupWin();
+    await createOrEditGroupWin('main_task');
     return;
   }
 }
@@ -423,29 +561,29 @@ const handleSearch = async () => {
  * @function navigateTo 打开 加好友/群组弹窗, 群组成员详情窗口, 消息通知 窗口
  */
 
-const showApplyDialog = ref(false); // 控制加好友/群组弹窗的显示
+const showApplyDialog = ref(false) // 控制加好友/群组弹窗的显示
 const navigateTo = async (type, data) => {
-  if (type === 'apply') {
+  if (type === "apply") {
     // 加好友或群组弹窗
-    showApplyDialog.value = true;
-    return;
-  } else if (type === 'groupMemberDetail') {
-    sessionStorage.removeItem("formdata");
-    sessionStorage.setItem("formdata", JSON.stringify(data));
+    showApplyDialog.value = true
+    return
+  } else if (type === "groupMemberDetail") {
+    sessionStorage.removeItem("formdata")
+    sessionStorage.setItem("formdata", JSON.stringify(data))
     // 打开群组成员详情窗口
-    await createGroupMemberDetailWin();
-    return;
+    await createGroupMemberDetailWin()
+    return
   } else {
     // 好友通知、群组通知 窗口
-    sessionStorage.removeItem("informType");
-    if (type === 'newFriends') {
-      sessionStorage.setItem("informType", '好友');
+    sessionStorage.removeItem("informType")
+    if (type === "newFriends") {
+      sessionStorage.setItem("informType", "好友")
     } else {
-      sessionStorage.setItem("informType", '群组');
+      sessionStorage.setItem("informType", "群组")
     }
-    await createInformWin();
-    return;
-  } 
+    await createInformWin()
+    return
+  }
 }
 
 /**
@@ -453,18 +591,18 @@ const navigateTo = async (type, data) => {
  * @param group 群组信息
  * @param friendId 好友ID
  */
-const handleInviteMember = async (group) => {
-  handleCreateGroup('edit', group); // 打开编辑群组窗口
+const handleInviteMember = async group => {
+  handleCreateGroup("edit", group) // 打开编辑群组窗口
 }
 
-const handleCopyInviteLink = async (group) => {
-  const inviteLink = group.inviteLink; // 假设这是群组的邀请链接
+const handleCopyInviteLink = async group => {
+  const inviteLink = group.inviteLink // 假设这是群组的邀请链接
   try {
-    await navigator.clipboard.writeText(inviteLink);
-    proxy.$message.success("群组邀请链接已复制到剪贴板");
+    await navigator.clipboard.writeText(inviteLink)
+    proxy.$message.success("群组邀请链接已复制到剪贴板")
   } catch (error) {
-    console.error("复制邀请链接失败:", error);
-    proxy.$message.error("复制邀请链接失败，请手动复制");
+    console.error("复制邀请链接失败:", error)
+    proxy.$message.error("复制邀请链接失败，请手动复制")
   }
 }
 
@@ -472,37 +610,40 @@ const handleCopyInviteLink = async (group) => {
  * 修改群组名
  * @param group 群组信息
  */
-const handleShowEditGroupName = async (group) => {
+const handleShowEditGroupName = async group => {
   try {
-    const { value, action } = await ElMessageBox.prompt('请输入新的群组名', '修改群组名', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      inputPattern: /.+/,
-      inputErrorMessage: '新的群组名不能为空'
-    });
+    const { value, action } = await ElMessageBox.prompt(
+      "请输入新的群组名",
+      "修改群组名",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        inputPattern: /.+/,
+        inputErrorMessage: "新的群组名不能为空"
+      }
+    )
 
-    if (action === 'confirm') {
+    if (action === "confirm") {
       const res = await updateGroupName({
         groupId: group.id,
         newGroupName: value
-      });
+      })
 
       if (res.code === 200) {
-        proxy.$message.success("群组名修改成功");
-        group.groupName = value; // 更新群组名
+        proxy.$message.success("群组名修改成功")
+        group.groupName = value // 更新群组名
       } else {
-        proxy.$message.error("修改群组名失败：" + res.message);
+        proxy.$message.error("修改群组名失败：" + res.message)
       }
     }
   } catch (error) {
-    if (error === 'cancel') {
-      proxy.$message.info("修改群组名已取消");
-      return;
+    if (error === "cancel") {
+      proxy.$message.info("修改群组名已取消")
+      return
     }
-    console.error("修改群组名时发生错误:", error);
+    console.error("修改群组名时发生错误:", error)
   }
-};
-
+}
 
 /**
  * 删除好友或群组
@@ -510,52 +651,51 @@ const handleShowEditGroupName = async (group) => {
  * @param friendId 好友ID
  * @param groupId 群组ID
  */
-const handleDelete = async (item) => {
-  proxy.$alert(`是否确认删除${currentTab.value}`, '提示', {
-    type: 'error',
+const handleDelete = async item => {
+  proxy.$alert(`是否确认删除${currentTab.value}`, "提示", {
+    type: "error",
     showCancelButton: true,
-    cancelButtonText: '再想想',
-    confirmButtonText: '确认删除',
-    confirmButtonClass: 'delete-confirm-btn',
-    callback: async (action) => {
-      if (action === 'cancel') return
+    cancelButtonText: "再想想",
+    confirmButtonText: "确认删除",
+    confirmButtonClass: "delete-confirm-btn",
+    callback: async action => {
+      if (action === "cancel") return
       else {
-        if (currentTab.value === '群组') {
-          const groupId = item.id;
-          await dissolveGroup({groupId}).then((res) => {
+        if (currentTab.value === "群组") {
+          const groupId = item.id
+          await dissolveGroup({ groupId }).then(res => {
             if (res.code === 200) {
-              proxy.$message.success(`成功删除该群组${item.groupName}`);
-              initData();
-            }
-          });
-        } else {
-          const friendId = item.friendId;
-          await deleteFriend({friendId}).then((res) => {
-            if (res.code === 200){
-              proxy.$message.success(`成功删除该好友${item.nickName}`);
-              initData();
+              proxy.$message.success(`成功删除该群组${item.groupName}`)
+              initData()
             }
           })
-        } 
+        } else {
+          const friendId = item.friendId
+          await deleteFriend({ friendId }).then(res => {
+            if (res.code === 200) {
+              proxy.$message.success(`成功删除该好友${item.nickName}`)
+              initData()
+            }
+          })
+        }
       }
     }
   })
-};
+}
 
 /**
  * 重置本地存储
  */
 const resetLocalFormdata = async () => {
   if (sessionStorage.getItem("formdata")) {
-    sessionStorage.removeItem("formdata");
+    sessionStorage.removeItem("formdata")
   }
-};
+}
 
-defineExpose({ initData }); // 将加载数据方法暴露给父组件
+defineExpose({ initData }) // 将加载数据方法暴露给父组件
 </script>
 
 <style lang="less" scoped>
-
 .group-management {
   padding: 20px 12px;
   color: #552505;
@@ -585,7 +725,9 @@ defineExpose({ initData }); // 将加载数据方法暴露给父组件
     background-color: #ffffff;
     padding: 5px;
     border-radius: 3px;
-    transition: color 0.3s, background-color 0.3s;
+    transition:
+      color 0.3s,
+      background-color 0.3s;
     &:hover {
       color: #c77b48;
       background-color: antiquewhite;
@@ -596,7 +738,7 @@ defineExpose({ initData }); // 将加载数据方法暴露给父组件
 .top-item-box {
   background-color: #fffcfa;
   margin-bottom: 12px;
-  
+
   .item {
     display: flex;
     align-items: center;
@@ -625,8 +767,6 @@ defineExpose({ initData }); // 将加载数据方法暴露给父组件
       background-color: #f8eadf;
     }
   }
-
-  
 }
 
 .sticky-tabs {
@@ -689,7 +829,8 @@ defineExpose({ initData }); // 将加载数据方法暴露给父组件
     margin: 5px 0;
     border-bottom: 1px solid #e4e2e1;
     background-color: #fffcfa;
-    cursor: default;
+    cursor: pointer;
+    transition: all ease 0.3s;
 
     .group-item-left {
       display: flex;
@@ -716,10 +857,37 @@ defineExpose({ initData }); // 将加载数据方法暴露给父组件
         color: #909399;
       }
     }
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgb(255, 255, 255, 0.2),
+        transparent
+      );
+      transition: 0.5s;
+    }
+
+    &:hover::before {
+      left: 100%;
+    }
+
+    &:hover {
+      background: #fcf2ec;
+      transform: translateY(-2px);
+      box-shadow: 2px 2px 2px rgba(139, 69, 19, 0.2);
+    }
   }
 }
 
-.friend-list, .group-list {
+.friend-list,
+.group-list {
   margin-bottom: 15px;
 }
 
@@ -729,7 +897,7 @@ defineExpose({ initData }); // 将加载数据方法暴露给父组件
   justify-content: center;
   padding-bottom: 10px;
   color: #909399;
-  
+
   .el-icon {
     margin-right: 5px;
   }

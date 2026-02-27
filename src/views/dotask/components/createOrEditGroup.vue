@@ -133,7 +133,7 @@ import customDragWindow from "../../components/public/customDragWindow.vue"; // 
 const myClient = ref({});
 const { proxy } = getCurrentInstance();
 
-let emit_win = 'main_task';
+let emit_win = null; // main_task / group_member_detail 主页面窗口 或是 群组成员窗口
 let create_group_win = getCurrentWindow("create_edit_group");
 
 onMounted(async () => {
@@ -174,9 +174,10 @@ onUnmounted(() => {
 });
 
 const initDataSource = async (event) => {
-  const { formdata, token, userInfo } = event.payload;
+  const { win, formdata, token, userInfo } = event.payload;
 
   // 存储编辑或新增信息到本地
+  emit_win = win;
   sessionStorage.setItem("token", token);
   formData.value = formdata;
   userInfo.value = userInfo.user;
@@ -217,11 +218,13 @@ const initDataSource = async (event) => {
 
 // 关闭窗口
 const hideWin = (type, params) => {
-  let main_win = getCurrentWindow(emit_win);
+  let main_win = getCurrentWindow('main_task');
   if (type === 'groupAddOrEdit') {
+    if (emit_win === 'group_member_detail') {
+      let win = getCurrentWindow(emit_win);
+      win.emit("group-member-updated")
+    }
     main_win.emit("group-info-updated", {action: formData.value.id ? "updated" : "add", data: params})
-  } else {
-    main_win.emit(`group-detail-info-close`, {action: "cancel"})
   }
   formData.value = {};
   unlistenFn?.();

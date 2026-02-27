@@ -317,6 +317,7 @@
           :prop="item.key"
           :class="{'full-width': item.fullWidth}"
           class="form-item"
+          style="width: 100%; display: flex;"
         >
           <template #label>
             <el-popover
@@ -344,6 +345,7 @@
             :placeholder="item.placeholder ? item.placeholder : `请输入${item.title}`"
             :disabled="item.type === 'dialog' || item.disabled"
             :autosize="{ minRows: item.minRows ? item.minRows : 3, maxRows: item.maxRows ? item.maxRows : 6 }"
+            :style="item.customStyle"
             clearable
           >
             <template v-if="item.type === 'dialog'" #append>
@@ -355,6 +357,26 @@
             </template>
           </el-input>
 
+          <el-tooltip
+            v-if="showSplitButton"
+            content="拆分任务" 
+            placement="top" 
+            :show-after="800"
+            :hide-after="200"
+            effect="dark"
+            :disabled="false"
+          >
+            <el-button
+              type="warning"
+              style="float: left; margin-left: 25px; width: 40px; height: 40px;"
+              @click="handleSplit"
+              class="btn-base btn-warning"
+              circle
+            >
+              <img :src="imageList.split" alt="拆分" style="width: 23px;height: 23px;">
+            </el-button>
+          </el-tooltip>
+          
           <div v-if="item.element === 'markdown'" class="markdown-preview" v-html="myformData[item.key]"></div>
         </el-form-item>
 
@@ -631,10 +653,31 @@
         </el-button>
       </el-tooltip>
 
+      <!-- 拆分按钮 -->
+      <!-- <el-tooltip
+        v-if="showSplitButton"
+        content="拆分任务" 
+        placement="top" 
+        :show-after="800"
+        :hide-after="200"
+        effect="dark"
+        :disabled="false"
+      >
+        <el-button
+          type="warning"
+          style="float: left; margin-left: 25px; width: 40px; height: 40px;"
+          @click="handleSplit"
+          class="btn-base btn-warning"
+          circle
+        >
+          <img :src="imageList.split" alt="拆分" style="width: 23px;height: 23px;">
+        </el-button>
+      </el-tooltip> -->
+
       <!-- 删除按钮 -->
       <el-button
         v-if="showDeleteButton"
-        style="float: left; margin-left: 25px; width: 40px; height: 40px;"
+        style="float: left; margin-left: 10px; width: 40px; height: 40px;"
         @click="handleDelete"
         class="delete-btn"
         circle
@@ -669,7 +712,7 @@
 
 <script setup>
 import { ref, getCurrentInstance, onMounted, onUnmounted } from "vue";
-import { Edit, Plus, Delete, Picture, Check, Close, Document, ArrowLeft, ArrowRight, Warning } from "@element-plus/icons-vue";
+import { Edit, Plus, Delete, Picture, Check, Close, Document, ArrowLeft, ArrowRight, Warning, Operation } from "@element-plus/icons-vue";
 import { getTaskLogs } from "../../../utils/taskManagement/index.js";
 import { uploadTaskImageToOSS } from "../../../utils/upload/secureOSSUpload.js";
 import RichTextEditor from './RichTextEditor.vue';
@@ -679,7 +722,8 @@ import RichTextEditor from './RichTextEditor.vue';
 const { proxy } = getCurrentInstance();
 
 const imageList = ref({
-  hint: './hint.svg'
+  hint: './hint.svg',
+  split: './split.svg'
 })
 
 const ruleFormRef = ref(null);
@@ -798,6 +842,12 @@ const _props = defineProps({
     default: 'rtl'
   },
 
+  // 拆分按钮
+  showSplitButton: {
+    type: Boolean,
+    default: false
+  },
+
   // 保存按钮
   showSaveButton: {
     type: Boolean,
@@ -816,19 +866,42 @@ const updateFormData = (newData) => { // 手动更新myformData的所有值
   Object.assign(myformData.value, newData);
   checkDeletePermission(); // 检查删除权限
 
-  console.log("updateFormData", myformData.value)
+  console.log("更新表单值：", myformData.value)
 }
 
 const updateInput = (propObj) => { // 手动更新某个值
   Object.keys(propObj).forEach(key => {
     myformData.value[key] = propObj[key]
   })
+  console.log('手动更新某个值: ', myformData.value)
 }
+
+// 保存按钮逻辑
+const submitForm = async () => {
+  await proxy.$refs.ruleFormRef.validate((valid, fields) => {
+    if (valid) {
+      if (_props.isLimits) {
+        let menuList = proxy.$refs.treeRef?.getCheckedKeys();
+        let halfMenuList = proxy.$refs.treeRef?.getHalfCheckedKeys();
+        myformData.value.menuIds = menuList.concat(halfMenuList);
+      }
+      myformData.value = {
+        ...myformData.value,
+        isSave: true
+      }
+      if (myformData.value?.isSplit) delete myformData.value.isSplit;
+      _emits("inputDone", JSON.parse(JSON.stringify(myformData.value)));
+    } else {
+      console.log("error submit!", fields);
+    }
+  });
+};
 
 defineExpose({
   ruleFormRef,
   updateFormData,
-  updateInput
+  updateInput,
+  submitForm
 });
 
 const onExceed = () => {
@@ -836,7 +909,7 @@ const onExceed = () => {
 };
 
 let myformData = ref({});
-const _emits = defineEmits(["hideWin", "inputDone", "emitOpenDialog", "deleteTask"]);
+const _emits = defineEmits(["hideWin", "inputDone", "emitOpenDialog", "deleteTask", "splitTask"]);
 const emitOpenDialog = (key) => _emits('emitOpenDialog', key);
 const hideWin = () => {
   myformData.value = {};
@@ -911,6 +984,30 @@ const checkDeletePermission = () => {
   showDeleteButton.value = Boolean(isEditMode  && creator && currentUser === creator);
 };
 
+/**
+ * 处理拆分任务
+ * 先提交保存再调用拆分
+ */
+const handleSplit = async () => {
+  await proxy.$refs.ruleFormRef.validate((valid, fields) => {
+    if (valid) {
+      if (_props.isLimits) {
+        let menuList = proxy.$refs.treeRef?.getCheckedKeys();
+        let halfMenuList = proxy.$refs.treeRef?.getHalfCheckedKeys();
+        myformData.value.menuIds = menuList.concat(halfMenuList);
+      }
+      myformData.value = {
+        ...myformData.value,
+        isSplit: true
+      }
+      if (myformData.value?.isSave) delete myformData.value.isSave;
+      _emits("inputDone", JSON.parse(JSON.stringify(myformData.value)));
+    } else {
+      console.log("error submit!", fields);
+    }
+  });
+};
+
 // 处理删除任务
 const handleDelete = async () => {
   try {
@@ -926,21 +1023,6 @@ const handleDelete = async () => {
     // 用户取消删除
     console.log('用户取消删除操作');
   }
-};
-
-const submitForm = async () => {
-  await proxy.$refs.ruleFormRef.validate((valid, fields) => {
-    if (valid) {
-      if (_props.isLimits) {
-        let menuList = proxy.$refs.treeRef?.getCheckedKeys();
-        let halfMenuList = proxy.$refs.treeRef?.getHalfCheckedKeys();
-        myformData.value.menuIds = menuList.concat(halfMenuList);
-      }
-      _emits("inputDone", JSON.parse(JSON.stringify(myformData.value)));
-    } else {
-      console.log("error submit!", fields);
-    }
-  });
 };
 
 const handleRemove = (file, url, key) => {

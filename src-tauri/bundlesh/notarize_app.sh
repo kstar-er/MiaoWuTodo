@@ -134,7 +134,7 @@ if [ "$APPLE_ID" = "your-apple-id@example.com" ] || [ "$APP_PASSWORD" = "your-ap
 fi
 
 # 检查应用程序包是否存在
-if [ ! -d "target/release/bundle/macos/$APP_NAME.app" ]; then
+if [ ! -d "../target/release/bundle/macos/$APP_NAME.app" ]; then
     echo "❌ 错误: 未找到 $APP_NAME.app"
     echo "请先运行签名打包脚本: ./build_macos_signed.sh"
     exit 1
@@ -142,7 +142,7 @@ fi
 
 # 检查应用是否已签名
 echo "🔍 检查应用签名状态..."
-codesign -dv "target/release/bundle/macos/$APP_NAME.app" 2>/dev/null
+codesign -dv "../target/release/bundle/macos/$APP_NAME.app" 2>/dev/null
 if [ $? -ne 0 ]; then
     echo "❌ 错误: 应用程序未签名"
     echo "请先运行签名打包脚本: ./build_macos_signed.sh"
@@ -160,10 +160,10 @@ fi
 
 # 创建ZIP文件用于公证
 echo "📦 创建公证用ZIP文件..."
-ZIP_FILE="target/release/bundle/macos/$APP_NAME.zip"
+ZIP_FILE="../target/release/bundle/macos/$APP_NAME.zip"
 rm -f "$ZIP_FILE"
 
-ditto -c -k --keepParent "target/release/bundle/macos/$APP_NAME.app" "$ZIP_FILE"
+ditto -c -k --keepParent "../target/release/bundle/macos/$APP_NAME.app" "$ZIP_FILE"
 
 if [ ! -f "$ZIP_FILE" ]; then
     echo "❌ 错误: ZIP文件创建失败"
@@ -195,20 +195,20 @@ if [ $NOTARIZE_RESULT -eq 0 ]; then
     
     # 装订公证票据
     echo "📎 装订公证票据到应用程序..."
-    xcrun stapler staple -v "target/release/bundle/macos/$APP_NAME.app"
+    xcrun stapler staple -v "../target/release/bundle/macos/$APP_NAME.app"
     
     if [ $? -eq 0 ]; then
         echo "✅ 公证票据装订成功"
         
         # 验证装订
         echo "🔍 验证公证票据..."
-        xcrun stapler validate "target/release/bundle/macos/$APP_NAME.app"
+        xcrun stapler validate "../target/release/bundle/macos/$APP_NAME.app"
         
         if [ $? -eq 0 ]; then
             echo "✅ 公证票据验证成功！"
             
             # 重新创建DMG（包含公证票据）
-            create_dmg "target/release/bundle/macos/$APP_NAME.app" "target/release/bundle/macos/$APP_NAME.dmg" "$APP_NAME"
+            create_dmg "../target/release/bundle/macos/$APP_NAME.app" "../target/release/bundle/macos/$APP_NAME.dmg" "$APP_NAME"
             
             if [ $? -eq 0 ]; then
                 echo "✅ 已公证DMG创建成功"
@@ -217,7 +217,7 @@ if [ $NOTARIZE_RESULT -eq 0 ]; then
                 echo "🔐 签名DMG文件..."
                 DEVELOPER_ID=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)".*/\1/')
                 if [ -n "$DEVELOPER_ID" ]; then
-                    codesign --force --sign "$DEVELOPER_ID" "target/release/bundle/macos/$APP_NAME.dmg"
+                    codesign --force --sign "$DEVELOPER_ID" "../target/release/bundle/macos/$APP_NAME.dmg"
                     if [ $? -eq 0 ]; then
                         echo "✅ DMG签名成功"
                     else
@@ -231,7 +231,7 @@ if [ $NOTARIZE_RESULT -eq 0 ]; then
             # 最终验证
             echo
             echo "🔍 最终验证..."
-            spctl --assess --type execute --verbose "target/release/bundle/macos/$APP_NAME.app"
+            spctl --assess --type execute --verbose "../target/release/bundle/macos/$APP_NAME.app"
             
             if [ $? -eq 0 ]; then
                 echo "✅ Gatekeeper验证通过！"
@@ -278,18 +278,18 @@ echo
 echo "🎉 应用程序公证完成！"
 echo
 echo "📁 最终文件:"
-echo "   - target/release/bundle/macos/$APP_NAME.app (已签名已公证)"
-if [ -f "target/release/bundle/macos/$APP_NAME.dmg" ]; then
-    echo "   - target/release/bundle/macos/$APP_NAME.dmg (已签名已公证)"
+echo "   - ../target/release/bundle/macos/$APP_NAME.app (已签名已公证)"
+if [ -f "../target/release/bundle/macos/$APP_NAME.dmg" ]; then
+    echo "   - ../target/release/bundle/macos/$APP_NAME.dmg (已签名已公证)"
 fi
 
 echo
 echo "📋 文件信息:"
 if [ -d "$APP_NAME.app" ]; then
-    echo "   应用程序包大小: $(du -sh "target/release/bundle/macos/$APP_NAME.app" | cut -f1)"
+    echo "   应用程序包大小: $(du -sh "../target/release/bundle/macos/$APP_NAME.app" | cut -f1)"
 fi
 if [ -f "$APP_NAME.dmg" ]; then
-    echo "   DMG文件大小: $(ls -lh "target/release/bundle/macos/$APP_NAME.dmg" | awk '{print $5}')"
+    echo "   DMG文件大小: $(ls -lh "../target/release/bundle/macos/$APP_NAME.dmg" | awk '{print $5}')"
 fi
 
 echo
@@ -302,4 +302,4 @@ echo "- 用户下载后可以直接运行，无需额外操作"
 echo
 echo "🔍 验证命令:"
 echo spctl --assess --type execute --verbose 'MiaoWuTodo.app'
-echo "   spctl --assess --type execute --verbose 'target/release/bundle/macos/$APP_NAME.app'"
+echo "   spctl --assess --type execute --verbose '../target/release/bundle/macos/$APP_NAME.app'"

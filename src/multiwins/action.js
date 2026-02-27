@@ -638,7 +638,7 @@ export async function createGroupMemberDetailWin() {
 /**
  * @desc 创建群组/群组拉人,移除人
  */
-export async function createOrEditGroupWin() {
+export async function createOrEditGroupWin(win) {
   const args = {
     label: "create_edit_group",
     url: "index.html#/createOrEditGroup",
@@ -653,7 +653,7 @@ export async function createOrEditGroupWin() {
     theme: 'Dark'
   }
   await checkIsExisting(args);
-  const main_win = await WebviewWindow.getByLabel("main_task");
+  const main_win = await WebviewWindow.getByLabel(win);
   const newWindow = new WebviewWindow(args.label, args);
   const res = await createNewWin(newWindow);
 
@@ -666,7 +666,7 @@ export async function createOrEditGroupWin() {
       if (formdata) {
         const token = sessionStorage.getItem("token");
         const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
-        await main_win.emit("create-edit-group-info", { token, formdata, userInfo });
+        await main_win.emit("create-edit-group-info", { win, token, formdata, userInfo });
         sessionStorage.removeItem("formdata");
         await newWindow.show(); // 显示窗口
       }
