@@ -225,21 +225,26 @@
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    // 从后端获取下载链接
+    // 从OSS获取版本信息JSON，再提取下载链接
     async function getDownloadUrls() {
       try {
-        // 获取Windows版本下载链接
-        const winResponse = await fetch('https://www.baiaidu.com:9822/eam/versionInformation/getDownloadUrl?os=win');
-        const winData = await winResponse.json();
-        if (winData.code === 200 && winData.data) {
-          document.getElementById('download-windows').setAttribute('href', winData.data);
+        // 从OSS获取版本信息JSON文件
+        const response = await fetch('https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/latest.json');
+        const versionData = await response.json();
+
+        // 提取Windows下载链接（假设使用windows-x86_64平台）
+        const winPlatform = versionData.platforms?.['windows-x86_64-nsis'] || versionData.platforms?.['windows-x86_64i'];
+        if (winPlatform?.url) {
+          document.getElementById('download-windows').setAttribute('href', winPlatform.url);
+        } else {
+          // 降级处理，使用默认链接
+          document.getElementById('download-windows').setAttribute('href', 'https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/package/%E5%96%B5%E5%91%9CTodo_1.0.1_x64-setup.exe');
         }
 
-        // 获取Mac版本下载链接
-        const macResponse = await fetch('https://www.baiaidu.com:9822/eam/versionInformation/getDownloadUrl?os=mac');
-        const macData = await macResponse.json();
-        if (macData.code === 200 && macData.data) {
-          document.getElementById('download-mac').setAttribute('href', macData.data);
+        // 提取Mac下载链接（优先使用darwin-aarch64，兼容Intel芯片）
+        const macPlatform = versionData.platforms?.['darwin-aarch64-app'] || versionData.platforms?.['darwin-aarch64'] || versionData.platforms?.['darwin-x86_64'];
+        if (macPlatform?.url) {
+          document.getElementById('download-mac').setAttribute('href', macPlatform.url);
         } else {
           // 如果Mac版本暂未上线，保持原有提示
           document.getElementById('download-mac').addEventListener('click', function (e) {
@@ -251,6 +256,10 @@
         console.error('获取下载链接失败:', error);
         // 降级处理，使用默认链接
         document.getElementById('download-windows').setAttribute('href', 'https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/package/%E5%96%B5%E5%91%9CTodo_1.0.1_x64-setup.exe');
+        document.getElementById('download-mac').addEventListener('click', function (e) {
+          e.preventDefault();
+          alert('Mac版本正在加急审核中！审核完了马上上线喵');
+        });
       }
     }
 
