@@ -167,7 +167,7 @@ import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 import { createMainWin, createWinPetWin } from "../multiwins/action";
 import customDragWindow from "../views/components/public/customDragWindow.vue"; // 封装窗口拖拽
 import CryptoJS from "crypto-js";
-import { checkUpdate, getVersion } from "../utils/settings/update";
+import { checkUpdate } from "../utils/settings/update";
 
 import { listen } from '@tauri-apps/api/event'
 
@@ -233,7 +233,7 @@ onMounted(async () => {
   if (proxy.$disconnect) proxy.$disconnect();
   
   // 检查更新
-  await checkUpdate(await getVersion('login'));
+  await checkUpdate('login');
   
   // 使用 Tauri 事件系统监听清除登录表单的事件
   try {

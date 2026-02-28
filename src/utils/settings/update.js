@@ -1,7 +1,4 @@
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import packageJson from '../../../package.json';
-import { ElMessageBox, ElMessage } from 'element-plus';
-import { invoke } from '@tauri-apps/api/core';
 import { pbRequest} from "../../public/pbRequest/index"
 import { check } from '@tauri-apps/plugin-updater';
 import { createUpdateWin } from "../../multiwins/action";
@@ -48,62 +45,24 @@ export async function getVersion(win) {
   return versionInfo;
 }
 
-// export const checkUpdate = async (versionInfo) => {
-//   try {
-//     console.log("检查更新:", versionInfo)
-//     // 获取自动更新设置
-//     const autoUpdate = localStorage.getItem('autoUpdate') !== 'false';
-//     if (!autoUpdate) return;
-
-//     // 获取当前版本和最新版本
-//     const currentVersion = packageJson.version;
-//     const latestVersion = versionInfo.version;
-
-//     const update = await check();
-//     console.log("更新信息:", update);
-
-//     // 比较版本号
-//     if (currentVersion !== latestVersion) {
-//       ElMessageBox.confirm(
-//         `发现新版本 ${latestVersion}，是否立即更新？`,
-//         '更新提示',
-//         {
-//           confirmButtonText: '立即更新',
-//           cancelButtonText: '稍后再说',
-//           type: 'info',
-//         }
-//       ).then(async () => {
-//         await update.downloadAndInstall();
-//       }).catch((error) => {
-//         console.error("error", error)
-//         ElMessage.info('已取消更新');
-//       });
-//     }
-    
-//   } catch (error) {
-//     console.error('检查更新失败:', error);
-//   }
-// }; 
-
-
-export async function checkUpdate(versionInfo) {
+// 检查是否需要更新
+export async function checkUpdate(win) {
   try {
-    console.log("检查更新:", versionInfo)
     // 获取自动更新设置
     const autoUpdate = localStorage.getItem('autoUpdate') !== 'false';
     if (!autoUpdate) return;
 
-    // 获取当前版本和最新版本
-    const currentVersion = packageJson.version;
-    const latestVersion = versionInfo.version;
-
-    if (currentVersion === latestVersion) return
+    const update = await check()
+    if (!update) return;
+    console.log("检查更新:", update)
 
     // 比较版本号，不同则创建更新窗口
+    if (update.currentVersion === update.version) return
+
     // 发送调用该方法的主窗口的label：登录窗口/任务窗口
     const data = {
-      ...versionInfo,
-      currentVersion
+      ...update,
+      win
     }
     
     await createUpdateWin(data)

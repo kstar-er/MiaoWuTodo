@@ -24,30 +24,37 @@
 
       <div class="item">
         <div class="item-label">更新时间：</div>
-        <div class="item-value">{{ versionInfo.pub_date }}</div>
+        <div class="item-value">{{ versionInfo.date }}</div>
       </div>
 
       <div class="item">
         <div class="item-label">更新日志：</div>
-        <div class="item-value">{{ versionInfo.notes }}</div>
+        <div class="item-value">{{ versionInfo.body }}</div>
       </div>
     </div>
 
     <div class="actions">
-      <button v-if="!downloading" @click="handleLater" class="btn-base btn-danger">
-        稍后更新
-      </button>
+      <div v-if="!downloading" class="btn-update-action">
+        <button @click="handleLater" class="btn-base btn-danger">
+          稍后更新
+        </button>
 
-      <button v-if="!downloading" @click="startUpdate" class="btn-base btn-primary">
-        立即更新
-      </button>
-
-      <div v-else class="progress-box">
-        <div class="progress-hint">正在准备更新，请稍后...</div>
-        <div class="progress-bar">
-          <div class="progress" :style="{ width: progress + '%' }"></div>
-          <span class="progress-text">{{ progress }}%</span>
+        <button @click="startUpdate" class="btn-base btn-primary">
+          立即更新
+        </button>
+      </div>
+      
+      <div v-else class="progress-content">
+        <div class="progress-box">
+          <div class="progress-hint">正在准备更新，请稍后...</div>
+          <div class="progress-bar">
+            <div class="progress" :style="{ width: progress + '%' }"></div>
+            <span class="progress-text">{{ progress }}%</span>
+          </div>
         </div>
+        <button @click="stopUpdate" class="btn-base btn-danger cancel">
+          取消更新
+        </button>
       </div>
     </div>
   </div>
@@ -84,8 +91,10 @@ onMounted(async () => {
       sessionStorage.setItem("token", token);
       versionInfo.value = {
         ...data,
-        pub_date: dayjs.utc(data.pub_date?.split('.')[0]).local().format('YYYY-MM-DD HH:mm:ss')
+        date: dayjs.utc(data.date?.split('.')[0]).local().format('YYYY-MM-DD HH:mm:ss')
       }
+
+      console.log("收到更新消息：", versionInfo.value)
       return;
     });
   } catch (error) {
@@ -135,6 +144,27 @@ const startUpdate = async () => {
     downloading.value = false;
   }
 };
+
+/**
+ * 取消更新
+ */
+const stopUpdate = () => {
+  proxy.$confirm('确定要取消更新吗？', '提示', {
+    type: 'warning',
+    confirmButtonText: '取消更新',
+    cancelButtonText: '再想想'
+  }).then(() => {
+    confirmStopUpdate();
+  }).catch(() => {
+    // 用户取消操作
+  });
+};
+
+const confirmStopUpdate = () => {
+  downloading.value = false;
+  progress.value = 0;
+  proxy.$message.info("更新已取消");
+};
 </script>
 
 <style lang="less" scoped>
@@ -166,8 +196,8 @@ const startUpdate = async () => {
 
 .content {
   padding: 20px;
-  margin-bottom: 20px;
-  height: 220px;
+  margin-bottom: 10px;
+  height: 200px;
   overflow-y: auto;
 }
 
@@ -195,10 +225,12 @@ const startUpdate = async () => {
 }
 
 .actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  padding: 10px;
+  .btn-update-action {
+    gap: 10px;
+    display: flex;
+    justify-content: flex-end;
+    padding: 30px 20px 10px 0px;
+  }
 }
 
 .btn-base {
@@ -210,14 +242,27 @@ const startUpdate = async () => {
   padding: 8px 16px;
 }
 
-.progress-box {
+.progress-content {
   width: 100%;
-  .progress-hint {
-    display: flex;
-    justify-content: center;
-    font-size: 13px;
-    color: #999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  .progress-box {
+    width: 95%;
+    .progress-hint {
+      display: flex;
+      justify-content: center;
+      font-size: 13px;
+      color: #999;
+    }
   }
+  .cancel {
+    width: 50%;
+    margin-top: 5px;
+    padding: 5px;
+    font-size: 13px;
+  }
+  
 }
 
 .progress-bar {

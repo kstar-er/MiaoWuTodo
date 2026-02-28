@@ -47,11 +47,10 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc2NTBENDUzRjdBM0U0NDUKUldSRjVLUDNVOVJRZG05eFpmUVpkZWlrZkxDenp2LzJocFlTYmxQUDAxQWh5WkdNaW9ENkRTanMK",
-      "windows": {
-        "installMode": "passive"
-      },
       "endpoints": ["https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/latest.json"],
-      "dangerousInsecureTransportProtocol": true
+      "dangerousInsecureTransportProtocol": true,
+      "enabled": true,
+      "auto_update": false
     }
   },
   "bundle": {
