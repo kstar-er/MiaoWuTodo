@@ -47,7 +47,7 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc2NTBENDUzRjdBM0U0NDUKUldSRjVLUDNVOVJRZG05eFpmUVpkZWlrZkxDenp2LzJocFlTYmxQUDAxQWh5WkdNaW9ENkRTanMK",
-      "endpoints": ["https://www.baiaidu.com:9822/eam/versionInformation/getLatestVersion?os={{target}}"],
+      "endpoints": ["https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/latest.json"],
       "dangerousInsecureTransportProtocol": true,
       "enabled": true,
       "auto_update": false

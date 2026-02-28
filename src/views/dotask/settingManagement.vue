@@ -677,14 +677,7 @@ const getAppVersion = async () => {
     autoUpdate.value = savedAutoUpdate !== null ? JSON.parse(savedAutoUpdate) : true
 
     // 获取版本信息
-    const update = await check()
-    if (!update) return;
-
-    versionInfo = {
-      ...update
-    }
-    console.log('获取版本信息：', versionInfo)
-    version.value = versionInfo.version
+    await fetchLatestVersion()
 
     await checkUpdate('main_task');
     // 获取版本号
@@ -692,6 +685,24 @@ const getAppVersion = async () => {
     console.error("获取版本信息失败:", error)
   }
 }
+
+// 获取最新版本信息
+const LATEST_VERSION_URL = 'https://miaowutodo.oss-cn-hangzhou.aliyuncs.com/latest.json';
+const fetchLatestVersion = async () => {
+  try {
+    const response = await fetch(LATEST_VERSION_URL);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+    const data = await response.json();
+    console.log('从 OSS 获取最新版本信息 latest.json:', data);
+
+    versionInfo = { ...data };
+    version.value = data.version; // 更新显示版本号
+  } catch (error) {
+    console.error('获取最新版本信息失败:', error);
+    ElMessage.error('无法连接到版本服务器');
+  }
+};
 
 // 处理自动更新开关变化
 const handleAutoUpdateChange = async value => {
@@ -732,15 +743,13 @@ onMounted(async () => {
   await getAppVersion()
   try {
     console.log("获取版本信息：", versionInfo)
-    updateContent.value = versionInfo.body || "暂无更新内容"
+    updateContent.value = versionInfo.notes || "暂无更新内容"
   } catch (error) {
     console.error("获取版本信息失败:", error)
     version.value = "获取失败"
     updateContent.value = "获取更新内容失败"
   }
 })
-
-onUnmounted(() => {})
 </script>
 
 <style lang="less" scoped>
