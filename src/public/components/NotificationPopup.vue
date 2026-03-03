@@ -66,7 +66,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { Close, Delete } from '@element-plus/icons-vue'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { listen } from "@tauri-apps/api/event";
-import { getAllTask, getProject } from '../../utils/taskManagement';
+import { getAllTask, getProject, getSingleTask } from '../../utils/taskManagement';
 import { createTaskWin } from '../../multiwins/action';
 import customDragWindow from "../../views/components/public/customDragWindow.vue"; // 封装窗口拖拽
 
@@ -195,6 +195,7 @@ const projectInfo = ref({}); // 项目详情
 const handleTaskDetail = async (message, index) => {
   console.log('消息中的任务id：', message, index)
   const taskInfo = await fetchTaskDetails(message.taskId)
+  console.log('任务详情:', taskInfo)
   if (taskInfo) {
     getLocalUsernameIdMap();
 
@@ -240,9 +241,10 @@ const handleTaskDetail = async (message, index) => {
 
 const fetchTaskDetails = async (taskId) => {
   try {
-    const response = await getAllTask({ id: taskId, pageNum: 1, pageSize: 1 });
-    if (response.code === 200 && response.rows.length > 0) {
-      return response.rows[0];
+    const response = await getSingleTask({ id: taskId, pageNum: 1, pageSize: 1 });
+    if (response.code === 200 ) {
+      console.log('获取任务详情成功:', response)
+      return response.data;
     } else {
       console.error('未找到任务详情');
       return null;

@@ -11,6 +11,10 @@ export async function getAllTask(params) {
   const { data: { code, rows, message, total  } } = await pbRequest.post(`/eam/taskInformation/selectAll?pageNum=${params.pageNum}&pageSize=${params.pageSize}`, params)
   return code === 200 ? { code, rows, total } : message
 }
+export async function getSingleTask(params) {
+  const { data: { code, data, message, total  } } = await pbRequest.post(`/eam/taskInformation/selectById/${params.id}`, params)
+  return code === 200 ? { code, data, total } : message
+}
 
 // 查询项目中的任务列表-----子任务树结构
 export async function getTreeTask(params) {
