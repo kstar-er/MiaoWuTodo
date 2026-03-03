@@ -104,7 +104,7 @@
       @delete-task="handleDeleteTask"
       @split-task="handleSplitTask"
     >
-      <template #append1>
+      <template #append1 v-if="!formData.id || (formData.id && formData.parentId === 0)">
         <el-form-item
           label="任务流程"
           prop="scheduleList"
