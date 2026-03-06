@@ -1,5 +1,6 @@
 @echo off
 REM Windows batch script to increment version in package.json and tauri.conf.json
+REM Then automatically commit, tag, and push to GitHub and Gitee
 REM Usage: increment-version.bat
 
 setlocal enabledelayedexpansion
@@ -76,6 +77,73 @@ echo.
 echo Version updated successfully!
 echo package.json: %CURRENT_VERSION% -^> %NEW_VERSION%
 echo tauri.conf.json: %CURRENT_VERSION% -^> %NEW_VERSION%
+echo.
+
+REM Change to script directory for git operations
+cd /d "%SCRIPT_DIR%"
+
+REM Git operations
+echo Performing git operations...
+echo.
+
+REM Stage changes
+echo [1/5] Staging changes...
+git add package.json src-tauri\tauri.conf.json
+if errorlevel 1 (
+    echo Error: Failed to stage changes
+    pause
+    exit /b 1
+)
+
+REM Commit changes
+echo [2/5] Committing changes...
+git commit -m "修改版本号%NEW_VERSION%"
+if errorlevel 1 (
+    echo Error: Failed to commit changes
+    pause
+    exit /b 1
+)
+
+REM Create tag
+echo [3/5] Creating git tag...
+git tag v%NEW_VERSION%
+if errorlevel 1 (
+    echo Error: Failed to create tag
+    pause
+    exit /b 1
+)
+
+REM Push to GitHub
+echo [4/5] Pushing to GitHub...
+git push origin master
+if errorlevel 1 (
+    echo Warning: Failed to push to GitHub master branch
+)
+git push origin v%NEW_VERSION%
+if errorlevel 1 (
+    echo Warning: Failed to push tag to GitHub
+)
+
+REM Push to Gitee
+echo [5/5] Pushing to Gitee...
+git push gitee master
+if errorlevel 1 (
+    echo Warning: Failed to push to Gitee master branch
+)
+git push gitee v%NEW_VERSION%
+if errorlevel 1 (
+    echo Warning: Failed to push tag to Gitee
+)
+
+echo.
+echo ========================================
+echo Version increment completed successfully!
+echo ========================================
+echo Version: %CURRENT_VERSION% -^> %NEW_VERSION%
+echo Commit: 修改版本号%NEW_VERSION%
+echo Tag: v%NEW_VERSION%
+echo Pushed to: GitHub and Gitee
+echo ========================================
 echo.
 pause
 
