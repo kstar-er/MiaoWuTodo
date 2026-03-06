@@ -287,6 +287,9 @@ const agreedToTerms = ref(false);
 const registerAgreedToTerms = ref(false);
 const showAgreementDialog = ref(false);
 
+// 用户协议缓存键
+const AGREEMENT_CACHE_KEY = "userAgreementAccepted";
+
 // 注册 / 忘记密码 表单
 const showRegisterForm = ref(false)
 const showForgotForm = ref(false)
@@ -333,10 +336,25 @@ const getLastLoginInfo = () => {
   }
 }
 
+// 从缓存加载用户协议同意状态
+const loadAgreementStatus = () => {
+  const cachedStatus = localStorage.getItem(AGREEMENT_CACHE_KEY);
+  if (cachedStatus === "true") {
+    agreedToTerms.value = true;
+    registerAgreedToTerms.value = true;
+  }
+}
+
+// 保存用户协议同意状态到缓存
+const saveAgreementStatus = () => {
+  localStorage.setItem(AGREEMENT_CACHE_KEY, "true");
+}
+
 onMounted(async () => {
   user.username = "";
   user.password = "";
   getLastLoginInfo();
+  loadAgreementStatus();
 
   if (proxy.$disconnect) proxy.$disconnect();
   
@@ -408,6 +426,8 @@ const login = async () => {
   
   if (ctx.code === 200) { // 登录成功
     console.log("登录成功，保存token和用户信息");
+    // 保存用户协议同意状态
+    saveAgreementStatus();
     // 将token信息保存
     sessionStorage.setItem("token", ctx.data.accessToken);
     sessionStorage.setItem("userInfo", JSON.stringify(ctx.data.user));
@@ -516,6 +536,8 @@ const handleRegisterSubmit = async () => {
   if (res && res.code === 200) {
     proxy.$message.success("注册成功，请使用邮箱登录")
     handleBackToLogin()
+    // 保存用户协议同意状态
+    saveAgreementStatus();
     // 清空注册表单
     register.email = ""
     register.nickname = ""
