@@ -17,7 +17,8 @@
     "create_edit_group",
     "notificationPopup",
     "group_member_detail",
-    "update_dialog"
+    "update_dialog",
+    "ai_dialog"
   ],
   "permissions": [
     "core:default",
@@ -108,6 +109,9 @@
     "core:window:allow-unmaximize",
     "core:window:allow-unminimize",
     "fs:default",
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file",
+    "fs:allow-read-dir",
     "dialog:default",
     "opener:allow-open-url",
     "opener:default",
@@ -146,6 +150,30 @@
       "allow": [
         {
           "path": "$DESKTOP/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-write-text-file",
+      "allow": [
+        {
+          "path": "**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-text-file",
+      "allow": [
+        {
+          "path": "**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-dir",
+      "allow": [
+        {
+          "path": "**"
         }
       ]
     },

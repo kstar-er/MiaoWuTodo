@@ -11,7 +11,7 @@
       </template>
     </customDragWindow>
     <!-- 登录/注册区域 -->
-    <div class="form_area" :style="(showRegisterForm || showForgotForm) ? `height: 406px` : `height: 186px;`">
+    <div class="form_area" :style="(showRegisterForm || showForgotForm) ? `height: 436px` : `height: 216px;`">
       <div class="login-pane" :class="{ 'slide-up': (showRegisterForm || showForgotForm) }" v-if="!(showRegisterForm || showForgotForm)">
         <el-form :model="user">
           <el-form-item label="" style="margin-bottom: 10px;">
@@ -33,11 +33,20 @@
               </template>
             </el-input>
           </el-form-item>
+
           <div class="login-actions">
             <span class="register-link" @click="handleShowForgot">忘记密码</span>
             <el-button class="login_btn" type="primary" @click="login">登  录</el-button>
             <span class="register-link" @click="handleShowRegister">注册账号</span>
           </div>
+                    <el-form-item label="" style="margin-bottom: 10px;">
+            <div class="agreement-checkbox">
+              <el-checkbox v-model="agreedToTerms" size="small">
+                我已阅读并同意
+                <span class="agreement-link" @click.stop="showAgreement">《用户协议》</span>
+              </el-checkbox>
+            </div>
+          </el-form-item>
         </el-form>
       </div>
 
@@ -93,6 +102,14 @@
                 </el-icon>
               </template>
             </el-input>
+          </el-form-item>
+          <el-form-item>
+            <div class="agreement-checkbox">
+              <el-checkbox v-model="registerAgreedToTerms" size="small">
+                我已阅读并同意
+                <span class="agreement-link" @click.stop="showAgreement">《用户协议》</span>
+              </el-checkbox>
+            </div>
           </el-form-item>
           <div class="register-actions-row">
             <el-button link type="primary" class="back-login" @click="handleBackToLogin">返回登录</el-button>
@@ -156,6 +173,92 @@
         </el-form>
       </div>
     </div>
+
+    <!-- 用户协议弹窗 -->
+    <el-dialog
+      v-model="showAgreementDialog"
+      title="喵呜Todo用户协议"
+      width="80%"
+      :close-on-click-modal="false"
+      class="agreement-dialog"
+    >
+      <div class="agreement-content">
+        <p class="update-date">更新日期：2026年3月4日</p>
+
+        <div class="important-notice">
+          <strong>重要提示：</strong>在使用喵呜Todo服务之前，请您务必仔细阅读并充分理解本协议的全部内容。一旦您勾选同意并完成注册或登录，即表示您已充分理解并同意接受本协议的全部条款。
+        </div>
+
+        <h3>一、协议的接受与修改</h3>
+        <p>1.1 本协议是您与喵呜Todo之间关于使用喵呜Todo桌面端任务管理软件及相关服务所订立的协议。</p>
+        <p>1.2 喵呜Todo有权根据需要不时修改本协议条款。修改后的协议一经公布即生效，并替代原协议。</p>
+        <p>1.3 如您不同意修改后的协议，您有权停止使用喵呜Todo服务；若您继续使用，则视为接受修改后的协议。</p>
+
+        <h3>二、账号注册与使用</h3>
+        <p><strong>2.1 账号注册</strong></p>
+        <ul>
+          <li>您需要使用有效的电子邮箱地址注册喵呜Todo账号</li>
+          <li>您应提供真实、准确、完整的注册信息</li>
+          <li>您应妥善保管账号和密码，对账号下的所有行为负责</li>
+        </ul>
+
+        <p><strong>2.2 账号使用规范</strong></p>
+        <ul>
+          <li>一个邮箱地址仅能注册一个账号</li>
+          <li>禁止将账号转让、出售或出借给他人使用</li>
+          <li>禁止利用账号从事违法违规活动</li>
+        </ul>
+
+        <h3>三、服务内容与使用规则</h3>
+        <p><strong>3.1 服务内容</strong></p>
+        <p>喵呜Todo为您提供任务管理、AI智能对话辅助、数据云端同步、周报生成等功能。</p>
+
+        <p><strong>3.2 使用规则</strong></p>
+        <ul>
+          <li>您应遵守中华人民共和国相关法律法规</li>
+          <li>不得利用本软件发布、传播违法违规信息</li>
+          <li>不得对本软件进行反向工程、破解或修改</li>
+        </ul>
+
+        <h3>四、用户数据与隐私保护</h3>
+        <p><strong>4.1 数据收集</strong></p>
+        <p>为了向您提供服务，我们会收集：账号信息（邮箱、用户名、密码）、任务数据、AI对话数据等。</p>
+
+        <div class="important-notice">
+          <p><strong>4.2 数据使用承诺</strong></p>
+          <ul>
+            <li>您的所有数据仅用于为您提供服务，不会用于任何其他商业目的</li>
+            <li>我们不会将您的数据出售、出租或提供给第三方</li>
+            <li>我们不会使用您的任务内容、AI对话内容进行数据分析或模型训练</li>
+            <li>您的数据仅存储在我们的安全服务器中，采用加密技术保护</li>
+          </ul>
+        </div>
+
+        <p><strong>4.3 数据权利</strong></p>
+        <p>您对自己的数据享有访问权、修改权、删除权、导出权和注销权。</p>
+
+        <h3>五、知识产权</h3>
+        <p>喵呜Todo软件及相关服务的知识产权归我们所有。您创建的任务内容、对话内容等数据的知识产权归您所有。</p>
+
+        <h3>六、免责声明</h3>
+        <p>因不可抗力、网络故障、系统维护等原因导致的服务中断或数据丢失，我们不承担责任。</p>
+
+        <h3>七、争议解决</h3>
+        <p>本协议适用中华人民共和国法律。如发生争议，应友好协商解决；协商不成的，可向我方所在地人民法院提起诉讼。</p>
+
+        <div class="contact-info">
+          <p><strong>联系我们</strong></p>
+          <p>如有疑问，请通过软件内反馈功能或客服邮箱联系我们。</p>
+        </div>
+
+        <p style="text-align: center; margin-top: 20px; color: #666;">
+          感谢您选择喵呜Todo！
+        </p>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="showAgreementDialog = false">我已阅读</el-button>
+      </template>
+    </el-dialog>
   </main>
 </template>
 
@@ -178,6 +281,11 @@ let user = reactive({
   username: "",
   password: "",
 });
+
+// 用户协议勾选状态
+const agreedToTerms = ref(false);
+const registerAgreedToTerms = ref(false);
+const showAgreementDialog = ref(false);
 
 // 注册 / 忘记密码 表单
 const showRegisterForm = ref(false)
@@ -288,6 +396,12 @@ const login = async () => {
     return;
   }
 
+  // 检查是否同意用户协议
+  if (!agreedToTerms.value) {
+    proxy.$message.error("请先阅读并同意用户协议");
+    return;
+  }
+
   console.log("开始登录...");
   let ctx = await userLogin(user); // 从后端调用接口，并将参数传入
   console.log("登录响应:", ctx);
@@ -360,7 +474,7 @@ const handleShowRegister = async () => {
   showRegisterForm.value = true;
 
   // 调整窗口高度
-  await getCurrentWindow().setSize(new LogicalSize(400, 500));
+  await getCurrentWindow().setSize(new LogicalSize(400, 530));
 }
 
 // 返回登录表单
@@ -369,7 +483,7 @@ const handleBackToLogin = async () => {
   showForgotForm.value = false;
 
   // 调整窗口高度
-  await getCurrentWindow().setSize(new LogicalSize(400, 280));
+  await getCurrentWindow().setSize(new LogicalSize(400, 310));
 }
 
 // 提交注册
@@ -392,6 +506,11 @@ const handleRegisterSubmit = async () => {
     proxy.$message.error("两次输入的密码不一致")
     return
   }
+  // 检查是否同意用户协议
+  if (!registerAgreedToTerms.value) {
+    proxy.$message.error("请先阅读并同意用户协议")
+    return
+  }
   const username = email;
   const res = await userRegister({ email, username, nickname, password, code })
   if (res && res.code === 200) {
@@ -404,6 +523,7 @@ const handleRegisterSubmit = async () => {
     register.password = ""
     register.confirmPassword = ""
     register.code = ""
+    registerAgreedToTerms.value = false
   }
 }
 
@@ -459,6 +579,11 @@ const handleResetPasswordSubmit = async () => {
     forgot.confirmPassword = ""
     forgot.code = ""
   }
+}
+
+// 打开用户协议
+const showAgreement = () => {
+  showAgreementDialog.value = true
 }
 
 </script>
@@ -772,4 +897,125 @@ body,
     color: #8b4513;
   }
 }
+
+/* 用户协议勾选框样式 */
+.agreement-checkbox {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+
+  :deep(.el-checkbox__label) {
+    font-size: 12px;
+    color: #666;
+  }
+
+  .agreement-link {
+    color: #409EFF;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: #66b1ff;
+    }
+  }
+}
+
+/* 用户协议弹窗样式 */
+:deep(.agreement-dialog) {
+  .el-dialog__header {
+    background: linear-gradient(135deg, #8b4513 0%, #a0522d 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .el-dialog__title {
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .el-dialog__body {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 20px 30px;
+  }
+
+  .el-dialog__footer {
+    padding: 15px 20px;
+    border-top: 1px solid #e4e7ed;
+  }
+}
+
+.agreement-content {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #333;
+
+  .update-date {
+    text-align: center;
+    color: #999;
+    font-size: 12px;
+    margin-bottom: 20px;
+  }
+
+  h3 {
+    color: #8b4513;
+    font-size: 16px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #d4b895;
+    padding-bottom: 5px;
+  }
+
+  p {
+    margin: 10px 0;
+    text-indent: 2em;
+  }
+
+  ul {
+    margin: 10px 0;
+    padding-left: 30px;
+  }
+
+  li {
+    margin: 5px 0;
+    list-style-type: disc;
+  }
+
+  .important-notice {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 4px;
+
+    p {
+      text-indent: 0;
+      margin: 5px 0;
+    }
+
+    ul {
+      margin-top: 10px;
+    }
+  }
+
+  .contact-info {
+    background: #e7f3ff;
+    border-left: 4px solid #409EFF;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 4px;
+
+    p {
+      text-indent: 0;
+      margin: 5px 0;
+    }
+  }
+}
+
 </style>

@@ -218,6 +218,14 @@ const routes = [
     meta: {
       title: '通知'
     }
+  },
+  {
+    path: '/ai-dialog',
+    name: 'aiDialog',
+    component: () => import('../views/ai/aiDialog.vue'),
+    meta: {
+      title: 'AI对话'
+    }
   }
 ];
 
