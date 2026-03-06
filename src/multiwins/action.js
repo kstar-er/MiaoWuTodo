@@ -675,6 +675,65 @@ export async function createOrEditGroupWin(win) {
 }
 
 /**
+ * @desc 打开AI对话窗口
+ */
+export async function createAIDialogWin() {
+  console.log("开始创建AI对话窗口...");
+  const args = {
+    label: "ai_dialog",
+    url: "index.html#/ai-dialog",
+    title: "AI对话",
+    width: 900,
+    height: 700,
+    resizable: true,
+    center: true,
+    visible: false,
+    alwaysOnTop: false,
+    decorations: false,
+    theme: 'Dark'
+  };
+  
+  const existingWindow = await WebviewWindow.getByLabel(args.label);
+  if (existingWindow) {
+    console.log("AI对话窗口已存在，尝试显示...");
+    const isMinimized = await existingWindow.isMinimized();
+    if (isMinimized) {
+      await existingWindow.unminimize();
+    }
+    await existingWindow.show();
+    return;
+  }
+  
+  const newWindow = new WebviewWindow(args.label, args);
+  
+  let unlistenFn;
+  newWindow.once("tauri://created", async () => {
+    console.log("AI对话窗口已成功创建:", args.label);
+    unlistenFn = newWindow.listen("window-ready", async (event) => {
+      console.log("AI对话窗口已准备好:", args.label);
+      try {
+        const token = sessionStorage.getItem("token");
+        const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
+        console.log("发送登录信息到AI对话窗口:", { token: !!token, userInfo: !!userInfo });
+        
+        // 向新创建的窗口发送登录信息
+        await newWindow.emit("login-info", { token, userInfo });
+        await newWindow.show(); // 显示窗口
+        console.log("AI对话窗口已显示:", args.label);
+      } catch (error) {
+        console.error("AI对话窗口事件发送失败:", error);
+      }
+    });
+  });
+  
+  newWindow.once("tauri://error", (e) => {
+    console.error("创建AI对话窗口时出错:", args.label, e);
+  });
+  
+  console.log("AI对话窗口创建完成");
+}
+
+/**
  * @desc 更新窗口
  */
 export async function createUpdateWin(data) {
@@ -731,5 +790,6 @@ export default {
   createInformWin,
   createOrEditGroupWin,
   createGroupMemberDetailWin,
-  createUpdateWin
+  createUpdateWin,
+  createAIDialogWin
 };

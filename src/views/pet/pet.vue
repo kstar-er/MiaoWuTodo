@@ -1,6 +1,6 @@
 <template>
   <!-- 包裹整个宠物内容的可拖拽区域 -->
-  <div class="content-area" @contextmenu="showContextMenu">
+  <div class="content-area">
     <div
       class="pet-body"
       ref="petBodyRef"
@@ -39,6 +39,7 @@
       :visible="contextMenuVisible"
       :petElement="petBodyRef"
       @close="closeContextMenu"
+      @show="showContextMenu"
     />
     <!-- <el-tour v-model="openGuide" :placement="'top'">
       <el-tour-step :target="target1" title="鼠标右键" description="点击右键">
@@ -391,13 +392,23 @@ onMounted(async () => {
   // 加载并监听超时任务数量
   loadOverdueCount()
   startOverdueCountListener()
+  
+  // 宠物显示出来后，自动显示菜单3秒后自动隐藏
+  setTimeout(() => {
+    contextMenuVisible.value = true
+    
+    // 5秒后自动隐藏菜单
+    setTimeout(() => {
+      if (contextMenuVisible.value) {
+        contextMenuVisible.value = false
+      }
+    }, 2000)
+  }, 1000) // 延迟1秒显示，确保宠物完全加载
 })
 
 const showContextMenu = e => {
   console.log("show context menu")
-  e.preventDefault()
-  e.stopPropagation()
-
+  
   // 显示菜单
   contextMenuVisible.value = true
 
@@ -796,7 +807,6 @@ async function loadPetImage() {
 async function updateFrame() {
   const defaultPetName = "shimeji_Germouser"
   try {
-    console.log("更新帧，当前状态:", currentPetStatus.value)
 
     // 确保默认图片已设置
     if (!defaultPetSrc.value) {
@@ -808,10 +818,8 @@ async function updateFrame() {
     if (!name) {
       name = defaultPetName
     }
-    console.log("加载配置文件:", name)
 
     const config = await loadConfigFile(name)
-    console.log("配置文件:", config)
     loadPetFrame(image, config, currentPetStatus.value)
   } catch (error) {
     console.error("更新帧失败:", error)

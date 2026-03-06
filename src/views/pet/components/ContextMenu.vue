@@ -4,6 +4,8 @@
     class="context-menu"
     :style="menuStyle"
     @click.stop
+    @mouseenter="handleMenuMouseEnter"
+    @mouseleave="handleMenuMouseLeave"
   >
     <div class="menu-item" @click="handleTaskBar">
       <span>任务栏</span>
@@ -21,6 +23,10 @@
     <div class="menu-item" @click="handleCreateTask">
       <span>新任务</span>
     </div>
+
+    <div class="menu-item" @click="handleAIDialog">
+      <span>AI对话</span>
+    </div>
   
 
   </div>
@@ -29,7 +35,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { createMainWin, createTaskWin, createProjectWin, createPetManagementWin, createTeskWin } from '@/multiwins/action';
+import { createMainWin, createTaskWin, createProjectWin, createPetManagementWin, createTeskWin, createAIDialogWin } from '@/multiwins/action';
 
 // 定义组件名称
 defineOptions({ name: 'ContextMenu' });
@@ -51,17 +57,24 @@ const props = defineProps({
 });
 
 // 定义emits
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'show']);
 
 // 菜单位置状态
 const menuPosition = ref({ bottom: '25%', left: '50%' });
+const autoHideTimer = ref(null);
+const isHovering = ref(false);
 
 // 计算菜单样式
 const menuStyle = computed(() => ({
   bottom: menuPosition.value.bottom,
   left: menuPosition.value.left,
-  transform: 'translateX(-50%)'
+  transform: 'translateX(-50%)',
+  opacity: visible.value ? 1 : 0,
+  pointerEvents: visible.value ? 'auto' : 'none'
 }));
+
+// 获取visible的引用
+const visible = computed(() => props.visible);
 
 // 方案3：直接基于宠物元素位置计算菜单位置
 const calculateMenuPositionFromPet = () => {
@@ -76,18 +89,6 @@ const calculateMenuPositionFromPet = () => {
         left: '50%'
       };
       
-      console.log('基于宠物元素位置计算:', {
-        petRect: {
-          bottom: petRect.bottom,
-          left: petRect.left,
-          right: petRect.right,
-          width: petRect.width,
-          height: petRect.height,
-          innerHeight:  window.innerHeight
-        },
-        menuBottom,
-        finalPosition: menuPosition.value
-      });
       return;
     }
     
@@ -109,12 +110,41 @@ watch(() => props.visible, (newVisible) => {
   if (newVisible) {
     nextTick(() => {
       calculateMenuPositionFromPet();
+      // 清除之前的定时器
+      if (autoHideTimer.value) {
+        clearTimeout(autoHideTimer.value);
+      }
+      // 10秒后自动淡去（仅在非悬浮状态下）
+      autoHideTimer.value = setTimeout(() => {
+        if (!isHovering.value) {
+          closeMenu();
+        }
+      }, 10000);
     });
+  } else {
+    // 清除定时器
+    if (autoHideTimer.value) {
+      clearTimeout(autoHideTimer.value);
+    }
   }
 });
 
-// 监听petElement变化，重新计算位置
-watch(() => props.petElement, () => {
+// 监听petElement变化，重新计算位置并添加事件监听
+watch(() => props.petElement, (newPetElement, oldPetElement) => {
+  // 移除旧元素的事件监听
+  if (oldPetElement) {
+    oldPetElement.removeEventListener('mouseenter', handlePetMouseEnter);
+    oldPetElement.removeEventListener('mouseleave', handlePetMouseLeave);
+    oldPetElement.removeEventListener('mousedown', handlePetMouseDown);
+  }
+  
+  // 添加新元素的事件监听
+  if (newPetElement) {
+    newPetElement.addEventListener('mouseenter', handlePetMouseEnter);
+    newPetElement.addEventListener('mouseleave', handlePetMouseLeave);
+    newPetElement.addEventListener('mousedown', handlePetMouseDown);
+  }
+  
   if (props.visible) {
     nextTick(() => {
       calculateMenuPositionFromPet();
@@ -199,6 +229,17 @@ const handleCreateProject = async () => {
   }
 };
 
+// 处理AI对话
+const handleAIDialog = async () => {
+  try {
+    // 打开AI对话窗口
+    await createAIDialogWin();
+    closeMenu();
+  } catch (error) {
+    console.error('打开AI对话窗口失败:', error);
+  }
+};
+
 // 点击外部关闭菜单
 const handleClickOutside = (event) => {
   const menu = document.querySelector('.context-menu');
@@ -207,11 +248,65 @@ const handleClickOutside = (event) => {
   }
 };
 
+// 处理宠物元素鼠标进入
+const handlePetMouseEnter = () => {
+  isHovering.value = true;
+  // 清除自动隐藏定时器
+  if (autoHideTimer.value) {
+    clearTimeout(autoHideTimer.value);
+  }
+  // 如果菜单不可见，显示菜单
+  if (!props.visible) {
+    emit('show');
+  }
+};
+
+// 处理宠物元素鼠标离开
+const handlePetMouseLeave = () => {
+  isHovering.value = false;
+  // 鼠标离开宠物后，设置延迟隐藏（给用户时间移动到菜单栏）
+  autoHideTimer.value = setTimeout(() => {
+    closeMenu();
+  }, 300);
+};
+
+// 处理宠物元素左键点击（拖动意图）
+const handlePetMouseDown = (event) => {
+  // 只处理左键点击
+  if (event.button === 0) {
+    closeMenu();
+  }
+};
+
+// 处理菜单栏鼠标进入
+const handleMenuMouseEnter = () => {
+  isHovering.value = true;
+  // 清除自动隐藏定时器
+  if (autoHideTimer.value) {
+    clearTimeout(autoHideTimer.value);
+  }
+};
+
+// 处理菜单栏鼠标离开
+const handleMenuMouseLeave = () => {
+  isHovering.value = false;
+  // 鼠标离开菜单后，设置延迟隐藏
+  autoHideTimer.value = setTimeout(() => {
+    closeMenu();
+  }, 1000);
+};
+
 // 监听点击事件
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
-  document.addEventListener('contextmenu', handleClickOutside);
   window.addEventListener('resize', handleResize);
+  
+  // 添加宠物元素事件监听
+  if (props.petElement) {
+    props.petElement.addEventListener('mouseenter', handlePetMouseEnter);
+    props.petElement.addEventListener('mouseleave', handlePetMouseLeave);
+    props.petElement.addEventListener('mousedown', handlePetMouseDown);
+  }
   
   // 初始计算位置
   calculateMenuPositionFromPet();
@@ -219,8 +314,19 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
-  document.removeEventListener('contextmenu', handleClickOutside);
   window.removeEventListener('resize', handleResize);
+  
+  // 移除宠物元素事件监听
+  if (props.petElement) {
+    props.petElement.removeEventListener('mouseenter', handlePetMouseEnter);
+    props.petElement.removeEventListener('mouseleave', handlePetMouseLeave);
+    props.petElement.removeEventListener('mousedown', handlePetMouseDown);
+  }
+  
+  // 清除定时器
+  if (autoHideTimer.value) {
+    clearTimeout(autoHideTimer.value);
+  }
 });
 </script>
 
@@ -241,6 +347,8 @@ onUnmounted(() => {
   align-items: center; /* 垂直居中 */
   justify-content: space-between; /* 左右分布 */
   gap: 0.8px; /* 项目间距缩小10倍 */
+  transition: opacity 0.3s ease-out;
+  animation: contextMenuSlideUp 0.3s ease-out;
 }
 
 .menu-item {
