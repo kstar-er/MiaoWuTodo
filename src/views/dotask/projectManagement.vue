@@ -16,7 +16,18 @@
             @clear="onClearSearch"
             @keyup.enter="doFilter"
           ></el-input>
-          <el-button @click="doFilter"> 查询 </el-button>
+          <!-- 查询按钮（icon） -->
+          <el-tooltip content="查询" placement="bottom">
+            <el-button class="icon-btn" @click="doFilter">
+              <el-icon><Search /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <!-- 项目概览按钮（大屏幕 icon） -->
+          <el-tooltip content="项目概览" placement="bottom">
+            <el-button class="icon-btn" @click="openOverview">
+              <el-icon><Monitor /></el-icon>
+            </el-button>
+          </el-tooltip>
         </div>
         <el-divider class="content-divider" />
 
@@ -160,6 +171,12 @@
     <div class="add_but" >
       <div id="addProject"></div>
     </div>
+
+    <!-- 项目概览弹窗 -->
+    <projectOverviewDialog
+      v-model="overviewVisible"
+      :projects="projectList"
+    />
   </main>
 </template>
 
@@ -175,6 +192,8 @@ import {
 import { getProject, deleteProject, addOrUpdateProject } from "../../utils/taskManagement/index";
 import FloatIcon from "./components/dragFloatBtn.vue"; // 拖拽按钮
 import loadingAnimation from "../components/public/loadingAnimation.vue"; // 加载动画
+import projectOverviewDialog from "./components/projectOverviewDialog.vue"; // 项目概览弹窗
+import { Search, Monitor } from "@element-plus/icons-vue";
 import { getTagColor } from "../../utils"; // 标签颜色
 import { initProjectClass, prepareFormDataForNewProject } from "./utils/eventHandler";
 import { listen } from "@tauri-apps/api/event";
@@ -323,6 +342,12 @@ const updateProjectList = async (data, action) => {
 const searchData = ref({
   searchProjectName: ""
 });
+
+// 项目概览弹窗
+const overviewVisible = ref(false);
+const openOverview = () => {
+  overviewVisible.value = true;
+};
 
 const doFilter = async () => {
   if (!searchData.value.searchProjectName) {
@@ -573,6 +598,14 @@ const resetLocalFormdata = async () => {
       justify-content: center;
       .search-input {
         margin-right: 10px;
+      }
+      .icon-btn {
+        margin-right: 10px;
+        padding: 0 12px;
+        font-size: 16px;
+        .el-icon {
+          vertical-align: middle;
+        }
       }
 
     }
