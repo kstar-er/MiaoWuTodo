@@ -27,8 +27,6 @@
     <div class="menu-item" @click="handleAIDialog">
       <span>AI对话</span>
     </div>
-  
-
   </div>
 </template>
 

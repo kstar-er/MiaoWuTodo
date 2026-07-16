@@ -69,7 +69,14 @@ import {
   loadConfigFile
 } from "../../utils/imageLoader"
 import { Bell } from "@element-plus/icons-vue"
-import { createNotificationWin, createMainWin } from "@/multiwins/action"
+import {
+  createNotificationWin,
+  createMainWin,
+  createPetManagementWin,
+  createTeskWin,
+  createTaskWin,
+  createAIDialogWin
+} from "@/multiwins/action"
 import webSocketService from "@/utils/webSocket/websocket"
 import ContextMenu from "./components/ContextMenu.vue"
 const openGuide = ref(false)
@@ -309,7 +316,53 @@ onMounted(async () => {
   }
 })
 
-let unlistenFn, unlistenFn1, unlistenFn2
+let unlistenFn, unlistenFn1, unlistenFn2, unlistenFn3
+
+const openCreateTaskWindow = async () => {
+  if (localStorage.getItem("lastTaskAddData")) {
+    const formData = JSON.parse(localStorage.getItem("lastTaskAddData"))
+    formData.isCanSelectProject = true
+    sessionStorage.setItem("formdata", JSON.stringify(formData))
+    await createTaskWin("pet")
+    console.log("传输的数据:", formData)
+  } else {
+    const formData = {
+      isCanSelectProject: true,
+      nickName: ""
+    }
+    sessionStorage.setItem("formdata", JSON.stringify(formData))
+    await createTaskWin("pet")
+  }
+}
+
+const handleTrayMenuEvent = async menuId => {
+  try {
+    switch (menuId) {
+      case "taskbar":
+        await createMainWin()
+        break
+      case "miniTask":
+        await createTeskWin()
+        break
+      case "pet":
+        await createPetManagementWin()
+        break
+      case "createTask":
+        await openCreateTaskWindow()
+        break
+      case "aiDialog":
+        await createAIDialogWin()
+        break
+      default:
+        console.warn("未知托盘菜单事件:", menuId)
+        return
+    }
+    closeContextMenu()
+  } catch (error) {
+    console.error("处理托盘菜单事件失败:", menuId, error)
+  }
+}
+
 onMounted(async () => {
   // 监听来自登录窗口的登录信息
   try {
@@ -347,6 +400,14 @@ onMounted(async () => {
     console.error("通知消息监听设置失败:", error)
   }
 
+  try {
+    unlistenFn3 = await listen("tray-menu-event", async event => {
+      await handleTrayMenuEvent(event.payload)
+    })
+  } catch (error) {
+    console.error("托盘菜单监听设置失败:", error)
+  }
+
   // 初始化WebSocket连接
   checkAndConnectWebSocket()
 })
@@ -356,6 +417,7 @@ onUnmounted(() => {
   unlistenFn?.()
   unlistenFn1?.()
   unlistenFn2?.()
+  unlistenFn3?.()
 
   // 清理缓存监听
   if (cacheCleanup) {
@@ -589,40 +651,41 @@ const stopDrag = async e => {
     return
   }
 
-  if (dragDuration < 800 && isSignificantMove) {
-    // 满足：快速拖拽 / 大范围移动 → 执行掉落
-    console.log("执行掉落动画")
-    updatePetStatus(PetStatus.JUMP) // 掉落时动作
+  // 隐藏掉落动画
+  // if (dragDuration < 800 && isSignificantMove) {
+  //   // 满足：快速拖拽 / 大范围移动 → 执行掉落
+  //   console.log("执行掉落动画")
+  //   updatePetStatus(PetStatus.JUMP) // 掉落时动作
 
-    // 获取当前位置
-    const position = await tauriWindow.innerPosition()
-    const currentX = position.x / scaleFactor.value
-    const currentY = position.y / scaleFactor.value
+  //   // 获取当前位置
+  //   const position = await tauriWindow.innerPosition()
+  //   const currentX = position.x / scaleFactor.value
+  //   const currentY = position.y / scaleFactor.value
 
-    await animateDrop(currentX, currentY)
-  } else {
-    // 正常情况：切换为站立状态
+  //   await animateDrop(currentX, currentY)
+  // } else {
+  //   // 正常情况：切换为站立状态
 
-    // 确保动画状态正确重置，避免闪烁
-    if (animationState.currentAnimationId) {
-      cancelAnimationFrame(animationState.currentAnimationId)
-      animationState.currentAnimationId = null
-    }
-    animationState.isTransitioning = false
+  //   // 确保动画状态正确重置，避免闪烁
+  //   if (animationState.currentAnimationId) {
+  //     cancelAnimationFrame(animationState.currentAnimationId)
+  //     animationState.currentAnimationId = null
+  //   }
+  //   animationState.isTransitioning = false
 
-    // 立即切换到站立状态
-    console.log("切换到站立状态")
-    updatePetStatus(PetStatus.STAND)
+  //   // 立即切换到站立状态
+  //   console.log("切换到站立状态")
+  //   updatePetStatus(PetStatus.STAND)
 
-    // 延迟一段时间后重新启动自动播放
-    setTimeout(() => {
-      if (!isDragging.value && !animationState.isUserControlled) {
-        // 确保用户没有重新开始拖拽且不在用户控制状态
-        console.log("重新启动自动播放")
-        startAutoPlay()
-      }
-    }, 3000) // 3秒后恢复自动播放
-  }
+  //   // 延迟一段时间后重新启动自动播放
+  //   setTimeout(() => {
+  //     if (!isDragging.value && !animationState.isUserControlled) {
+  //       // 确保用户没有重新开始拖拽且不在用户控制状态
+  //       console.log("重新启动自动播放")
+  //       startAutoPlay()
+  //     }
+  //   }, 3000) // 3秒后恢复自动播放
+  // }
 
   startX = startY = 0
   isSignificantMove = false
