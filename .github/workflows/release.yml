@@ -123,3 +123,55 @@ jobs:
             github_repo: MiaoWuTodo
             gitee_upload_retry_times: 3
             debug: false
+
+  publish-updater-manifest:
+    needs: sync-to-gitee
+    if: success() && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download updater manifest from GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p release-assets
+          gh release download "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --pattern "latest.json" \
+            --dir release-assets
+
+      - name: Rewrite updater manifest to Gitee release URLs
+        env:
+          GITEE_RELEASE_BASE: https://gitee.com/k_star/miao-wu-todo/releases/download/${{ github.ref_name }}
+        run: |
+          node scripts/rewrite-updater-manifest.mjs \
+            --input release-assets/latest.json \
+            --output release-assets/latest.gitee.json \
+            --tag "${{ github.ref_name }}"
+
+      - name: Upload updater manifest to OSS
+        env:
+          ALI_OSS_ACCESS_KEY_ID: ${{ secrets.ALI_OSS_ACCESS_KEY_ID }}
+          ALI_OSS_ACCESS_KEY_SECRET: ${{ secrets.ALI_OSS_ACCESS_KEY_SECRET }}
+          ALI_OSS_BUCKET: ${{ secrets.ALI_OSS_BUCKET }}
+          ALI_OSS_REGION: ${{ secrets.ALI_OSS_REGION }}
+          ALI_OSS_ENDPOINT: ${{ secrets.ALI_OSS_ENDPOINT }}
+          ALI_OSS_STS_TOKEN: ${{ secrets.ALI_OSS_STS_TOKEN }}
+          ALI_OSS_OBJECT_KEY: ${{ secrets.ALI_OSS_OBJECT_KEY || 'latest.json' }}
+        run: |
+          node scripts/upload-oss-file.mjs \
+            --file release-assets/latest.gitee.json \
+            --key "${ALI_OSS_OBJECT_KEY}"

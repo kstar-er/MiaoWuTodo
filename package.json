@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "release": "powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1",
     "debug": "tauri build --debug",
     "clean": "rm -rf dist && rm -rf src-tauri/target",
     "build-verbose": "SET RUST_BACKTRACE=1 && tauri build --debug --verbose"
