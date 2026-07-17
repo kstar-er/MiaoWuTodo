@@ -113,16 +113,75 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Sync GitHub Release to Gitee
-        uses: trustedinster/sync-release-gitee@v1.3
-        with:
-            gitee_owner: k_star
-            gitee_repo: miao-wu-todo
-            gitee_token: ${{ secrets.GITEE_TOKEN }}
-            github_owner: kstar-er
-            github_repo: MiaoWuTodo
-            gitee_upload_retry_times: 3
-            debug: false
+      - name: Sync current GitHub Release to Gitee
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          GITEE_OWNER: k_star
+          GITEE_REPO: miao-wu-todo
+          GH_OWNER: kstar-er
+          GH_REPO: MiaoWuTodo
+        run: |
+          set -e
+
+          echo "=== 获取 GitHub Release 信息 ==="
+          release_data=$(gh api "repos/${GH_OWNER}/${GH_REPO}/releases/tags/${TAG}")
+          release_body=$(echo "$release_data" | jq -r '.body // ""')
+          release_name=$(echo "$release_data" | jq -r '.name // ""')
+          echo "Release: ${release_name} (${TAG})"
+
+          echo "=== 获取 GitHub Release 附件列表 ==="
+          assets=$(echo "$release_data" | jq -c '.assets[]')
+
+          echo "=== 检查 Gitee 上是否存在该 Release ==="
+          gitee_release_id=$(curl -s -X GET \
+            "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/tags/${TAG}" \
+            -H "Content-Type: application/json;charset=UTF-8" \
+            -H "Authorization: token ${GITEE_TOKEN}" | jq -r '.id // ""')
+
+          if [ -z "$gitee_release_id" ] || [ "$gitee_release_id" = "null" ]; then
+            echo "=== Gitee 上不存在该 Release，创建 ==="
+            create_result=$(curl -s -X POST \
+              "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases" \
+              -H "Content-Type: application/json;charset=UTF-8" \
+              -H "Authorization: token ${GITEE_TOKEN}" \
+              -d "$(jq -n \
+                --arg tag "$TAG" \
+                --arg name "$release_name" \
+                --arg body "$release_body" \
+                '{tag_name: $tag, name: $name, body: $body, prerelease: false}')")
+            gitee_release_id=$(echo "$create_result" | jq -r '.id // ""')
+            echo "Created Gitee Release ID: ${gitee_release_id}"
+          else
+            echo "Gitee 上已存在 Release ID: ${gitee_release_id}"
+          fi
+
+          echo "=== 下载并上传附件到 Gitee ==="
+          echo "$assets" | while IFS= read -r asset; do
+            asset_name=$(echo "$asset" | jq -r '.name')
+            asset_url=$(echo "$asset" | jq -r '.url')
+            echo "  处理附件: ${asset_name}"
+
+            # 获取附件下载 URL
+            download_url=$(gh api "$asset_url" | jq -r '.browser_download_url')
+
+            # 下载附件
+            curl -sL -o "/tmp/${asset_name}" "$download_url"
+
+            # 上传到 Gitee
+            upload_result=$(curl -s -X POST \
+              "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/${gitee_release_id}/attach_files" \
+              -H "Authorization: token ${GITEE_TOKEN}" \
+              -F "file=@/tmp/${asset_name}")
+            upload_name=$(echo "$upload_result" | jq -r '.name // "unknown"')
+            echo "  已上传: ${upload_name}"
+
+            # 清理临时文件
+            rm -f "/tmp/${asset_name}"
+          done
+
+          echo "=== 同步完成 ==="
 
   publish-updater-manifest:
     needs: sync-to-gitee
