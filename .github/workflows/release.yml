@@ -191,7 +191,7 @@ jobs:
                 --arg tag "$TAG" \
                 --arg name "$release_name" \
                 --arg body "$release_body" \
-                '{tag_name: $tag, name: $name, body: $body, prerelease: false}')")
+                '{tag_name: $tag, name: $name, body: $body, target_commitish: $tag, prerelease: false}')")
             gitee_release_id=$(echo "$create_result" | jq -r '.id // ""')
             echo "Created Gitee Release ID: ${gitee_release_id}"
             if [ -z "$gitee_release_id" ] || [ "$gitee_release_id" = "null" ]; then
