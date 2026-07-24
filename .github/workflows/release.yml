@@ -123,7 +123,51 @@ jobs:
           GH_OWNER: kstar-er
           GH_REPO: MiaoWuTodo
         run: |
-          set -e
+          set -eu
+
+          # Gitee attach_files 单文件硬性上限 100MB
+          MAX_SIZE=$((100 * 1024 * 1024))
+          FAILED=0
+
+          upload_one() {
+            local file="$1"
+            local name
+            name=$(basename "$file")
+            local size
+            size=$(stat -c %s "$file" 2>/dev/null || echo 0)
+
+            if [ "$size" -gt "$MAX_SIZE" ]; then
+              echo "  ⚠️  跳过 ${name}：文件 ${size}B 超过 100MB，Gitee attach_files 接口不支持"
+              return 0
+            fi
+
+            echo "  上传 ${name} (${size}B)..."
+            # -S: 出错时打印错误信息；-w: 附加 HTTP 状态码
+            local resp http_code
+            resp=$(curl -sS -w '\n__HTTP_STATUS__:%{http_code}' -X POST \
+              "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/${gitee_release_id}/attach_files" \
+              -H "Authorization: token ${GITEE_TOKEN}" \
+              -F "file=@${file}")
+            http_code=$(echo "$resp" | sed -n 's/^__HTTP_STATUS__://p')
+            resp=$(echo "$resp" | sed '/^__HTTP_STATUS__:/d')
+
+            # attach_files 成功返回是单元素数组；失败返回错误对象
+            if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+              local uploaded_name
+              uploaded_name=$(echo "$resp" | jq -r 'if type=="array" then (.[0].name // "unknown") else (.name // "unknown") end')
+              if [ "$uploaded_name" != "unknown" ] && [ -n "$uploaded_name" ] && [ "$uploaded_name" != "null" ]; then
+                echo "  ✅ 已上传: ${uploaded_name}"
+                return 0
+              fi
+              echo "  ❌ 上传返回 200 但未取到文件名"
+              echo "  原始返回: ${resp}"
+              return 1
+            else
+              echo "  ❌ 上传失败 HTTP=${http_code}"
+              echo "  原始返回: ${resp}"
+              return 1
+            fi
+          }
 
           echo "=== 获取 GitHub Release 信息 ==="
           release_data=$(gh api "repos/${GH_OWNER}/${GH_REPO}/releases/tags/${TAG}")
@@ -131,18 +175,15 @@ jobs:
           release_name=$(echo "$release_data" | jq -r '.name // ""')
           echo "Release: ${release_name} (${TAG})"
 
-          echo "=== 获取 GitHub Release 附件列表 ==="
-          assets=$(echo "$release_data" | jq -c '.assets[]')
-
           echo "=== 检查 Gitee 上是否存在该 Release ==="
-          gitee_release_id=$(curl -s -X GET \
+          gitee_release_id=$(curl -sS -X GET \
             "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/tags/${TAG}" \
             -H "Content-Type: application/json;charset=UTF-8" \
             -H "Authorization: token ${GITEE_TOKEN}" | jq -r '.id // ""')
 
           if [ -z "$gitee_release_id" ] || [ "$gitee_release_id" = "null" ]; then
             echo "=== Gitee 上不存在该 Release，创建 ==="
-            create_result=$(curl -s -X POST \
+            create_result=$(curl -sS -X POST \
               "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases" \
               -H "Content-Type: application/json;charset=UTF-8" \
               -H "Authorization: token ${GITEE_TOKEN}" \
@@ -153,35 +194,57 @@ jobs:
                 '{tag_name: $tag, name: $name, body: $body, prerelease: false}')")
             gitee_release_id=$(echo "$create_result" | jq -r '.id // ""')
             echo "Created Gitee Release ID: ${gitee_release_id}"
+            if [ -z "$gitee_release_id" ] || [ "$gitee_release_id" = "null" ]; then
+              echo "❌ 创建 Gitee Release 失败，原始返回: ${create_result}"
+              exit 1
+            fi
           else
             echo "Gitee 上已存在 Release ID: ${gitee_release_id}"
           fi
 
           echo "=== 下载并上传附件到 Gitee ==="
-          echo "$assets" | while IFS= read -r asset; do
+          # 用临时文件作为 while 的输入流，避免子 shell 中 FAILED 累加失效
+          echo "$release_data" | jq -c '.assets[]?' > /tmp/_assets_list.txt
+          while IFS= read -r asset; do
+            [ -z "$asset" ] && continue
             asset_name=$(echo "$asset" | jq -r '.name')
+            asset_size=$(echo "$asset" | jq -r '.size')
             asset_url=$(echo "$asset" | jq -r '.url')
-            echo "  处理附件: ${asset_name}"
+            echo "  处理附件: ${asset_name} (${asset_size}B)"
 
             # 获取附件下载 URL
-            download_url=$(gh api "$asset_url" | jq -r '.browser_download_url')
+            download_url=$(gh api "$asset_url" --jq '.browser_download_url')
+            if [ -z "$download_url" ] || [ "$download_url" = "null" ]; then
+              echo "  ❌ 获取下载链接失败"
+              FAILED=1
+              continue
+            fi
 
             # 下载附件
-            curl -sL -o "/tmp/${asset_name}" "$download_url"
+            local_path="/tmp/${asset_name}"
+            if ! curl -sSL --fail -o "$local_path" "$download_url"; then
+              echo "  ❌ 下载失败: $download_url"
+              FAILED=1
+              rm -f "$local_path"
+              continue
+            fi
 
-            # 上传到 Gitee
-            upload_result=$(curl -s -X POST \
-              "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/${gitee_release_id}/attach_files" \
-              -H "Authorization: token ${GITEE_TOKEN}" \
-              -F "file=@/tmp/${asset_name}")
-            upload_name=$(echo "$upload_result" | jq -r '.name // "unknown"')
-            echo "  已上传: ${upload_name}"
+            # 上传
+            if ! upload_one "$local_path"; then
+              FAILED=1
+            fi
 
-            # 清理临时文件
-            rm -f "/tmp/${asset_name}"
-          done
+            # 清理
+            rm -f "$local_path"
+          done < /tmp/_assets_list.txt
+          rm -f /tmp/_assets_list.txt
 
           echo "=== 同步完成 ==="
+          if [ "$FAILED" = "1" ]; then
+            echo "⚠️  部分附件同步失败，请查看上方日志"
+            exit 1
+          fi
+          echo "✅ 全部附件同步成功"
 
   publish-updater-manifest:
     needs: sync-to-gitee
